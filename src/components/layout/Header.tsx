@@ -118,7 +118,7 @@ export function Header() {
       <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
         <SheetContent
           side="left"
-          className="w-[280px] border-0 bg-[#0b1220] p-0 text-white sm:max-w-[280px] [&>button]:text-white"
+          className="w-[280px] border-0 bg-navy p-0 text-white sm:max-w-[280px] [&>button]:text-white"
         >
           <SheetTitle className="sr-only">Navigation menu</SheetTitle>
           <Sidebar variant="mobile" onNavigate={() => setMobileOpen(false)} />

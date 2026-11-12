@@ -172,7 +172,7 @@ export function LoginForm() {
         <p className="mt-7 text-center text-sm text-slate-500">
           Don&apos;t have an account?{' '}
           <a
-            href="http://localhost:/#contact-administrator"
+            href="http://localhost:3000/#contact-administrator"
             className="font-semibold text-brand-500 transition-colors hover:text-brand-600"
           >
             Contact Administrator

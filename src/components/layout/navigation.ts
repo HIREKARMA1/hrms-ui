@@ -38,7 +38,8 @@ export const navigationItems: NavItem[] = [
     path: '/employees',
     icon: Users,
     children: [
-      { title: 'Employees', path: '/employees' },
+      { title: 'Employee Overview', path: '/employees' },
+      { title: 'Employees', path: '/employees/list' },
       { title: 'Add Employee', path: '/employees/add' },
       { title: 'Bulk Import', path: '/employees/bulk-import' },
       { title: 'Departments', path: '/employees/departments' },
@@ -51,6 +52,18 @@ export const navigationItems: NavItem[] = [
     title: 'Attendance Management',
     path: '/attendance',
     icon: ClipboardList,
+    children: [
+      { title: 'Attendance Overview', path: '/attendance' },
+      { title: 'Daily Attendance', path: '/attendance/daily' },
+      { title: 'Check-in / Check-out', path: '/attendance/check-in' },
+      { title: 'Attendance Corrections', path: '/attendance/corrections' },
+      { title: 'Attendance Regularization', path: '/attendance/regularization' },
+      { title: 'Overtime Management', path: '/attendance/overtime' },
+      { title: 'Weekly Off Management', path: '/attendance/weekly-off' },
+      { title: 'Holiday Management', path: '/attendance/holidays' },
+      { title: 'Attendance Reports', path: '/attendance/reports' },
+      { title: 'Attendance Settings', path: '/attendance/settings' },
+    ],
   },
   {
     title: 'Leave Management',

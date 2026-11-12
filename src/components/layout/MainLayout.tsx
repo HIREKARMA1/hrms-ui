@@ -10,7 +10,7 @@ function MainLayoutShell() {
   const { collapsed } = useLayout()
 
   return (
-    <div className="min-h-svh bg-[#f4f6fb]">
+    <div className="min-h-svh bg-app-bg">
       <Sidebar />
       <div
         className={cn(

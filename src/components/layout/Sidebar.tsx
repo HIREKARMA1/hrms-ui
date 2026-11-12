@@ -16,8 +16,16 @@ import { useLayout } from './LayoutContext'
 import { navigationItems, type NavItem } from './navigation'
 
 function isPathActive(pathname: string, path: string) {
-  if (path === '/dashboard') return pathname === '/dashboard'
-  return pathname === path || pathname.startsWith(`${path}/`)
+  if (pathname === path) return true
+  // Keep overview roots exact so child routes don't highlight the parent leaf.
+  if (
+    path === '/dashboard' ||
+    path === '/attendance' ||
+    path === '/employees'
+  ) {
+    return false
+  }
+  return pathname.startsWith(`${path}/`)
 }
 
 function SidebarNavItem({
@@ -170,7 +178,7 @@ export function Sidebar({ variant = 'desktop', onNavigate }: SidebarProps) {
     <TooltipProvider delayDuration={0}>
       <aside
         className={cn(
-          'flex h-full flex-col bg-[#0b1220] text-white',
+          'flex h-full flex-col bg-navy text-white',
           variant === 'desktop' &&
             'fixed inset-y-0 left-0 z-30 hidden border-r border-white/5 transition-[width] duration-200 lg:flex',
           variant === 'desktop' && (isCollapsed ? 'w-[84px]' : 'w-[260px]'),

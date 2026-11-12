@@ -3,7 +3,18 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { MainLayout } from '@/components/layout/MainLayout'
 import { ForgotPasswordPage } from '@/features/auth/pages/ForgotPasswordPage'
 import { LoginPage } from '@/features/auth/pages/LoginPage'
+import { AttendanceCorrectionsPage } from '@/features/attendance/pages/AttendanceCorrectionsPage'
+import { AttendanceOverviewPage } from '@/features/attendance/pages/AttendanceOverviewPage'
+import { AttendanceReportsPage } from '@/features/attendance/pages/AttendanceReportsPage'
+import { AttendanceSettingsPage } from '@/features/attendance/pages/AttendanceSettingsPage'
+import { CheckInPage } from '@/features/attendance/pages/CheckInPage'
+import { DailyAttendancePage } from '@/features/attendance/pages/DailyAttendancePage'
+import { HolidayPage } from '@/features/attendance/pages/HolidayPage'
+import { OvertimePage } from '@/features/attendance/pages/OvertimePage'
+import { RegularizationPage } from '@/features/attendance/pages/RegularizationPage'
+import { WeeklyOffPage } from '@/features/attendance/pages/WeeklyOffPage'
 import { DashboardPage } from '@/features/dashboard/pages/DashboardPage'
+import { EmployeeOverviewPage } from '@/features/employees/pages/EmployeeOverviewPage'
 
 function App() {
   return (
@@ -14,8 +25,32 @@ function App() {
 
         <Route element={<MainLayout />}>
           <Route path="/dashboard" element={<DashboardPage />} />
-          <Route path="/employees/*" element={<DashboardPage />} />
-          <Route path="/attendance" element={<DashboardPage />} />
+          <Route path="/employees" element={<EmployeeOverviewPage />} />
+          <Route
+            path="/employees/*"
+            element={<Navigate to="/employees" replace />}
+          />
+
+          <Route path="/attendance" element={<AttendanceOverviewPage />} />
+          <Route path="/attendance/daily" element={<DailyAttendancePage />} />
+          <Route path="/attendance/check-in" element={<CheckInPage />} />
+          <Route
+            path="/attendance/corrections"
+            element={<AttendanceCorrectionsPage />}
+          />
+          <Route
+            path="/attendance/regularization"
+            element={<RegularizationPage />}
+          />
+          <Route path="/attendance/overtime" element={<OvertimePage />} />
+          <Route path="/attendance/weekly-off" element={<WeeklyOffPage />} />
+          <Route path="/attendance/holidays" element={<HolidayPage />} />
+          <Route path="/attendance/reports" element={<AttendanceReportsPage />} />
+          <Route
+            path="/attendance/settings"
+            element={<AttendanceSettingsPage />}
+          />
+
           <Route path="/leave" element={<DashboardPage />} />
           <Route path="/payroll" element={<DashboardPage />} />
           <Route path="/recruitment" element={<DashboardPage />} />
