@@ -9,6 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { Feature } from '@/features/rbac/components/Feature'
 
 import { AttendanceAnalytics } from '../components/AttendanceAnalytics'
 import { DepartmentDistribution } from '../components/DepartmentDistribution'
@@ -57,29 +58,49 @@ export function EmployeeOverviewPage() {
         </div>
       </div>
 
-      <EmployeeStatsCards />
+      <Feature name="employee.stats">
+        <EmployeeStatsCards />
+      </Feature>
 
       <div className="grid gap-4 xl:grid-cols-2">
-        <UpcomingBirthdays />
-        <WorkAnniversaries />
+        <Feature name="employee.birthdays">
+          <UpcomingBirthdays />
+        </Feature>
+        <Feature name="employee.anniversaries">
+          <WorkAnniversaries />
+        </Feature>
       </div>
 
       <div className="grid gap-4 xl:grid-cols-2">
-        <NewJoiners />
-        <NoticePeriodEmployees />
+        <Feature name="employee.newJoiners">
+          <NewJoiners />
+        </Feature>
+        <Feature name="employee.noticePeriod">
+          <NoticePeriodEmployees />
+        </Feature>
       </div>
 
       <div className="grid gap-4 xl:grid-cols-2">
-        <DepartmentDistribution />
-        <AttendanceAnalytics />
+        <Feature name="employee.departmentDistribution">
+          <DepartmentDistribution />
+        </Feature>
+        <Feature name="employee.attendanceAnalytics">
+          <AttendanceAnalytics />
+        </Feature>
       </div>
 
       <div className="grid gap-4 xl:grid-cols-2">
-        <LeaveAnalytics />
-        <EmployeeAttrition />
+        <Feature name="employee.leaveAnalytics">
+          <LeaveAnalytics />
+        </Feature>
+        <Feature name="employee.attrition">
+          <EmployeeAttrition />
+        </Feature>
       </div>
 
-      <MonthlyPayrollOverview />
+      <Feature name="employee.payrollOverview">
+        <MonthlyPayrollOverview />
+      </Feature>
     </div>
   )
 }

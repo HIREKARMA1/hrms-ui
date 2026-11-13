@@ -22,11 +22,22 @@ import {
 import { Input } from '@/components/ui/input'
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
 
+import { useOptionalRbacSession } from '@/features/rbac/hooks/useRbacSession'
+
 import { useLayout } from './LayoutContext'
 import { Sidebar } from './Sidebar'
 
 export function Header() {
   const { mobileOpen, setMobileOpen } = useLayout()
+  const rbac = useOptionalRbacSession()
+  const displayName = rbac?.session.displayName ?? 'Rohith Goud'
+  const roleLabel = rbac?.roleLabel ?? 'HR Manager'
+  const initials = displayName
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? '')
+    .join('')
 
   return (
     <header className="sticky top-0 z-20 border-b border-slate-200/80 bg-white/95 backdrop-blur">
@@ -83,13 +94,13 @@ export function Header() {
                 className="flex items-center gap-2.5 rounded-xl px-1.5 py-1.5 transition-colors hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:outline-none"
               >
                 <Avatar className="h-9 w-9">
-                  <AvatarFallback>RG</AvatarFallback>
+                  <AvatarFallback>{initials || 'RG'}</AvatarFallback>
                 </Avatar>
                 <div className="hidden text-left md:block">
                   <p className="text-sm font-semibold text-slate-900">
-                    Rohith Goud
+                    {displayName}
                   </p>
-                  <p className="text-xs text-slate-500">HR Manager</p>
+                  <p className="text-xs text-slate-500">{roleLabel}</p>
                 </div>
                 <ChevronDown className="hidden h-4 w-4 text-slate-400 md:block" />
               </button>
