@@ -18,7 +18,8 @@ import { resolveNavIcon } from '@/features/rbac/utils/navIcons'
 import { useLeaveViewer } from '@/features/leave/hooks/useLeaveViewer'
 
 import { useLayout } from './LayoutContext'
-import { navigationItems, type NavItem } from './navigation'
+import type { NavItem } from './navigation'
+import { resolveNavigationItems } from './resolveNavigation'
 
 const EXACT_ONLY_PATHS = new Set([
   '/dashboard',
@@ -43,8 +44,6 @@ const EXACT_ONLY_PATHS = new Set([
   '/admin/recruitment',
   '/hr/recruitment',
 ])
-import { resolveNavigationItems } from './resolveNavigation'
-import type { NavItem } from './navigation'
 
 function isPathActive(pathname: string, path: string) {
   if (pathname === path) return true
