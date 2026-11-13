@@ -1,6 +1,5 @@
 /**
  * Opening and sample accrual ledger rows for all twelve employees.
- * Loaded into mockLeaveStore on init for balance calculations.
  */
 
 import type { LedgerEntry } from '../types/ledger'
@@ -22,13 +21,19 @@ function openings(employeeId: string, balances: Record<string, number>): LedgerE
 
 const template = { CL: 8, SL: 10, EL: 18, PL: 4, CO: 2 }
 
+function balancesFor(employeeId: string) {
+  if (employeeId === 'EMP-1003') return { CL: 2, SL: 10, EL: 18, PL: 4, CO: 2 }
+  if (employeeId === 'EMP-1005') return { CL: 8, SL: 10, EL: 2, PL: 4, CO: 2 }
+  if (employeeId === 'EMP-1008') return { CL: 2, SL: 10, EL: 18, PL: 4, CO: 2 }
+  return { ...template }
+}
+
 export function buildMockLedgers(employeeIds: string[]): LedgerEntry[] {
   const rows: LedgerEntry[] = []
   for (const employeeId of employeeIds) {
-    if (employeeId.startsWith('EMP-HR')) {
-      continue
-    }
-    rows.push(...openings(employeeId, template))
+    if (employeeId.startsWith('EMP-HR')) continue
+    const balances = balancesFor(employeeId)
+    rows.push(...openings(employeeId, balances))
     rows.push({
       id: `LED-${employeeId}-EL-A`,
       employeeId,
@@ -36,7 +41,7 @@ export function buildMockLedgers(employeeIds: string[]): LedgerEntry[] {
       date: '2026-06-01',
       kind: 'Accrual',
       days: 1,
-      balanceAfter: template.EL + 1,
+      balanceAfter: balances.EL + 1,
       reason: 'June accrual',
       by: 'System',
     })

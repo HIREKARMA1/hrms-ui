@@ -10,6 +10,7 @@ import type { CompOffLot, CompOffRequest } from '../types/compOff'
 import type { EncashmentRequest } from '../types/encashment'
 import type { Delegation } from '../types/delegation'
 import type { LeaveSettings } from '../types/leaveSettings'
+import type { SettingsHistoryEntry } from '../types/settingsHistory'
 import { createDefaultLeaveSettings } from './companyDefaults'
 import { buildMockEmployees } from './mockEmployees'
 import { buildMockLedgers } from './mockLedgers'
@@ -29,6 +30,7 @@ export type LeaveStore = {
   delegations: Delegation[]
   accrualRuns: string[]
   yearEndRuns: string[]
+  settingsHistory: SettingsHistoryEntry[]
 }
 
 let store: LeaveStore | null = null
@@ -49,6 +51,7 @@ export function getLeaveStore(): LeaveStore {
       delegations: [],
       accrualRuns: ['2026-05'],
       yearEndRuns: [],
+      settingsHistory: [],
     }
   }
   return store

@@ -6,6 +6,7 @@
 import type { LedgerEntry } from '../types/ledger'
 import type { LeaveSettings } from '../types/leaveSettings'
 import { ledgerBalanceForType } from './calculateBalance'
+import { accruesLeaveBalance } from './leaveEarningModel'
 
 export type YearEndPreviewRow = {
   employeeId: string
@@ -23,7 +24,7 @@ export function calculateYearEndPreview(
   const rows: YearEndPreviewRow[] = []
   for (const employeeId of employeeIds) {
     for (const policy of settings.leaveTypes) {
-      if (!policy.enabled || !policy.paid) {
+      if (!policy.enabled || !accruesLeaveBalance(policy)) {
         continue
       }
       const balance = ledgerBalanceForType(ledger, employeeId, policy.code)

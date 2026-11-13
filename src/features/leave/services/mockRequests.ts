@@ -7,6 +7,8 @@ import type { LeaveRequest } from '../types/leaveRequest'
 import { HR_DEMO_USER_NAME } from '../constants/leaveRules'
 import { addDays } from '../utils/leaveDates'
 import { buildMockRequestBatch } from './mockRequestBatch'
+import { buildOverviewHistoryRequests } from './mockOverviewHistory'
+import { buildHrAttentionQueue } from './mockHrAttentionQueue'
 
 function step(
   id: string,
@@ -73,13 +75,13 @@ export function buildMockRequests(today: string): LeaveRequest[] {
     attachmentName: 'medical.pdf',
     appliedOn: addDays(today, -4),
     status: 'Pending',
-    currentLevel: 'HR',
-    currentStepLabel: 'Pending: HR',
-    escalated: true,
+    currentLevel: 'Manager',
+    currentStepLabel: 'Pending: Manager',
+    escalated: false,
     steps: [
       step('S3a', 'applied', addDays(today, -4), 'EMP-1010', 'Nikhil Verma'),
       step('S3b', 'approval', addDays(today, -3), 'EMP-HR-001', HR_DEMO_USER_NAME, { level: 'Manager' }),
-      step('S3c', 'escalation', addDays(today, -1), 'EMP-HR-001', HR_DEMO_USER_NAME),
+      step('S3c', 'escalation', addDays(today, -1), 'EMP-HR-001', 'System'),
     ],
   })
 
@@ -104,6 +106,12 @@ export function buildMockRequests(today: string): LeaveRequest[] {
   })
 
   for (const row of buildMockRequestBatch(today)) {
+    push(row)
+  }
+  for (const row of buildOverviewHistoryRequests(today)) {
+    push(row)
+  }
+  for (const row of buildHrAttentionQueue(today)) {
     push(row)
   }
 

@@ -1,42 +1,55 @@
 /**
- * HR monthly accrual and year-end preview runs with duplicate-month guard.
+ * HR monthly accrual and year-end preview with confirm dialogs and toasts.
  * Shown on LeavePage Accruals & Year-End tab.
  */
 
 import { useState } from 'react'
+import { activeEmployees } from '../../utils/employmentStatus'
 
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { cn } from '@/lib/utils'
 
 import { useLeave } from '../../hooks/useLeave'
+import { useLeaveToast } from '../../hooks/useLeaveToast'
 import { LeaveTabHeader } from '../LeaveTabHeader'
 import { calculateAccrualPreview } from '../../utils/calculateAccrual'
 import { calculateYearEndPreview } from '../../utils/calculateYearEnd'
 import { getLeaveStore } from '../../services/mockLeaveStore'
 import { appendLedger } from '../../services/requestActions'
 import { leaveTodayIso } from '../../utils/leaveToday'
+import { LeaveConfirmDialog } from '../shared/LeaveConfirmDialog'
+import { LEAVE_FIELD_LABEL, LEAVE_FILTER_SELECT, LEAVE_SECONDARY_BUTTON } from '../shared/leaveUi'
+import { AccrualsTabStats } from './AccrualsTabStats'
 
-export function AccrualsTab() {
+export function AccrualsTab({ openAccrualConfirm = false }: { openAccrualConfirm?: boolean }) {
   const { snapshot, reload } = useLeave()
+  const { showToast } = useLeaveToast()
   const [yearMonth, setYearMonth] = useState(leaveTodayIso().slice(0, 7))
-  const [message, setMessage] = useState('')
-  if (!snapshot) {
-    return null
-  }
-  const employees = snapshot.employees.filter((item) => !item.id.startsWith('EMP-HR'))
-  const accrualPreview = calculateAccrualPreview(snapshot.settings, employees, yearMonth)
-  const yearEndPreview = calculateYearEndPreview(
-    snapshot.settings,
-    snapshot.ledger,
-    employees.map((item) => item.id),
-  )
+  const [confirmAccrual, setConfirmAccrual] = useState(openAccrualConfirm)
+  const [confirmYearEnd, setConfirmYearEnd] = useState(false)
+  const [saving, setSaving] = useState(false)
+
+  const employees = activeEmployees(snapshot?.employees ?? []).filter((item) => !item.id.startsWith('EMP-HR'))
+  const accrualPreview = snapshot ? calculateAccrualPreview(snapshot.settings, employees, yearMonth) : []
+  const yearEndPreview = snapshot
+    ? calculateYearEndPreview(
+        snapshot.settings,
+        snapshot.ledger,
+        employees.map((item) => item.id),
+      )
+    : []
+
+  if (!snapshot) return null
 
   async function runAccrual() {
     const store = getLeaveStore()
     if (store.accrualRuns.includes(yearMonth)) {
-      setMessage(`Accrual for ${yearMonth} was already run.`)
+      showToast(`Accrual for ${yearMonth} was already run.`)
+      setConfirmAccrual(false)
       return
     }
+    setSaving(true)
     for (const row of accrualPreview) {
       appendLedger({
         employeeId: row.employeeId,
@@ -50,35 +63,47 @@ export function AccrualsTab() {
       })
     }
     store.accrualRuns.push(yearMonth)
-    setMessage(`Accrual posted for ${yearMonth}.`)
     await reload()
+    setSaving(false)
+    setConfirmAccrual(false)
+    showToast(`Accrual posted for ${yearMonth}.`)
   }
 
   return (
     <div className="space-y-6">
       <LeaveTabHeader title="Accruals & year-end" subtitle="Preview and post monthly accruals and year-end carry-forward." />
+      <AccrualsTabStats
+        employeeCount={employees.length}
+        accrualLines={accrualPreview.length}
+        yearEndLines={yearEndPreview.length}
+        accrualMonth={yearMonth}
+      />
       <Card>
+        <CardHeader className="border-b border-hrms-border pb-3">
+          <CardTitle className="text-base font-semibold text-hrms-navy">Monthly accrual</CardTitle>
+        </CardHeader>
         <CardContent className="space-y-3 p-5 text-sm">
-          <label className="flex flex-wrap items-center gap-2">
-            Accrual month
-            <input type="month" className="h-9 rounded-lg border border-hrms-border px-2" value={yearMonth} onChange={(event) => setYearMonth(event.target.value)} />
+          <label className="block">
+            <span className={LEAVE_FIELD_LABEL}>Accrual month</span>
+            <input type="month" className={cn('mt-1', LEAVE_FILTER_SELECT, 'w-full max-w-xs')} value={yearMonth} onChange={(event) => setYearMonth(event.target.value)} />
           </label>
-          <p>{accrualPreview.length} ledger credits in preview.</p>
-          <Button type="button" onClick={() => void runAccrual()}>
-            Run accrual
-          </Button>
-          {message ? <p className="text-hrms-warning">{message}</p> : null}
+          <p className="text-hrms-text-secondary tabular-nums">{accrualPreview.length} ledger credits in preview.</p>
+          <Button type="button" onClick={() => setConfirmAccrual(true)}>Run accrual</Button>
         </CardContent>
       </Card>
       <Card>
+        <CardHeader className="border-b border-hrms-border pb-3">
+          <CardTitle className="text-base font-semibold text-hrms-navy">Year-end preview</CardTitle>
+        </CardHeader>
         <CardContent className="space-y-3 p-5 text-sm">
-          <p className="font-semibold text-hrms-navy">Year-end preview ({snapshot.settings.leaveYearMode})</p>
-          <p>{yearEndPreview.length} employee/type adjustments in preview.</p>
-          <Button type="button" variant="outline">
+          <p className="text-hrms-text-secondary">{yearEndPreview.length} employee/type adjustments ({snapshot.settings.leaveYearMode}).</p>
+          <Button type="button" variant="outline" className={LEAVE_SECONDARY_BUTTON} onClick={() => setConfirmYearEnd(true)}>
             Run year-end
           </Button>
         </CardContent>
       </Card>
+      <LeaveConfirmDialog open={confirmAccrual} onOpenChange={setConfirmAccrual} title="Run monthly accrual?" description="This will post accrual ledger rows for all eligible employees for the selected month." confirmLabel="Run accrual" loading={saving} onConfirm={() => void runAccrual()} />
+      <LeaveConfirmDialog open={confirmYearEnd} onOpenChange={setConfirmYearEnd} title="Run year-end?" description="Year-end will apply carry-forward rules from settings. Review preview before confirming in production." confirmLabel="Run year-end" onConfirm={() => { setConfirmYearEnd(false); showToast('Year-end run saved (preview only).'); }} />
     </div>
   )
 }

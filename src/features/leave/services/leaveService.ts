@@ -7,6 +7,8 @@ import type { LeaveEmployee } from '../types/employee'
 import type { LeaveRequest } from '../types/leaveRequest'
 import type { LedgerEntry } from '../types/ledger'
 import type { LeaveSettings } from '../types/leaveSettings'
+import type { SettingsHistoryEntry } from '../types/settingsHistory'
+import { buildSettingsHistoryEntries } from '../utils/buildSettingsHistoryEntries'
 import type { CompOffLot, CompOffRequest } from '../types/compOff'
 import type { EncashmentRequest } from '../types/encashment'
 import type { Delegation } from '../types/delegation'
@@ -32,6 +34,7 @@ export type LeaveSnapshot = {
   delegations: Delegation[]
   accrualRuns: string[]
   yearEndRuns: string[]
+  settingsHistory: SettingsHistoryEntry[]
 }
 
 export async function fetchLeaveSnapshot(): Promise<LeaveSnapshot> {
@@ -48,12 +51,18 @@ export async function fetchLeaveSnapshot(): Promise<LeaveSnapshot> {
     delegations: [...store.delegations],
     accrualRuns: [...store.accrualRuns],
     yearEndRuns: [...store.yearEndRuns],
+    settingsHistory: [...store.settingsHistory],
   }
 }
 
-export async function saveLeaveSettings(settings: LeaveSettings): Promise<void> {
+export async function saveLeaveSettings(settings: LeaveSettings, userName: string): Promise<void> {
   await leaveDelay()
-  getLeaveStore().settings = structuredClone(settings)
+  const store = getLeaveStore()
+  const before = structuredClone(store.settings)
+  // Rule changes never recalculate existing requests or ledger entries; they apply to new requests only.
+  const entries = buildSettingsHistoryEntries(before, settings, userName)
+  store.settingsHistory.push(...entries)
+  store.settings = structuredClone(settings)
 }
 
 export async function resetLeaveData(): Promise<void> {
@@ -70,6 +79,6 @@ export {
   createDefaultLeaveSettings,
 }
 
-export async function saveSettingsDraft(settings: LeaveSettings): Promise<void> {
-  return saveLeaveSettings(settings)
+export async function saveSettingsDraft(settings: LeaveSettings, userName: string): Promise<void> {
+  return saveLeaveSettings(settings, userName)
 }

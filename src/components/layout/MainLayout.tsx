@@ -2,6 +2,8 @@ import { Outlet } from 'react-router-dom'
 
 import { cn } from '@/lib/utils'
 
+import { LeaveViewerProvider } from '@/features/leave/context/LeaveViewerProvider'
+
 import { Header } from './Header'
 import { LayoutProvider, useLayout } from './LayoutContext'
 import { Sidebar } from './Sidebar'
@@ -30,7 +32,9 @@ function MainLayoutShell() {
 export function MainLayout() {
   return (
     <LayoutProvider>
-      <MainLayoutShell />
+      <LeaveViewerProvider>
+        <MainLayoutShell />
+      </LeaveViewerProvider>
     </LayoutProvider>
   )
 }

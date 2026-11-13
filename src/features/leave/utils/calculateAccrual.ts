@@ -5,6 +5,7 @@
 
 import type { LeaveEmployee } from '../types/employee'
 import type { LeaveSettings, LeaveTypePolicy } from '../types/leaveSettings'
+import { accruesLeaveBalance } from './leaveEarningModel'
 import { leaveTodayIso } from './leaveToday'
 
 export type AccrualPreviewRow = {
@@ -20,7 +21,7 @@ function accrualForType(
   employee: LeaveEmployee,
   yearMonth: string,
 ): number {
-  if (!policy.enabled || !policy.paid || policy.annualQuotaDays === null) {
+  if (!policy.enabled || !accruesLeaveBalance(policy) || policy.annualQuotaDays === null) {
     return 0
   }
   if (policy.accrualMethod === 'upfront') {

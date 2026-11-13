@@ -3,7 +3,9 @@
  * Consumed by useLeaveViewer across LeavePage tabs.
  */
 
-export type LeaveViewerRole = 'Employee' | 'Manager' | 'HR'
+import type { UserRole } from '../constants/userRoles'
+
+export type LeaveViewerRole = UserRole
 
 export type LeaveViewer = {
   role: LeaveViewerRole

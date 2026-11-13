@@ -1,11 +1,15 @@
 /**
- * Top-level Payroll Management page tab state with arrow-key support.
- * Used by PayrollPageTabs on PayrollPage.
+ * Payroll section ids by demo role (sidebar + URL).
  */
 
-import { useCallback, useState, type KeyboardEvent } from 'react'
+import {
+  isEmployeeExperience,
+  isHrAdminExperience,
+  isManagerExperience,
+  type UserRole,
+} from '@/features/leave/constants/userRoles'
 
-export const PAYROLL_PAGE_TABS = [
+export const HR_PAYROLL_TABS = [
   'Overview',
   'Salary Structures',
   'Variable Pay',
@@ -13,35 +17,26 @@ export const PAYROLL_PAGE_TABS = [
   'Payroll Settings',
 ] as const
 
-export type PayrollPageTabId = (typeof PAYROLL_PAGE_TABS)[number]
+export const MANAGER_PAYROLL_TABS = ['Overview', 'Variable Pay'] as const
 
-export function usePayrollPageTabs(initial: PayrollPageTabId = 'Overview') {
-  const [activeTab, setActiveTab] = useState<PayrollPageTabId>(initial)
+export const EMPLOYEE_PAYROLL_TABS = ['My Payslips'] as const
 
-  const onKeyDown = useCallback(
-    (event: KeyboardEvent<HTMLButtonElement>) => {
-      const index = PAYROLL_PAGE_TABS.indexOf(activeTab)
-      if (event.key === 'ArrowRight') {
-        event.preventDefault()
-        setActiveTab(PAYROLL_PAGE_TABS[(index + 1) % PAYROLL_PAGE_TABS.length])
-      }
-      if (event.key === 'ArrowLeft') {
-        event.preventDefault()
-        setActiveTab(
-          PAYROLL_PAGE_TABS[(index - 1 + PAYROLL_PAGE_TABS.length) % PAYROLL_PAGE_TABS.length],
-        )
-      }
-      if (event.key === 'Home') {
-        event.preventDefault()
-        setActiveTab(PAYROLL_PAGE_TABS[0])
-      }
-      if (event.key === 'End') {
-        event.preventDefault()
-        setActiveTab(PAYROLL_PAGE_TABS[PAYROLL_PAGE_TABS.length - 1])
-      }
-    },
-    [activeTab],
-  )
+export type HrPayrollTabId = (typeof HR_PAYROLL_TABS)[number]
+export type ManagerPayrollTabId = (typeof MANAGER_PAYROLL_TABS)[number]
+export type EmployeePayrollTabId = (typeof EMPLOYEE_PAYROLL_TABS)[number]
 
-  return { activeTab, setActiveTab, onKeyDown }
+export type PayrollPageTabId = HrPayrollTabId | ManagerPayrollTabId | EmployeePayrollTabId
+
+/** @deprecated Use HR_PAYROLL_TABS — kept for docs and migrations. */
+export const PAYROLL_PAGE_TABS = HR_PAYROLL_TABS
+
+export function payrollTabsForRole(role: UserRole): readonly PayrollPageTabId[] {
+  if (isHrAdminExperience(role)) return HR_PAYROLL_TABS
+  if (isManagerExperience(role)) return MANAGER_PAYROLL_TABS
+  if (isEmployeeExperience(role)) return EMPLOYEE_PAYROLL_TABS
+  return HR_PAYROLL_TABS
+}
+
+export function defaultPayrollTabForRole(role: UserRole): PayrollPageTabId {
+  return payrollTabsForRole(role)[0]
 }

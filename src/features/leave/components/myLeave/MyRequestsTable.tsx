@@ -1,64 +1,98 @@
 /**
- * Filterable leave history table for the current viewer on My Leave tab.
+ * Clickable leave history table for My Leave with row actions and empty state.
  */
 
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import { cn } from '@/lib/utils'
 
-import { LeaveStatusPill } from '../LeaveStatusPill'
-import { LEAVE_TYPE_LABELS, type LeaveTypeCode } from '../../constants/leaveTypeCodes'
 import type { LeaveRequest } from '../../types/leaveRequest'
 import { formatDate } from '../../utils/formatDate'
+import { LeaveStatusPill } from '../LeaveStatusPill'
+import { LeaveTypeChip } from '../LeaveTypeChip'
+import { LeaveEmptyState } from '../shared/LeaveEmptyState'
+import { RowLinkButton } from '../shared/LeaveRowActions'
+import { LEAVE_TABLE_ROW, LEAVE_TABLE_THEAD } from '../shared/leaveUi'
+import { LEAVE_TABLE_BASE, leaveTdClass, leaveThClass } from '../shared/leaveTableLayout'
 
 type MyRequestsTableProps = {
   rows: LeaveRequest[]
   onView: (row: LeaveRequest) => void
   onCancel: (row: LeaveRequest) => void
   canCancel: (row: LeaveRequest) => boolean
+  onApply?: () => void
 }
 
-export function MyRequestsTable({ rows, onView, onCancel, canCancel }: MyRequestsTableProps) {
+function openRow(row: LeaveRequest, onView: (row: LeaveRequest) => void) {
+  onView(row)
+}
+
+export function MyRequestsTable({ rows, onView, onCancel, canCancel, onApply }: MyRequestsTableProps) {
   if (rows.length === 0) {
     return (
       <Card>
-        <CardContent className="py-12 text-center text-sm text-hrms-text-muted">
-          No leave requests match your filters.
+        <CardContent className="p-0">
+          <LeaveEmptyState
+            message="No leave requests match your filters."
+            action={
+              onApply ? (
+                <Button type="button" size="sm" onClick={onApply}>
+                  Apply for leave
+                </Button>
+              ) : null
+            }
+          />
         </CardContent>
       </Card>
     )
   }
   return (
     <Card>
-      <CardContent className="overflow-x-auto p-0">
-        <table className="w-full min-w-[640px] table-auto text-left text-sm">
-          <thead className="bg-hrms-page text-hrms-text-secondary">
+      <CardContent className="min-w-0 overflow-x-auto p-0">
+        <table className={cn(LEAVE_TABLE_BASE, 'min-w-0')}>
+          <thead className={LEAVE_TABLE_THEAD}>
             <tr>
-              {['Leave type', 'From', 'To', 'Days', 'Applied on', 'Status', 'Actions'].map((head) => (
-                <th key={head} className="px-4 py-3 font-semibold">
-                  {head}
-                </th>
-              ))}
+              <th className={leaveThClass('left', 'w-[22%]')}>Leave type</th>
+              <th className={leaveThClass('left', 'w-[14%]')}>From</th>
+              <th className={leaveThClass('left', 'w-[14%]')}>To</th>
+              <th className={leaveThClass('right', 'w-[8%]')}>Days</th>
+              <th className={leaveThClass('left', 'w-[14%]')}>Applied on</th>
+              <th className={leaveThClass('left', 'w-[18%]')}>Status</th>
+              <th className={leaveThClass('right', 'w-[10%]')}>Actions</th>
             </tr>
           </thead>
           <tbody>
             {rows.map((row) => (
-              <tr key={row.id} className="border-b border-hrms-border/60 hover:bg-hrms-row-hover">
-                <td className="px-4 py-3">{LEAVE_TYPE_LABELS[row.leaveTypeCode as LeaveTypeCode] ?? row.leaveTypeCode}</td>
-                <td className="whitespace-nowrap px-4 py-3">{formatDate(row.fromDate)}</td>
-                <td className="whitespace-nowrap px-4 py-3">{formatDate(row.toDate)}</td>
-                <td className="px-4 py-3 tabular-nums">{row.days}</td>
-                <td className="whitespace-nowrap px-4 py-3">{formatDate(row.appliedOn)}</td>
-                <td className="px-4 py-3">
-                  <LeaveStatusPill status={row.currentStepLabel} />
-                  {row.escalated ? <LeaveStatusPill status="Escalated" className="ml-1" /> : null}
+              <tr
+                key={row.id}
+                className={LEAVE_TABLE_ROW}
+                tabIndex={0}
+                onClick={() => openRow(row, onView)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault()
+                    openRow(row, onView)
+                  }
+                }}
+              >
+                <td className={leaveTdClass('left')}>
+                  <LeaveTypeChip code={row.leaveTypeCode} abbreviated />
                 </td>
-                <td className="px-4 py-3">
-                  <div className="flex flex-wrap gap-2">
-                    <Button type="button" size="sm" variant="outline" onClick={() => onView(row)}>
-                      View
-                    </Button>
+                <td className={leaveTdClass('left', 'font-normal')}>{formatDate(row.fromDate)}</td>
+                <td className={leaveTdClass('left', 'font-normal')}>{formatDate(row.toDate)}</td>
+                <td className={leaveTdClass('right', 'font-normal')}>{row.days}</td>
+                <td className={leaveTdClass('left', 'font-normal')}>{formatDate(row.appliedOn)}</td>
+                <td className={leaveTdClass('left', 'font-normal')}>
+                  <div className="flex flex-wrap gap-1">
+                    <LeaveStatusPill status={row.currentStepLabel} />
+                    {row.escalated ? <LeaveStatusPill status="Escalated" /> : null}
+                  </div>
+                </td>
+                <td className="px-4 py-3 text-right" onClick={(event) => event.stopPropagation()}>
+                  <div className="flex flex-wrap items-center justify-end gap-2">
+                    <RowLinkButton onClick={() => onView(row)}>View</RowLinkButton>
                     {canCancel(row) ? (
-                      <Button type="button" size="sm" variant="outline" onClick={() => onCancel(row)}>
+                      <Button type="button" size="sm" variant="outline" className="h-8" onClick={() => onCancel(row)}>
                         Cancel
                       </Button>
                     ) : null}

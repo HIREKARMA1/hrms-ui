@@ -4,7 +4,7 @@ Single-company payroll: Overview run, salary structures, variable pay, full & fi
 
 ## Folder structure
 
-- `pages/` — `PayrollPage` with Overview, Structures, Variable Pay, Final Settlement, Settings tabs
+- `pages/` — `PayrollPage` with sidebar URL sections (`usePayrollRoute`, `payrollSectionRoutes.ts`)
 - `components/overview/` — Overview sections (layout unchanged except main tab bar)
 - `components/variablePay/` — Overtime, bonus runs, incentives (segmented sub-tabs)
 - `components/settlement/` — F&F list and centered detail dialog
@@ -16,6 +16,19 @@ Single-company payroll: Overview run, salary structures, variable pay, full & fi
 - `utils/` — Payroll calc with variable pay, settlement math, bonus preview builder
 - `services/` — Mock store, variable pay APIs, leave encashment stub
 - `hooks/` — Provider state, variable pay actions, segment and page tabs
+
+## Navigation (Phase A–B)
+
+- Sidebar children by role → `utils/payrollNavChildren.ts`, `payrollTabsForRole` in `hooks/usePayrollPageTabs.ts`
+- Demo role → shared `LeaveViewerProvider` + `PayrollPageHeader` / `LeaveDemoViewSelect`
+- Section slugs → `utils/payrollSectionRoutes.ts` (includes `/payroll/my-payslips` for Employee)
+- Active section hook → `hooks/usePayrollRoute.ts` (role-aware redirect off `/payroll` for non-HR)
+
+| Role | Sidebar sections |
+|------|------------------|
+| HR Admin / Super Admin | Overview, Structures, Variable Pay, Settlement, Settings |
+| Manager | Overview, Variable Pay |
+| Employee | My Payslips (demo: Arjun EMP-1006, active in payroll mocks) |
 
 ## Where to change things
 

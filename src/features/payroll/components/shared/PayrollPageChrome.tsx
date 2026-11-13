@@ -9,7 +9,8 @@ import { PAYROLL_PAGE_SCROLL_BG } from './payrollUi'
 
 type PayrollPageChromeProps = {
   header: ReactNode
-  tabs: ReactNode
+  /** @deprecated Sidebar is primary nav (Phase A); optional legacy tab row. */
+  tabs?: ReactNode
 }
 
 export function PayrollPageChrome({ header, tabs }: PayrollPageChromeProps) {

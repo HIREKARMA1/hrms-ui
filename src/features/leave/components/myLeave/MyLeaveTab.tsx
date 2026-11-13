@@ -6,40 +6,51 @@
 import { useMemo, useState } from 'react'
 
 import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 
 import { useLeave } from '../../hooks/useLeave'
+import { useLeaveToast } from '../../hooks/useLeaveToast'
 import { useMyLeaveActions } from '../../hooks/useMyLeaveActions'
 import type { LeaveViewer } from '../../types/viewer'
-import { BALANCE_TYPE_CODES } from '../../constants/leaveTypeCodes'
+import { LEAVE_TYPE_CODES } from '../../constants/leaveTypeCodes'
+import { canEarnCompOff, canRequestEncashment } from '../../utils/employeeLeavePolicy'
+import { myLeaveTabSubtitle } from '../../utils/myLeaveTabSubtitle'
+import { balanceCardHint } from '../../utils/balanceCardHint'
+import { resolveEarningModel } from '../../utils/leaveEarningModel'
 import { ledgerBalanceForType, pendingDaysForType, usedDaysForType } from '../../utils/calculateBalance'
 import { leaveTodayIso } from '../../utils/leaveToday'
 import type { LeaveRequest } from '../../types/leaveRequest'
-import { LeaveStatGrid } from '../LeaveStatGrid'
+import { ApplyLeaveDialog } from '../applyLeave/ApplyLeaveDialog'
+import { EarnCompOffDialog } from '../dialogs/EarnCompOffDialog'
+import { RequestDetailDialog } from '../dialogs/RequestDetailDialog'
+import { RequestEncashmentDialog } from '../dialogs/RequestEncashmentDialog'
 import { LeaveTabHeader } from '../LeaveTabHeader'
+import { LeaveConfirmDialog } from '../shared/LeaveConfirmDialog'
+import { LeaveTableFilters } from '../shared/LeaveTableFilters'
+import { LEAVE_SECONDARY_BUTTON } from '../shared/leaveUi'
 import { MyLeaveBalanceCards, type BalanceCardModel } from './MyLeaveBalanceCards'
+import { MyLeaveTabOverviewSection } from './MyLeaveTabOverviewSection'
 import { MyRequestsTable } from './MyRequestsTable'
-import { RequestDetailSheet } from './RequestDetailSheet'
-import { ApplyLeaveSheet } from './ApplyLeaveSheet'
 
-type MyLeaveTabProps = {
-  viewer: LeaveViewer
-}
+type MyLeaveTabProps = { viewer: LeaveViewer }
 
 function canCancel(row: LeaveRequest) {
-  if (row.status === 'Pending') {
-    return true
-  }
-  if (row.status === 'Approved' && row.fromDate > leaveTodayIso()) {
-    return true
-  }
+  if (row.status === 'Pending') return true
+  if (row.status === 'Approved' && row.fromDate > leaveTodayIso()) return true
   return false
 }
 
 export function MyLeaveTab({ viewer }: MyLeaveTabProps) {
   const { snapshot, reload } = useLeave()
+  const { showToast } = useLeaveToast()
   const [year, setYear] = useState(leaveTodayIso().slice(0, 4))
+  const [search, setSearch] = useState('')
   const [detail, setDetail] = useState<LeaveRequest | null>(null)
   const [applyOpen, setApplyOpen] = useState(false)
+  const [compOpen, setCompOpen] = useState(false)
+  const [encashOpen, setEncashOpen] = useState(false)
+  const [cancelTarget, setCancelTarget] = useState<LeaveRequest | null>(null)
+  const [saving, setSaving] = useState(false)
   const employee = snapshot?.employees.find((item) => item.id === viewer.employeeId)
   const { handleCancel, handleApply } = useMyLeaveActions(snapshot, viewer, employee, reload)
 
@@ -47,92 +58,87 @@ export function MyLeaveTab({ viewer }: MyLeaveTabProps) {
     () => snapshot?.requests.filter((item) => item.employeeId === viewer.employeeId) ?? [],
     [snapshot?.requests, viewer.employeeId],
   )
-  const cards: BalanceCardModel[] = useMemo(
+  const cards: BalanceCardModel[] = useMemo(() => {
+    if (!snapshot) return []
+    const rows: BalanceCardModel[] = []
+    for (const code of LEAVE_TYPE_CODES) {
+      const policy = snapshot.settings.leaveTypes.find((item) => item.code === code)
+      if (policy && !policy.enabled) continue
+      const available = ledgerBalanceForType(snapshot.ledger, viewer.employeeId, code) - pendingDaysForType(snapshot.requests, viewer.employeeId, code)
+      const used = usedDaysForType(snapshot.requests, viewer.employeeId, code, year)
+      const pending = pendingDaysForType(snapshot.requests, viewer.employeeId, code)
+      const hint = balanceCardHint(policy)
+      const perEvent = policy ? resolveEarningModel(policy) === 'per_event' : false
+      if (!perEvent && available <= 0 && used <= 0 && pending <= 0) continue
+      const row: BalanceCardModel = { code, available, used, pending }
+      if (hint) row.hint = hint
+      rows.push(row)
+    }
+    return rows
+  }, [snapshot, viewer.employeeId, year])
+  const yearRows = useMemo(() => requests.filter((item) => item.fromDate.startsWith(year)), [requests, year])
+  const filtered = useMemo(
     () =>
-      snapshot
-        ? BALANCE_TYPE_CODES.map((code) => {
-            const balance = ledgerBalanceForType(snapshot.ledger, viewer.employeeId, code)
-            const pending = pendingDaysForType(snapshot.requests, viewer.employeeId, code)
-            return {
-              code,
-              available: balance - pending,
-              used: usedDaysForType(snapshot.requests, viewer.employeeId, code, year),
-              pending,
-            }
-          }).filter((item) => item.available > 0 || item.used > 0 || item.pending > 0)
-        : [],
-    [snapshot, viewer.employeeId, year],
-  )
-  const filtered = useMemo(() => requests.filter((item) => item.fromDate.startsWith(year)), [requests, year])
-  const stats = useMemo(
-    () => [
-      { label: 'Available CL', value: String(cards.find((item) => item.code === 'CL')?.available ?? 0) },
-      { label: 'Pending requests', value: String(requests.filter((item) => item.status === 'Pending').length) },
-      { label: 'Approved this year', value: String(requests.filter((item) => item.status === 'Approved').length) },
-      {
-        label: 'Comp-off lots',
-        value: String(snapshot?.compOffLots.filter((item) => item.employeeId === viewer.employeeId).length ?? 0),
-      },
-    ],
-    [cards, requests, snapshot?.compOffLots, viewer.employeeId],
+      yearRows.filter(
+        (item) =>
+          !search.trim() ||
+          item.leaveTypeCode.toLowerCase().includes(search.toLowerCase()) ||
+          item.reason.toLowerCase().includes(search.toLowerCase()),
+      ),
+    [yearRows, search],
   )
 
-  if (!snapshot || !employee) {
-    return null
+  if (!snapshot || !employee) return null
+
+  const showCompOff = canEarnCompOff(snapshot.settings)
+  const showEncashment = canRequestEncashment(snapshot.settings)
+
+  async function submitCancel(row: LeaveRequest) {
+    setSaving(true)
+    await handleCancel(row)
+    setSaving(false)
+    setCancelTarget(null)
+    showToast(row.status === 'Approved' ? 'Approved leave cancelled.' : 'Request cancelled.')
   }
-
-  const balanceBefore = detail
-    ? ledgerBalanceForType(snapshot.ledger, viewer.employeeId, detail.leaveTypeCode)
-    : 0
 
   return (
     <div className="space-y-6">
       <LeaveTabHeader
         title="My leave"
-        subtitle="Balances, history, and new requests for your account."
+        subtitle={myLeaveTabSubtitle(viewer.role)}
         actions={
           <>
             <Button type="button" onClick={() => setApplyOpen(true)}>
               Apply for leave
             </Button>
-            <Button type="button" variant="outline">
-              Earn comp-off
-            </Button>
-            <Button type="button" variant="outline">
-              Request encashment
-            </Button>
+            {showCompOff ? (
+              <Button type="button" variant="outline" className={cn(LEAVE_SECONDARY_BUTTON)} onClick={() => setCompOpen(true)}>
+                Earn comp-off
+              </Button>
+            ) : null}
+            {showEncashment ? (
+              <Button type="button" variant="outline" className={cn(LEAVE_SECONDARY_BUTTON)} onClick={() => setEncashOpen(true)}>
+                Request encashment
+              </Button>
+            ) : null}
           </>
         }
       />
-      <LeaveStatGrid items={stats} />
+      <MyLeaveTabOverviewSection
+        viewer={viewer}
+        snapshot={snapshot}
+        cards={cards}
+        requests={requests}
+        compOffLots={snapshot.compOffLots}
+      />
+      <LeaveTableFilters searchId="my-leave-search" searchPlaceholder="Search requests" searchValue={search} onSearchChange={setSearch} selectId="my-leave-year" selectValue={year} selectOptions={[{ value: '2026', label: '2026' }, { value: '2025', label: '2025' }]} onSelectChange={setYear} showing={filtered.length} total={yearRows.length} />
       <MyLeaveBalanceCards cards={cards} compOffLots={snapshot.compOffLots} employeeId={viewer.employeeId} />
-      <div className="flex flex-wrap gap-2 text-sm">
-        <label className="flex items-center gap-2">
-          Year
-          <select className="h-9 rounded-lg border border-hrms-border px-2" value={year} onChange={(event) => setYear(event.target.value)}>
-            <option value="2026">2026</option>
-            <option value="2025">2025</option>
-          </select>
-        </label>
-      </div>
-      <MyRequestsTable rows={filtered} onView={setDetail} onCancel={handleCancel} canCancel={canCancel} />
-      <RequestDetailSheet
-        open={Boolean(detail)}
-        request={detail}
-        balanceBefore={balanceBefore}
-        balanceAfter={balanceBefore - (detail?.days ?? 0)}
-        onOpenChange={(open) => !open && setDetail(null)}
-      />
-      <ApplyLeaveSheet
-        open={applyOpen}
-        onOpenChange={setApplyOpen}
-        employee={employee}
-        settings={snapshot.settings}
-        ledger={snapshot.ledger}
-        existing={snapshot.requests}
-        employees={snapshot.employees}
-        onSubmit={handleApply}
-      />
+      <MyRequestsTable rows={filtered} onView={setDetail} onCancel={(row) => (row.status === 'Approved' ? setCancelTarget(row) : void submitCancel(row))} canCancel={canCancel} onApply={() => setApplyOpen(true)} />
+      <RequestDetailDialog open={Boolean(detail)} request={detail} balanceBefore={detail ? ledgerBalanceForType(snapshot.ledger, viewer.employeeId, detail.leaveTypeCode) : 0} balanceAfter={detail ? ledgerBalanceForType(snapshot.ledger, viewer.employeeId, detail.leaveTypeCode) - detail.days : 0} onOpenChange={(open) => !open && setDetail(null)} />
+      <ApplyLeaveDialog open={applyOpen} onOpenChange={setApplyOpen} employee={employee} settings={snapshot.settings} ledger={snapshot.ledger} existing={snapshot.requests} employees={snapshot.employees} saving={saving} onSubmit={async (input) => { setSaving(true); await handleApply(input); setSaving(false); showToast('Leave request submitted.') }} />
+      <EarnCompOffDialog open={compOpen} onOpenChange={setCompOpen} onSubmit={() => showToast('Comp-off credit submitted.')} />
+      <RequestEncashmentDialog open={encashOpen} onOpenChange={setEncashOpen} onSubmit={() => showToast('Encashment request submitted.')} />
+      <LeaveConfirmDialog open={Boolean(cancelTarget)} onOpenChange={(open) => !open && setCancelTarget(null)} title="Cancel request?" description="This will withdraw the leave request from the approval queue." confirmLabel="Cancel request" loading={saving} danger onConfirm={() => cancelTarget && void submitCancel(cancelTarget)} />
     </div>
   )
 }

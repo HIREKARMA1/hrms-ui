@@ -20,6 +20,7 @@ export function cancelRequest(requestId: string, actorId: string, actorName: str
   if (!request || request.status === 'Cancelled') {
     return
   }
+  const wasApproved = request.status === 'Approved'
   request.status = 'Cancelled'
   request.currentLevel = null
   request.currentStepLabel = 'Cancelled'
@@ -31,7 +32,7 @@ export function cancelRequest(requestId: string, actorId: string, actorName: str
     actorName,
     comment: reason,
   })
-  if (request.leaveTypeCode !== 'LWP') {
+  if (wasApproved && request.leaveTypeCode !== 'LWP') {
     appendLedger({
       employeeId: request.employeeId,
       leaveTypeCode: request.leaveTypeCode,
@@ -39,7 +40,7 @@ export function cancelRequest(requestId: string, actorId: string, actorName: str
       kind: 'Cancelled',
       days: request.days,
       balanceAfter: latestBalance(request.employeeId, request.leaveTypeCode) + request.days,
-      reason: 'Request cancelled',
+      reason: reason ?? 'Request cancelled',
       by: actorName,
     })
   }

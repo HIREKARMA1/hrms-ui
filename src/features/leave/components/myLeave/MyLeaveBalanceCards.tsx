@@ -16,6 +16,7 @@ export type BalanceCardModel = {
   available: number
   used: number
   pending: number
+  hint?: string
 }
 
 type MyLeaveBalanceCardsProps = {
@@ -44,6 +45,7 @@ export function MyLeaveBalanceCards({ cards, compOffLots, employeeId }: MyLeaveB
             <p>Available: {card.available}</p>
             <p>Used: {card.used}</p>
             <p>Pending approval: {card.pending}</p>
+            {card.hint ? <p className="text-xs text-hrms-text-secondary">{card.hint}</p> : null}
             {card.code === 'CO' && earliest ? (
               <p className="text-xs text-hrms-text-muted">Expires on: {formatDate(earliest.expiresOn)}</p>
             ) : null}

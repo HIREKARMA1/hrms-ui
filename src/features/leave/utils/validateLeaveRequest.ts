@@ -1,6 +1,6 @@
 /**
  * Pure validation for apply-leave with blocking errors and optional warnings.
- * Used by ApplyLeaveSheet before calling leaveService.submitRequest.
+ * Used by ApplyLeaveDialog before calling leaveService.submitRequest.
  */
 
 import type { LeaveEmployee } from '../types/employee'
@@ -125,6 +125,10 @@ export function validateLeaveRequest(
   const coverageWarnings = coverage.map(
     (item) => `Team coverage: ${item.count} in ${item.department} on ${item.date}.`,
   )
-  warnings.push(...coverageWarnings)
+  if (settings.teamCoverage.mode === 'block' && coverage.length > 0) {
+    errors.push('Too many colleagues are already on leave on one or more selected days.')
+  } else {
+    warnings.push(...coverageWarnings)
+  }
   return { errors, warnings, daysCounted: days, extraLwpDays: input.convertExtraToLwp ? extraLwp : 0, coverageWarnings }
 }

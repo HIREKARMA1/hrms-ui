@@ -4,6 +4,7 @@
  */
 
 import type { Holiday } from './holiday'
+import type { LeaveEarningModel } from './leaveEarningModel'
 
 export type LeaveYearMode = 'jan_dec' | 'apr_mar'
 
@@ -26,7 +27,10 @@ export type LeaveTypePolicy = {
   label: string
   enabled: boolean
   paid: boolean
+  earningModel: LeaveEarningModel
   annualQuotaDays: number | null
+  /** Maternity only: days per event from the third child onwards (sample in companyDefaults). */
+  perEventDaysFromThirdChild: number | null
   accrualMethod: AccrualMethod
   daysWorkedPerAccrualDay: number | null
   qualifyingDays: number | null
@@ -37,6 +41,7 @@ export type LeaveTypePolicy = {
   backdatingAllowedDays: number
   medicalCertificateAfterDays: number | null
   eligibleGender: EligibleGender
+  minServiceMonths: number
   carryForward: CarryForwardMode
   carryForwardCapDays: number | null
   encashable: boolean

@@ -1,5 +1,5 @@
 import { ChevronDown, Layers, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 
 import { Button } from '@/components/ui/button'
@@ -12,8 +12,11 @@ import {
 } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
 
+import { useLeaveViewer } from '@/features/leave/hooks/useLeaveViewer'
+
 import { useLayout } from './LayoutContext'
-import { navigationItems, type NavItem } from './navigation'
+import { resolveNavigationItems } from './resolveNavigation'
+import type { NavItem } from './navigation'
 
 function isPathActive(pathname: string, path: string) {
   if (pathname === path) return true
@@ -21,7 +24,9 @@ function isPathActive(pathname: string, path: string) {
   if (
     path === '/dashboard' ||
     path === '/attendance' ||
-    path === '/employees'
+    path === '/employees' ||
+    path === '/leave' ||
+    path === '/payroll'
   ) {
     return false
   }
@@ -172,6 +177,8 @@ type SidebarProps = {
 
 export function Sidebar({ variant = 'desktop', onNavigate }: SidebarProps) {
   const { collapsed, toggleCollapsed } = useLayout()
+  const { role } = useLeaveViewer()
+  const navigationItems = useMemo(() => resolveNavigationItems(role), [role])
   const isCollapsed = variant === 'desktop' ? collapsed : false
 
   return (

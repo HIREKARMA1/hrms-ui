@@ -1,39 +1,53 @@
 /**
  * Leave page tab state with role-filtered tab ids and arrow-key navigation.
- * Used by LeavePageTabs on LeavePage.
  */
 
 import { useCallback, useMemo, useState, type KeyboardEvent } from 'react'
 
-import type { LeaveViewerRole } from '../types/viewer'
+import {
+  isHrAdminExperience,
+  isManagerExperience,
+  isSuperAdminExperience,
+  type UserRole,
+} from '../constants/userRoles'
 
-export const LEAVE_PAGE_TABS = [
-  'My Leave',
-  'Approvals',
+export const MANAGER_TABS = ['My Leave', 'Approvals', 'Calendar'] as const
+export const EMPLOYEE_TABS = ['My Leave', 'Calendar'] as const
+
+export const HR_ADMIN_TABS = [
+  'Overview',
+  'Requests',
   'Calendar',
   'Balances',
   'Accruals & Year-End',
+  'Reports',
   'Leave Settings',
+  'My Leave',
 ] as const
 
-export type LeavePageTabId = (typeof LEAVE_PAGE_TABS)[number]
+export const SUPER_ADMIN_ONLY_TABS = ['Audit', 'Access'] as const
 
-const TABS_BY_ROLE: Record<LeaveViewerRole, LeavePageTabId[]> = {
-  Employee: ['My Leave', 'Calendar'],
-  Manager: ['My Leave', 'Approvals', 'Calendar'],
-  HR: [...LEAVE_PAGE_TABS],
+export const SUPER_ADMIN_TABS = [...HR_ADMIN_TABS, ...SUPER_ADMIN_ONLY_TABS] as const
+
+export type ManagerTabId = (typeof MANAGER_TABS)[number]
+export type EmployeeTabId = (typeof EMPLOYEE_TABS)[number]
+export type HrAdminTabId = (typeof HR_ADMIN_TABS)[number]
+export type SuperAdminOnlyTabId = (typeof SUPER_ADMIN_ONLY_TABS)[number]
+export type LeavePageTabId = ManagerTabId | EmployeeTabId | HrAdminTabId | SuperAdminOnlyTabId
+
+export function tabsForRole(role: UserRole): readonly LeavePageTabId[] {
+  if (isSuperAdminExperience(role)) return SUPER_ADMIN_TABS
+  if (isHrAdminExperience(role)) return HR_ADMIN_TABS
+  if (isManagerExperience(role)) return MANAGER_TABS
+  return EMPLOYEE_TABS
 }
 
-export function useLeavePageTabs(role: LeaveViewerRole) {
-  const allowed = useMemo(() => TABS_BY_ROLE[role], [role])
+export function useLeavePageTabs(role: UserRole) {
+  const allowed = useMemo(() => [...tabsForRole(role)], [role])
   const [pickedTab, setPickedTab] = useState<LeavePageTabId | null>(null)
-  const activeTab = pickedTab && allowed.includes(pickedTab) ? pickedTab : allowed[0]
-  const setActiveTab = useCallback(
-    (tab: LeavePageTabId) => {
-      setPickedTab(tab)
-    },
-    [],
-  )
+  const defaultTab = isHrAdminExperience(role) ? 'Overview' : allowed[0]
+  const activeTab = pickedTab && allowed.includes(pickedTab) ? pickedTab : defaultTab
+  const setActiveTab = useCallback((tab: LeavePageTabId) => setPickedTab(tab), [])
 
   const onKeyDown = useCallback(
     (event: KeyboardEvent<HTMLButtonElement>) => {

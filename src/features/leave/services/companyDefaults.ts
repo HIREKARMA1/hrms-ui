@@ -1,6 +1,6 @@
 /**
  * Single-company leave settings and holiday seeds for the mock store.
- * Change samples here or via Leave Settings tab (persisted in memory).
+ * Sample values, confirm with CA. Change via Leave Settings tab (persisted in memory).
  */
 
 import type { LeaveSettings } from '../types/leaveSettings'

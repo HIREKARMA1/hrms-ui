@@ -41,6 +41,15 @@ export function buildMockCompOff(): { lots: CompOffLot[]; requests: CompOffReque
       appliedOn: addDays(today, -5),
       status: 'Pending',
     },
+    {
+      id: 'CO-REQ-2',
+      employeeId: 'EMP-1011',
+      workedDate: addDays(today, -3),
+      dayType: 'half',
+      reason: 'Production incident on Sunday.',
+      appliedOn: addDays(today, -2),
+      status: 'Pending',
+    },
   ]
   return { lots, requests }
 }

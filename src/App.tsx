@@ -53,12 +53,11 @@ function App() {
             element={<AttendanceSettingsPage />}
           />
 
-          <Route path="/leave" element={<DashboardPage />} />
-          <Route path="/payroll" element={<DashboardPage />} />
-          <Route path="/employees/*" element={<DashboardPage />} />
-          <Route path="/attendance" element={<DashboardPage />} />
           <Route path="/leave" element={<LeavePage />} />
+          <Route path="/leave/:section" element={<LeavePage />} />
           <Route path="/payroll" element={<PayrollPage />} />
+          <Route path="/payroll/:section" element={<PayrollPage />} />
+
           <Route path="/recruitment" element={<DashboardPage />} />
           <Route path="/performance" element={<DashboardPage />} />
           <Route path="/leads" element={<DashboardPage />} />

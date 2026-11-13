@@ -69,11 +69,13 @@ export const navigationItems: NavItem[] = [
     title: 'Leave Management',
     path: '/leave',
     icon: CalendarDays,
+    children: [{ title: 'Overview', path: '/leave' }],
   },
   {
     title: 'Payroll Management',
     path: '/payroll',
     icon: FolderKanban,
+    children: [{ title: 'Overview', path: '/payroll' }],
   },
   {
     title: 'Recruitment',
