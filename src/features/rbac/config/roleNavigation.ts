@@ -1,0 +1,429 @@
+import type { BackendRoleCode, RoleNavItem, RoleUiConfig } from '../types/roles'
+import { ROLE_ROUTE_MAP } from '../utils/roleRouteMap'
+
+function recruitmentChildren(prefix: string): RoleNavItem['children'] {
+  return [
+    {
+      title: 'Recruitment Overview',
+      path: `${prefix}/recruitment`,
+      feature: 'recruitment.overview',
+    },
+    {
+      title: 'Job Postings',
+      path: `${prefix}/recruitment/jobs`,
+      feature: 'recruitment.jobs',
+    },
+    {
+      title: 'Job Descriptions',
+      path: `${prefix}/recruitment/job-descriptions`,
+      feature: 'recruitment.jobDescriptions',
+    },
+    {
+      title: 'Candidates',
+      path: `${prefix}/recruitment/candidates`,
+      feature: 'recruitment.candidates',
+    },
+    {
+      title: 'Application Pipeline',
+      path: `${prefix}/recruitment/pipeline`,
+      feature: 'recruitment.pipeline',
+    },
+    {
+      title: 'Interview Scheduling',
+      path: `${prefix}/recruitment/interviews`,
+      feature: 'recruitment.interviews',
+    },
+    {
+      title: 'Interview Feedback',
+      path: `${prefix}/recruitment/feedback`,
+      feature: 'recruitment.feedback',
+    },
+    {
+      title: 'Offers',
+      path: `${prefix}/recruitment/offers`,
+      feature: 'recruitment.offers',
+    },
+    {
+      title: 'Recruitment Analytics',
+      path: `${prefix}/recruitment/analytics`,
+      feature: 'recruitment.analytics',
+    },
+  ]
+}
+
+function attendanceChildren(prefix: string): RoleNavItem['children'] {
+  return [
+    {
+      title: 'Attendance Overview',
+      path: `${prefix}/attendance`,
+      feature: 'attendance.overview',
+    },
+    {
+      title: 'Daily Attendance',
+      path: `${prefix}/attendance/daily`,
+      feature: 'attendance.daily',
+    },
+    {
+      title: 'Check-in / Check-out',
+      path: `${prefix}/attendance/check-in`,
+      feature: 'attendance.checkIn',
+    },
+    {
+      title: 'Attendance Corrections',
+      path: `${prefix}/attendance/corrections`,
+      feature: 'attendance.corrections',
+    },
+    {
+      title: 'Attendance Regularization',
+      path: `${prefix}/attendance/regularization`,
+      feature: 'attendance.regularization',
+    },
+    {
+      title: 'Overtime Management',
+      path: `${prefix}/attendance/overtime`,
+      feature: 'attendance.overtime',
+    },
+    {
+      title: 'Weekly Off Management',
+      path: `${prefix}/attendance/weekly-off`,
+      feature: 'attendance.weeklyOff',
+    },
+    {
+      title: 'Holiday Management',
+      path: `${prefix}/attendance/holidays`,
+      feature: 'attendance.holidays',
+    },
+    {
+      title: 'Attendance Reports',
+      path: `${prefix}/attendance/reports`,
+      feature: 'attendance.reports',
+    },
+    {
+      title: 'Attendance Settings',
+      path: `${prefix}/attendance/settings`,
+      feature: 'attendance.settings',
+    },
+  ]
+}
+
+const superAdminNav: RoleNavItem[] = [
+  {
+    title: 'Dashboard',
+    path: '/superadmin/dashboard',
+    iconName: 'LayoutDashboard',
+  },
+  {
+    title: 'User Management',
+    path: '/superadmin/users',
+    iconName: 'Users',
+    feature: 'module.users',
+  },
+  {
+    title: 'Employee Management',
+    path: '/superadmin/employees',
+    iconName: 'UserCog',
+    feature: 'employee.overview',
+    children: [
+      {
+        title: 'Employee Overview',
+        path: '/superadmin/employees',
+        feature: 'employee.overview',
+      },
+    ],
+  },
+  {
+    title: 'Role Management',
+    path: '/superadmin/roles',
+    iconName: 'Shield',
+    feature: 'module.roles',
+  },
+  {
+    title: 'Permission Management',
+    path: '/superadmin/permissions',
+    iconName: 'KeyRound',
+    feature: 'module.permissions',
+  },
+  {
+    title: 'Department Management',
+    path: '/superadmin/departments',
+    iconName: 'Building2',
+  },
+  {
+    title: 'Designations',
+    path: '/superadmin/designations',
+    iconName: 'BadgeCheck',
+  },
+  {
+    title: 'Attendance Management',
+    path: '/superadmin/attendance',
+    iconName: 'ClipboardList',
+    feature: 'attendance.overview',
+    children: attendanceChildren('/superadmin'),
+  },
+  {
+    title: 'Leave Management',
+    path: '/superadmin/leave',
+    iconName: 'CalendarDays',
+  },
+  {
+    title: 'Payroll Management',
+    path: '/superadmin/payroll',
+    iconName: 'Wallet',
+  },
+  {
+    title: 'Recruitment',
+    path: '/superadmin/recruitment',
+    iconName: 'Briefcase',
+    feature: 'recruitment.overview',
+    children: recruitmentChildren('/superadmin'),
+  },
+  {
+    title: 'Performance Management',
+    path: '/superadmin/performance',
+    iconName: 'Target',
+  },
+  {
+    title: 'Reports & Analytics',
+    path: '/superadmin/reports',
+    iconName: 'BarChart3',
+  },
+  {
+    title: 'Audit Logs',
+    path: '/superadmin/audit-logs',
+    iconName: 'ScrollText',
+    feature: 'module.audit',
+  },
+  {
+    title: 'Organization Settings',
+    path: '/superadmin/organization-settings',
+    iconName: 'Building',
+  },
+  {
+    title: 'System Settings',
+    path: '/superadmin/system-settings',
+    iconName: 'Settings',
+    feature: 'module.systemSettings',
+  },
+]
+
+const adminNav: RoleNavItem[] = [
+  { title: 'Dashboard', path: '/admin/dashboard', iconName: 'LayoutDashboard' },
+  {
+    title: 'User Management',
+    path: '/admin/users',
+    iconName: 'Users',
+    feature: 'module.users',
+  },
+  {
+    title: 'Employee Management',
+    path: '/admin/employees',
+    iconName: 'UserCog',
+    feature: 'employee.overview',
+    children: [
+      {
+        title: 'Employee Overview',
+        path: '/admin/employees',
+        feature: 'employee.overview',
+      },
+    ],
+  },
+  { title: 'Departments', path: '/admin/departments', iconName: 'Building2' },
+  { title: 'Designations', path: '/admin/designations', iconName: 'BadgeCheck' },
+  {
+    title: 'Attendance Management',
+    path: '/admin/attendance',
+    iconName: 'ClipboardList',
+    feature: 'attendance.overview',
+    children: attendanceChildren('/admin'),
+  },
+  { title: 'Leave Management', path: '/admin/leave', iconName: 'CalendarDays' },
+  { title: 'Payroll Management', path: '/admin/payroll', iconName: 'Wallet' },
+  {
+    title: 'Recruitment',
+    path: '/admin/recruitment',
+    iconName: 'Briefcase',
+    feature: 'recruitment.overview',
+    children: recruitmentChildren('/admin'),
+  },
+  {
+    title: 'Performance Management',
+    path: '/admin/performance',
+    iconName: 'Target',
+  },
+  {
+    title: 'Reports & Analytics',
+    path: '/admin/reports',
+    iconName: 'BarChart3',
+  },
+  {
+    title: 'Organization Settings',
+    path: '/admin/organization-settings',
+    iconName: 'Building',
+  },
+]
+
+const hrNav: RoleNavItem[] = [
+  {
+    title: 'Dashboard',
+    path: '/hr/dashboard',
+    iconName: 'LayoutDashboard',
+    feature: 'dashboard.hr',
+  },
+  {
+    title: 'Employees',
+    path: '/hr/employees',
+    iconName: 'Users',
+    feature: 'employee.overview',
+    children: [
+      {
+        title: 'Employee Overview',
+        path: '/hr/employees',
+        feature: 'employee.overview',
+      },
+    ],
+  },
+  {
+    title: 'Add Employee',
+    path: '/hr/employees/add',
+    iconName: 'UserPlus',
+    feature: 'employee.manage',
+  },
+  {
+    title: 'Employee Documents',
+    path: '/hr/documents',
+    iconName: 'FileText',
+  },
+  { title: 'Departments', path: '/hr/departments', iconName: 'Building2' },
+  {
+    title: 'Attendance',
+    path: '/hr/attendance',
+    iconName: 'ClipboardList',
+    feature: 'attendance.overview',
+    children: attendanceChildren('/hr'),
+  },
+  {
+    title: 'Leave Management',
+    path: '/hr/leave',
+    iconName: 'CalendarDays',
+  },
+  {
+    title: 'Leave Approvals',
+    path: '/hr/leave/approvals',
+    iconName: 'CheckSquare',
+  },
+  { title: 'Onboarding', path: '/hr/onboarding', iconName: 'UserRoundPlus' },
+  { title: 'Offboarding', path: '/hr/offboarding', iconName: 'UserRoundMinus' },
+  {
+    title: 'Recruitment',
+    path: '/hr/recruitment',
+    iconName: 'Briefcase',
+    feature: 'recruitment.overview',
+    children: recruitmentChildren('/hr'),
+  },
+  {
+    title: 'Employee Reports',
+    path: '/hr/reports',
+    iconName: 'BarChart3',
+  },
+  {
+    title: 'Office Calendar',
+    path: '/hr/calendar',
+    iconName: 'CalendarRange',
+  },
+]
+
+const employeeNav: RoleNavItem[] = [
+  {
+    title: 'Dashboard',
+    path: '/employee/dashboard',
+    iconName: 'LayoutDashboard',
+  },
+  { title: 'My Profile', path: '/employee/profile', iconName: 'UserRound' },
+  {
+    title: 'My Attendance',
+    path: '/employee/attendance',
+    iconName: 'ClipboardList',
+    feature: 'attendance.reports',
+  },
+  {
+    title: 'Check In / Check Out',
+    path: '/employee/check-in',
+    iconName: 'Clock',
+    feature: 'attendance.checkIn',
+  },
+  {
+    title: 'Attendance Corrections',
+    path: '/employee/attendance/corrections',
+    iconName: 'ClipboardList',
+    feature: 'attendance.corrections',
+  },
+  {
+    title: 'Attendance Regularization',
+    path: '/employee/attendance/regularization',
+    iconName: 'ClipboardList',
+    feature: 'attendance.regularization',
+  },
+  {
+    title: 'My Leave Requests',
+    path: '/employee/leave',
+    iconName: 'CalendarDays',
+  },
+  {
+    title: 'Apply for Leave',
+    path: '/employee/leave/apply',
+    iconName: 'FilePlus2',
+  },
+  { title: 'My Payslips', path: '/employee/payslips', iconName: 'Wallet' },
+  {
+    title: 'My Documents',
+    path: '/employee/documents',
+    iconName: 'FileText',
+  },
+  {
+    title: 'Company Holidays',
+    path: '/employee/holidays',
+    iconName: 'Palmtree',
+    feature: 'attendance.holidays',
+  },
+  {
+    title: 'Office Calendar',
+    path: '/employee/calendar',
+    iconName: 'CalendarRange',
+  },
+  {
+    title: 'Announcements',
+    path: '/employee/announcements',
+    iconName: 'Megaphone',
+  },
+]
+
+export const ROLE_UI_CONFIG: Record<BackendRoleCode, RoleUiConfig> = {
+  SUPER_ADMIN: {
+    roleCode: 'SUPER_ADMIN',
+    routePrefix: ROLE_ROUTE_MAP.SUPER_ADMIN,
+    label: 'Super Admin',
+    navigation: superAdminNav,
+  },
+  HR_ADMIN: {
+    roleCode: 'HR_ADMIN',
+    routePrefix: ROLE_ROUTE_MAP.HR_ADMIN,
+    label: 'Admin',
+    navigation: adminNav,
+  },
+  MANAGER: {
+    roleCode: 'MANAGER',
+    routePrefix: ROLE_ROUTE_MAP.MANAGER,
+    label: 'HR',
+    navigation: hrNav,
+  },
+  EMPLOYEE: {
+    roleCode: 'EMPLOYEE',
+    routePrefix: ROLE_ROUTE_MAP.EMPLOYEE,
+    label: 'Employee',
+    navigation: employeeNav,
+  },
+}
+
+export function getRoleUiConfig(roleCode: BackendRoleCode): RoleUiConfig {
+  return ROLE_UI_CONFIG[roleCode]
+}

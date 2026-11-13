@@ -17,6 +17,7 @@ type CorrectionRequestDialogProps = {
   onOpenChange: (open: boolean) => void
   onApprove: (request: CorrectionRequest) => void
   onReject: (request: CorrectionRequest) => void
+  canApprove?: boolean
 }
 
 export function CorrectionRequestDialog({
@@ -25,6 +26,7 @@ export function CorrectionRequestDialog({
   onOpenChange,
   onApprove,
   onReject,
+  canApprove = true,
 }: CorrectionRequestDialogProps) {
   if (!request) return null
 
@@ -67,7 +69,7 @@ export function CorrectionRequestDialog({
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
             Close
           </Button>
-          {request.status === 'Pending' ? (
+          {request.status === 'Pending' && canApprove ? (
             <>
               <Button
                 type="button"

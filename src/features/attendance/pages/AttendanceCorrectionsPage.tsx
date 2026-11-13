@@ -10,6 +10,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { Feature } from '@/features/rbac/components/Feature'
+import { useOptionalFeatureAccess } from '@/features/rbac/hooks/useFeatureAccess'
 import { ToastBanner, useToast } from '@/hooks/useToast'
 
 import { CorrectionRequestDialog } from '../components/CorrectionRequestDialog'
@@ -24,12 +26,23 @@ type PendingAction = {
 
 export function AttendanceCorrectionsPage() {
   const { message, toast } = useToast()
+  const { canAccess, employeeId, roleCode } = useOptionalFeatureAccess()
+  const canApprove = canAccess('attendance.corrections.approve')
   const [requests, setRequests] = useState<CorrectionRequest[]>(() => [
     ...correctionRequests,
   ])
   const [viewRequest, setViewRequest] = useState<CorrectionRequest | null>(null)
   const [viewOpen, setViewOpen] = useState(false)
   const [pendingAction, setPendingAction] = useState<PendingAction | null>(null)
+
+  const visibleRequests = useMemo(() => {
+    if (roleCode !== 'EMPLOYEE') return requests
+    // Employees only see their own correction requests.
+    const selfIds = new Set(
+      [employeeId, 'EMP-1021', 'EMP-1115'].filter(Boolean) as string[],
+    )
+    return requests.filter((request) => selfIds.has(request.employeeId))
+  }, [employeeId, requests, roleCode])
 
   const confirmCopy = useMemo(() => {
     if (!pendingAction) return { title: '', description: '' }
@@ -105,7 +118,7 @@ export function AttendanceCorrectionsPage() {
             </tr>
           </thead>
           <tbody>
-            {requests.map((request) => (
+            {visibleRequests.map((request) => (
               <tr key={request.id} className="border-t border-border-soft">
                 <td className="px-3 py-3 font-medium text-navy">
                   {request.employeeName}
@@ -144,8 +157,8 @@ export function AttendanceCorrectionsPage() {
                       <Eye className="h-4 w-4" />
                       View
                     </Button>
-                    {request.status === 'Pending' ? (
-                      <>
+                    {request.status === 'Pending' && canApprove ? (
+                      <Feature name="attendance.corrections.approve">
                         <Button
                           type="button"
                           variant="outline"
@@ -163,7 +176,7 @@ export function AttendanceCorrectionsPage() {
                         >
                           Approve
                         </Button>
-                      </>
+                      </Feature>
                     ) : null}
                   </div>
                 </td>
@@ -177,6 +190,7 @@ export function AttendanceCorrectionsPage() {
         open={viewOpen}
         request={viewRequest}
         onOpenChange={setViewOpen}
+        canApprove={canApprove}
         onApprove={(request) => queueAction('approve', request)}
         onReject={(request) => queueAction('reject', request)}
       />

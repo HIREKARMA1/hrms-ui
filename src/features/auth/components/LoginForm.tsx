@@ -1,11 +1,12 @@
 import { IdCard, Layers } from 'lucide-react'
 import { useEffect, useState, type FormEvent } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { getLandingRouteForRole } from '@/features/rbac/utils/roleRouteMap'
 import { cn } from '@/lib/utils'
 
 import { PasswordInput } from './PasswordInput'
@@ -16,6 +17,7 @@ type FormErrors = {
 }
 
 export function LoginForm() {
+  const navigate = useNavigate()
   const [employeeId, setEmployeeId] = useState('')
   const [password, setPassword] = useState('')
   const [rememberMe, setRememberMe] = useState(false)
@@ -49,9 +51,13 @@ export function LoginForm() {
 
     if (Object.keys(nextErrors).length > 0) return
 
-    setToastMessage(
-      'Sign-in is a UI preview only. No authentication was performed.',
-    )
+    // UI preview: no real auth yet. HR role lands on the existing dashboard
+    // reused at /hr/dashboard. Replace with backend role resolution later.
+    const hrLanding = getLandingRouteForRole('MANAGER')
+    setToastMessage('Signed in (UI preview). Redirecting to HR dashboard...')
+    window.setTimeout(() => {
+      navigate(hrLanding, { replace: true })
+    }, 500)
   }
 
   return (

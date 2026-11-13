@@ -7,10 +7,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
+import { useOptionalFeatureAccess } from '@/features/rbac/hooks/useFeatureAccess'
 import { ToastBanner, useToast } from '@/hooks/useToast'
 
 export function AttendanceSettingsPage() {
   const { message, toast } = useToast()
+  const { canAccess } = useOptionalFeatureAccess()
+  const canConfigureAdvanced = canAccess('attendance.settings.advanced')
 
   const [gpsEnabled, setGpsEnabled] = useState(true)
   const [officeLocation, setOfficeLocation] = useState('Tower A, Hitech City, Hyderabad')
@@ -78,12 +81,29 @@ export function AttendanceSettingsPage() {
             Configure capture methods and restrictions. All controls are local UI state.
           </p>
         </div>
-        <Button type="button" className="gap-2 self-start" onClick={handleSaveSettings}>
-          <Save className="h-4 w-4" />
-          Save Settings
-        </Button>
+        {canConfigureAdvanced ? (
+          <Button type="button" className="gap-2 self-start" onClick={handleSaveSettings}>
+            <Save className="h-4 w-4" />
+            Save Settings
+          </Button>
+        ) : null}
       </div>
 
+      {!canConfigureAdvanced ? (
+        <Card className="border-border-soft shadow-sm">
+          <CardHeader>
+            <CardTitle>Advanced attendance configuration</CardTitle>
+            <CardDescription>
+              GPS, IP, biometric, face recognition, QR and geofencing controls are
+              hidden until backend permission mapping is confirmed. This screen is
+              a planned-integration UI only — no device integrations are active.
+            </CardDescription>
+          </CardHeader>
+        </Card>
+      ) : null}
+
+      {canConfigureAdvanced ? (
+      <>
       <Card className="border-border-soft shadow-sm">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-navy">
@@ -291,6 +311,8 @@ export function AttendanceSettingsPage() {
           </div>
         </CardContent>
       </Card>
+      </>
+      ) : null}
     </div>
   )
 }

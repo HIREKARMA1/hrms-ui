@@ -12,20 +12,57 @@ import {
 } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
 
+import { useOptionalRbacSession } from '@/features/rbac/hooks/useRbacSession'
+import { resolveNavIcon } from '@/features/rbac/utils/navIcons'
+
 import { useLayout } from './LayoutContext'
 import { navigationItems, type NavItem } from './navigation'
 
+const EXACT_ONLY_PATHS = new Set([
+  '/dashboard',
+  '/attendance',
+  '/employees',
+  '/superadmin',
+  '/admin',
+  '/hr',
+  '/employee',
+  '/superadmin/dashboard',
+  '/admin/dashboard',
+  '/hr/dashboard',
+  '/employee/dashboard',
+  '/superadmin/attendance',
+  '/admin/attendance',
+  '/hr/attendance',
+  '/superadmin/employees',
+  '/admin/employees',
+  '/hr/employees',
+  '/employee/attendance',
+  '/superadmin/recruitment',
+  '/admin/recruitment',
+  '/hr/recruitment',
+])
+
 function isPathActive(pathname: string, path: string) {
   if (pathname === path) return true
-  // Keep overview roots exact so child routes don't highlight the parent leaf.
-  if (
-    path === '/dashboard' ||
-    path === '/attendance' ||
-    path === '/employees'
-  ) {
-    return false
-  }
+  // Keep overview roots exact so nested routes don't highlight the parent leaf.
+  if (EXACT_ONLY_PATHS.has(path)) return false
   return pathname.startsWith(`${path}/`)
+}
+
+function toSidebarNavItems(
+  items: {
+    title: string
+    path: string
+    iconName: string
+    children?: { title: string; path: string }[]
+  }[],
+): NavItem[] {
+  return items.map((item) => ({
+    title: item.title,
+    path: item.path,
+    icon: resolveNavIcon(item.iconName),
+    children: item.children,
+  }))
 }
 
 function SidebarNavItem({
@@ -172,7 +209,11 @@ type SidebarProps = {
 
 export function Sidebar({ variant = 'desktop', onNavigate }: SidebarProps) {
   const { collapsed, toggleCollapsed } = useLayout()
+  const rbac = useOptionalRbacSession()
   const isCollapsed = variant === 'desktop' ? collapsed : false
+  const items = rbac
+    ? toSidebarNavItems(rbac.navigation)
+    : navigationItems
 
   return (
     <TooltipProvider delayDuration={0}>
@@ -198,7 +239,9 @@ export function Sidebar({ variant = 'desktop', onNavigate }: SidebarProps) {
             <div className="min-w-0 pt-0.5">
               <p className="text-base font-bold tracking-tight">HRMS</p>
               <p className="text-[11px] leading-snug text-slate-400">
-                Human Resources Management System
+                {rbac
+                  ? `${rbac.roleLabel} workspace`
+                  : 'Human Resources Management System'}
               </p>
             </div>
           ) : null}
@@ -206,9 +249,9 @@ export function Sidebar({ variant = 'desktop', onNavigate }: SidebarProps) {
 
         <ScrollArea className="flex-1 px-3 py-4">
           <nav className="space-y-1.5 pr-2">
-            {navigationItems.map((item) => (
+            {items.map((item) => (
               <SidebarNavItem
-                key={item.title}
+                key={`${item.path}-${item.title}`}
                 item={item}
                 collapsed={isCollapsed}
                 onNavigate={onNavigate}
