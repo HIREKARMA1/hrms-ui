@@ -17,21 +17,13 @@ import { EmployeeOverviewPage } from '@/features/employees/pages/EmployeeOvervie
 import { EmployeeProfilePage } from '@/features/employees/pages/EmployeeProfilePage'
 import { EmployeeRegistrationPage } from '@/features/employees/pages/EmployeeRegistrationPage'
 import { OrganizationDepartmentsPage } from '@/features/organization/pages/OrganizationDepartmentsPage'
-import { ApplicationPipelinePage } from '@/features/recruitment/pages/ApplicationPipelinePage'
-import { CandidatesPage } from '@/features/recruitment/pages/CandidatesPage'
-import { InterviewFeedbackPage } from '@/features/recruitment/pages/InterviewFeedbackPage'
-import { InterviewSchedulingPage } from '@/features/recruitment/pages/InterviewSchedulingPage'
-import { JobDescriptionsPage } from '@/features/recruitment/pages/JobDescriptionsPage'
-import { JobPostingsPage } from '@/features/recruitment/pages/JobPostingsPage'
-import { OffersPage } from '@/features/recruitment/pages/OffersPage'
-import { RecruitmentAnalyticsPage } from '@/features/recruitment/pages/RecruitmentAnalyticsPage'
-import { RecruitmentOverviewPage } from '@/features/recruitment/pages/RecruitmentOverviewPage'
-
 import { RequireAccess } from '../components/RequireAccess'
 
 import { createLeavePayrollRoutes } from './leavePayrollModuleRoutes'
 import { createLeadsModuleRoutes } from './leadsModuleRoutes'
 import { createOfficeCalendarModuleRoutes } from './calendarModuleRoutes'
+import { createRecruitmentModuleRoutes } from './recruitmentModuleRoutes'
+import { createSupportModuleRoutes } from './supportModuleRoutes'
 
 type RolePrefix = 'superadmin' | 'admin' | 'hr'
 
@@ -215,105 +207,10 @@ export function createOrgRoleModuleRoutes(prefix: RolePrefix): ReactElement[] {
         </RequireAccess>
       }
     />,
-    <Route
-      key={`${prefix}-recruitment`}
-      path={`/${prefix}/recruitment`}
-      element={
-        <RequireAccess
-          feature="recruitment.overview"
-          featureLabel="Recruitment Overview"
-        >
-          <RecruitmentOverviewPage />
-        </RequireAccess>
-      }
-    />,
-    <Route
-      key={`${prefix}-recruitment-jobs`}
-      path={`/${prefix}/recruitment/jobs`}
-      element={
-        <RequireAccess feature="recruitment.jobs" featureLabel="Job Postings">
-          <JobPostingsPage />
-        </RequireAccess>
-      }
-    />,
-    <Route
-      key={`${prefix}-recruitment-job-descriptions`}
-      path={`/${prefix}/recruitment/job-descriptions`}
-      element={
-        <RequireAccess
-          feature="recruitment.jobDescriptions"
-          featureLabel="Job Descriptions"
-        >
-          <JobDescriptionsPage />
-        </RequireAccess>
-      }
-    />,
-    <Route
-      key={`${prefix}-recruitment-candidates`}
-      path={`/${prefix}/recruitment/candidates`}
-      element={
-        <RequireAccess feature="recruitment.candidates" featureLabel="Candidates">
-          <CandidatesPage />
-        </RequireAccess>
-      }
-    />,
-    <Route
-      key={`${prefix}-recruitment-pipeline`}
-      path={`/${prefix}/recruitment/pipeline`}
-      element={
-        <RequireAccess
-          feature="recruitment.pipeline"
-          featureLabel="Application Pipeline"
-        >
-          <ApplicationPipelinePage />
-        </RequireAccess>
-      }
-    />,
-    <Route
-      key={`${prefix}-recruitment-interviews`}
-      path={`/${prefix}/recruitment/interviews`}
-      element={
-        <RequireAccess
-          feature="recruitment.interviews"
-          featureLabel="Interview Scheduling"
-        >
-          <InterviewSchedulingPage />
-        </RequireAccess>
-      }
-    />,
-    <Route
-      key={`${prefix}-recruitment-feedback`}
-      path={`/${prefix}/recruitment/feedback`}
-      element={
-        <RequireAccess
-          feature="recruitment.feedback"
-          featureLabel="Interview Feedback"
-        >
-          <InterviewFeedbackPage />
-        </RequireAccess>
-      }
-    />,
-    <Route
-      key={`${prefix}-recruitment-offers`}
-      path={`/${prefix}/recruitment/offers`}
-      element={
-        <RequireAccess feature="recruitment.offers" featureLabel="Offers">
-          <OffersPage />
-        </RequireAccess>
-      }
-    />,
-    <Route
-      key={`${prefix}-recruitment-analytics`}
-      path={`/${prefix}/recruitment/analytics`}
-      element={
-        <RequireAccess
-          feature="recruitment.analytics"
-          featureLabel="Recruitment Analytics"
-        >
-          <RecruitmentAnalyticsPage />
-        </RequireAccess>
-      }
-    />,
+    ...(prefix === 'superadmin' || prefix === 'hr'
+      ? [createRecruitmentModuleRoutes(prefix)]
+      : []),
+    ...(prefix === 'hr' ? [createSupportModuleRoutes()] : []),
     ...createLeavePayrollRoutes(prefix),
     ...(prefix === 'admin' || prefix === 'superadmin' || prefix === 'hr'
       ? createLeadsModuleRoutes(prefix)

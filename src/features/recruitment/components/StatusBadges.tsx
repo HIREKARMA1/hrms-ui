@@ -1,4 +1,5 @@
 import { Badge } from '@/components/ui/badge'
+import { cn } from '@/lib/utils'
 
 import type {
   HireRecommendation,
@@ -8,6 +9,7 @@ import type {
   PipelineStage,
   ResumeParseStatus,
 } from '../types/recruitment'
+import { PIPELINE_STAGE_STYLES } from '../utils/pipelineStageStyle'
 
 export function JobStatusBadge({ status }: { status: JobStatus }) {
   const variant =
@@ -22,15 +24,16 @@ export function JobStatusBadge({ status }: { status: JobStatus }) {
 }
 
 export function StageBadge({ stage }: { stage: PipelineStage }) {
-  const variant =
-    stage === 'Rejected'
-      ? 'danger'
-      : stage === 'Joined' || stage === 'Offer Released'
-        ? 'success'
-        : stage === 'Interview' || stage === 'Selected'
-          ? 'default'
-          : 'secondary'
-  return <Badge variant={variant}>{stage}</Badge>
+  return (
+    <span
+      className={cn(
+        'inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium',
+        PIPELINE_STAGE_STYLES[stage].badge,
+      )}
+    >
+      {stage}
+    </span>
+  )
 }
 
 export function InterviewStatusBadge({ status }: { status: InterviewStatus }) {

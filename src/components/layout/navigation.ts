@@ -18,6 +18,7 @@ import {
 export type NavChild = {
   title: string
   path: string
+  isSectionLabel?: boolean
 }
 
 export type NavItem = {

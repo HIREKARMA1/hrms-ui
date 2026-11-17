@@ -145,6 +145,8 @@ export type Offer = {
   offerExpiryDate: string
   employmentType: EmploymentType
   status: OfferStatus
+  /** Local demo only — filename from file picker, not object storage. */
+  offerLetterFileName?: string
 }
 
 export type RecruitmentActivity = {

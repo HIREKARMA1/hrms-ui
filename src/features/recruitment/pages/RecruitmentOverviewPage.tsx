@@ -10,6 +10,8 @@ import {
 } from 'lucide-react'
 import { useMemo, useState } from 'react'
 
+import { cn } from '@/lib/utils'
+
 import {
   Card,
   CardContent,
@@ -29,24 +31,21 @@ import {
 import {
   CandidateSourceChart,
   HiringTrendsChart,
-  MockDataBanner,
   MonthlyApplicationsChart,
   PipelineFunnelChart,
+  RecruitmentPageShell,
   StageBadge,
   SummaryStatCards,
 } from '../components'
+import { RECRUITMENT_CARD } from '../components/shared/recruitmentUi'
+import { useRecruitment } from '../hooks/useRecruitment'
 import {
   listActivities,
-  listCandidates,
-  listInterviews,
-  listJobs,
   listOffers,
 } from '../services/recruitmentService'
 
 export function RecruitmentOverviewPage() {
-  const [jobs] = useState(() => listJobs())
-  const [candidates] = useState(() => listCandidates())
-  const [interviews] = useState(() => listInterviews())
+  const { jobs, candidates, interviews } = useRecruitment()
   const [offers] = useState(() => listOffers())
   const [activities] = useState(() => listActivities())
 
@@ -122,17 +121,7 @@ export function RecruitmentOverviewPage() {
   )
 
   return (
-    <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-navy">
-          Recruitment Overview
-        </h1>
-        <p className="mt-1 text-sm text-text-secondary">
-          Pipeline health, hiring activity, and upcoming interviews.
-        </p>
-      </div>
-
-      <MockDataBanner />
+    <RecruitmentPageShell activeSection="Overview">
       <SummaryStatCards stats={stats} />
 
       <div className="grid gap-4 xl:grid-cols-2">
@@ -146,7 +135,7 @@ export function RecruitmentOverviewPage() {
       </div>
 
       <div className="grid gap-4 xl:grid-cols-3">
-        <Card className="border-border-soft shadow-sm xl:col-span-1">
+        <Card className={cn(RECRUITMENT_CARD, 'shadow-none xl:col-span-1')}>
           <CardHeader>
             <CardTitle>Recent Applications</CardTitle>
             <CardDescription>Latest candidate submissions</CardDescription>
@@ -182,7 +171,7 @@ export function RecruitmentOverviewPage() {
           </CardContent>
         </Card>
 
-        <Card className="border-border-soft shadow-sm xl:col-span-1">
+        <Card className={cn(RECRUITMENT_CARD, 'shadow-none xl:col-span-1')}>
           <CardHeader>
             <CardTitle>Upcoming Interviews</CardTitle>
             <CardDescription>Next scheduled sessions</CardDescription>
@@ -213,7 +202,7 @@ export function RecruitmentOverviewPage() {
           </CardContent>
         </Card>
 
-        <Card className="border-border-soft shadow-sm xl:col-span-1">
+        <Card className={cn(RECRUITMENT_CARD, 'shadow-none xl:col-span-1')}>
           <CardHeader>
             <CardTitle>Recent Recruitment Activities</CardTitle>
             <CardDescription>Latest recruiter actions</CardDescription>
@@ -233,6 +222,6 @@ export function RecruitmentOverviewPage() {
           </CardContent>
         </Card>
       </div>
-    </div>
+    </RecruitmentPageShell>
   )
 }

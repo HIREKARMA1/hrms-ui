@@ -402,6 +402,7 @@ export const offers: Offer[] = [
     offerExpiryDate: '2026-11-20',
     employmentType: 'Full-time',
     status: 'Released',
+    offerLetterFileName: 'Sneha_Reddy_Offer_Letter.pdf',
   },
   {
     id: 'OFF-502',

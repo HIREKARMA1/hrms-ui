@@ -1,5 +1,6 @@
-import { Pencil, Plus, Search, Trash2 } from 'lucide-react'
+import { Eye, Pencil, Plus, Search, Trash2 } from 'lucide-react'
 import { useMemo, useState } from 'react'
+import { Link, useLocation } from 'react-router-dom'
 
 import { Feature } from '@/features/rbac/components/Feature'
 import { Badge } from '@/components/ui/badge'
@@ -31,7 +32,9 @@ import {
 } from '@/components/ui/table'
 import { Textarea } from '@/components/ui/textarea'
 
-import { JobStatusBadge, MockDataBanner } from '../components'
+import { JobStatusBadge, RecruitmentPageShell } from '../components'
+import { RECRUITMENT_FILTER_BAR } from '../components/shared/recruitmentUi'
+import { jobHiringDeskPath, recruitmentRoutePrefix } from '../utils/recruitmentRoutes'
 import { departments, locations } from '../mocks/recruitmentMocks'
 import { listJobDescriptions, listJobs } from '../services/recruitmentService'
 import type {
@@ -87,6 +90,8 @@ const workModes: WorkMode[] = ['On-site', 'Hybrid', 'Remote']
 const jobStatuses: JobStatus[] = ['Draft', 'Published', 'Closed', 'On Hold']
 
 export function JobPostingsPage() {
+  const routerLocation = useLocation()
+  const routePrefix = recruitmentRoutePrefix(routerLocation.pathname)
   const [jobs, setJobs] = useState(() => listJobs())
   const [jds] = useState(() => listJobDescriptions())
   const [search, setSearch] = useState('')
@@ -206,27 +211,18 @@ export function JobPostingsPage() {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-navy">
-            Job Postings
-          </h1>
-          <p className="mt-1 text-sm text-text-secondary">
-            Create, publish, and manage open roles.
-          </p>
-        </div>
+    <RecruitmentPageShell
+      activeSection="Job Postings"
+      trailing={
         <Feature name="recruitment.manage">
           <Button type="button" className="gap-2" onClick={openCreate}>
             <Plus className="h-4 w-4" />
             Create Job
           </Button>
         </Feature>
-      </div>
-
-      <MockDataBanner />
-
-      <div className="flex flex-col gap-3 rounded-2xl border border-border-soft bg-white p-4 shadow-sm lg:flex-row lg:items-center">
+      }
+    >
+      <div className={RECRUITMENT_FILTER_BAR}>
         <div className="relative flex-1">
           <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-text-secondary" />
           <Input
@@ -306,6 +302,17 @@ export function JobPostingsPage() {
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-1">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      title="View applicants & interviews"
+                      asChild
+                    >
+                      <Link to={jobHiringDeskPath(routePrefix, job.id)}>
+                        <Eye className="h-4 w-4" />
+                      </Link>
+                    </Button>
                     <Feature name="recruitment.manage">
                       <Button
                         type="button"
@@ -631,6 +638,6 @@ export function JobPostingsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </RecruitmentPageShell>
   )
 }

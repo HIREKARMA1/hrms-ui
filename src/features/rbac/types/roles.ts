@@ -61,6 +61,8 @@ export type AuthSession = {
 export type RoleNavChild = {
   title: string
   path: string
+  /** Non-clickable group label inside a parent dropdown (sidebar only). */
+  isSectionLabel?: boolean
   /** Optional backend permission key; omitted until confirmed by API. */
   permission?: PermissionCode
   /** Frontend feature key for UI gating (not a backend code). */

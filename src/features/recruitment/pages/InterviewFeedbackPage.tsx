@@ -30,7 +30,7 @@ import {
 } from '@/components/ui/table'
 import { Textarea } from '@/components/ui/textarea'
 
-import { MockDataBanner, RecommendationBadge } from '../components'
+import { RecruitmentPageShell, RecommendationBadge } from '../components'
 import {
   listCandidates,
   listFeedback,
@@ -125,26 +125,17 @@ export function InterviewFeedbackPage() {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-navy">
-            Interview Feedback
-          </h1>
-          <p className="mt-1 text-sm text-text-secondary">
-            Ratings, recommendations, and feedback history per candidate.
-          </p>
-        </div>
+    <RecruitmentPageShell
+      activeSection="Interview Feedback"
+      trailing={
         <Feature name="recruitment.manage">
           <Button type="button" className="gap-2" onClick={openCreate}>
             <Plus className="h-4 w-4" />
             Submit Feedback
           </Button>
         </Feature>
-      </div>
-
-      <MockDataBanner />
-
+      }
+    >
       <Select value={candidateFilter} onValueChange={setCandidateFilter}>
         <SelectTrigger className="max-w-xs">
           <SelectValue placeholder="Candidate" />
@@ -342,6 +333,6 @@ export function InterviewFeedbackPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </RecruitmentPageShell>
   )
 }

@@ -1,5 +1,7 @@
 import { useMemo, useState } from 'react'
 
+import { cn } from '@/lib/utils'
+
 import { Feature } from '@/features/rbac/components/Feature'
 import { Button } from '@/components/ui/button'
 import {
@@ -18,7 +20,9 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 
-import { MockDataBanner, StageBadge } from '../components'
+import { RecruitmentPageShell, StageBadge } from '../components'
+import { RECRUITMENT_FILTER_BAR } from '../components/shared/recruitmentUi'
+import { PIPELINE_STAGE_STYLES } from '../utils/pipelineStageStyle'
 import { departments } from '../mocks/recruitmentMocks'
 import {
   listCandidates,
@@ -76,26 +80,14 @@ export function ApplicationPipelinePage() {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-navy">
-          Application Pipeline
-        </h1>
-        <p className="mt-1 text-sm text-text-secondary">
-          Kanban view of candidates by stage. Use the stage dropdown to move
-          candidates (drag-and-drop library not installed).
-        </p>
-      </div>
-
-      <MockDataBanner />
-
+    <RecruitmentPageShell activeSection="Application Pipeline" wide>
       {error ? (
         <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-2 text-sm text-rose-700">
           {error}
         </div>
       ) : null}
 
-      <div className="flex flex-col gap-3 rounded-2xl border border-border-soft bg-white p-4 shadow-sm lg:flex-row lg:items-center">
+      <div className={RECRUITMENT_FILTER_BAR}>
         <Select value={jobFilter} onValueChange={setJobFilter}>
           <SelectTrigger className="w-full lg:w-56">
             <SelectValue placeholder="Job" />
@@ -134,11 +126,20 @@ export function ApplicationPipelinePage() {
         {PIPELINE_STAGES.map((stage) => (
           <div
             key={stage}
-            className="w-[260px] shrink-0 rounded-2xl border border-border-soft bg-muted-bg/40"
+            className={cn(
+              'w-[260px] shrink-0 rounded-2xl border border-[#E2E6EF] bg-white shadow-sm',
+              'border-t-4',
+              PIPELINE_STAGE_STYLES[stage].column,
+            )}
           >
-            <div className="flex items-center justify-between border-b border-border-soft px-3 py-3">
-              <p className="text-sm font-semibold text-navy">{stage}</p>
-              <span className="rounded-full bg-white px-2 py-0.5 text-xs font-semibold text-brand-500 shadow-sm">
+            <div className="flex items-center justify-between border-b border-[#E2E6EF] px-3 py-3">
+              <p className="text-sm font-semibold text-[#17213A]">{stage}</p>
+              <span
+                className={cn(
+                  'rounded-full px-2 py-0.5 text-xs font-semibold',
+                  PIPELINE_STAGE_STYLES[stage].accent,
+                )}
+              >
                 {byStage[stage].length}
               </span>
             </div>
@@ -259,6 +260,6 @@ export function ApplicationPipelinePage() {
           ) : null}
         </DialogContent>
       </Dialog>
-    </div>
+    </RecruitmentPageShell>
   )
 }

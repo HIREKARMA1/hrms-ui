@@ -1,4 +1,6 @@
-import { IdCard, Layers } from 'lucide-react'
+import { IdCard } from 'lucide-react'
+
+import { HireKarmaMark } from '@/components/brand/HireKarmaMark'
 import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 
@@ -73,9 +75,7 @@ export function LoginForm() {
 
       <div className="rounded-3xl border border-slate-100 bg-white p-8 shadow-[0_20px_50px_-24px_rgba(79,70,229,0.35)] sm:p-9">
         <div className="mb-8 flex flex-col items-center text-center">
-          <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-50 text-brand-600">
-            <Layers className="h-6 w-6" strokeWidth={2.25} />
-          </div>
+          <HireKarmaMark className="mb-4 h-12 w-12 rounded-2xl" />
           <h2 className="text-2xl font-bold tracking-tight text-slate-900">
             Welcome Back
           </h2>
@@ -177,12 +177,12 @@ export function LoginForm() {
 
         <p className="mt-7 text-center text-sm text-slate-500">
           Don&apos;t have an account?{' '}
-          <a
-            href="http://localhost:3000/#contact-administrator"
+          <Link
+            to="/contact-administrator"
             className="font-semibold text-brand-500 transition-colors hover:text-brand-600"
           >
             Contact Administrator
-          </a>
+          </Link>
         </p>
       </div>
     </div>

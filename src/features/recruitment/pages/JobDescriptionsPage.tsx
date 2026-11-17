@@ -31,7 +31,8 @@ import {
 } from '@/components/ui/table'
 import { Textarea } from '@/components/ui/textarea'
 
-import { MockDataBanner } from '../components'
+import { RecruitmentPageShell } from '../components'
+import { RECRUITMENT_TABLE_SHELL } from '../components/shared/recruitmentUi'
 import { departments } from '../mocks/recruitmentMocks'
 import {
   listJobDescriptions,
@@ -151,26 +152,17 @@ export function JobDescriptionsPage() {
     jobs.filter((job) => job.jobDescriptionId === jdId)
 
   return (
-    <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-navy">
-            Job Descriptions
-          </h1>
-          <p className="mt-1 text-sm text-text-secondary">
-            Reusable JD templates linked to job postings.
-          </p>
-        </div>
+    <RecruitmentPageShell
+      activeSection="Job Descriptions"
+      trailing={
         <Feature name="recruitment.manage">
           <Button type="button" className="gap-2" onClick={openCreate}>
             <Plus className="h-4 w-4" />
             Create JD
           </Button>
         </Feature>
-      </div>
-
-      <MockDataBanner />
-
+      }
+    >
       <Input
         placeholder="Search job descriptions..."
         value={search}
@@ -178,7 +170,7 @@ export function JobDescriptionsPage() {
         className="max-w-md"
       />
 
-      <div className="overflow-hidden rounded-2xl border border-border-soft bg-white shadow-sm">
+      <div className={RECRUITMENT_TABLE_SHELL}>
         <Table>
           <TableHeader>
             <TableRow>
@@ -435,6 +427,6 @@ export function JobDescriptionsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </RecruitmentPageShell>
   )
 }

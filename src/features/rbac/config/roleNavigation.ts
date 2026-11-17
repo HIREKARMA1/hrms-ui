@@ -12,8 +12,9 @@ import { employeeLeadsNavChildren, leadsNavChildrenForRbac } from './leadsNavChi
 
 function recruitmentChildren(prefix: string): RoleNavItem['children'] {
   return [
+    { title: 'Setup', path: `${prefix}/recruitment`, isSectionLabel: true },
     {
-      title: 'Recruitment Overview',
+      title: 'Overview',
       path: `${prefix}/recruitment`,
       feature: 'recruitment.overview',
     },
@@ -22,11 +23,13 @@ function recruitmentChildren(prefix: string): RoleNavItem['children'] {
       path: `${prefix}/recruitment/jobs`,
       feature: 'recruitment.jobs',
     },
-    {
-      title: 'Job Descriptions',
-      path: `${prefix}/recruitment/job-descriptions`,
-      feature: 'recruitment.jobDescriptions',
-    },
+  // Job Descriptions UI hidden — page kept in codebase for later phases
+  // {
+  //   title: 'Job Descriptions',
+  //   path: `${prefix}/recruitment/job-descriptions`,
+  //   feature: 'recruitment.jobDescriptions',
+  // },
+    { title: 'Candidates & applications', path: `${prefix}/recruitment`, isSectionLabel: true },
     {
       title: 'Candidates',
       path: `${prefix}/recruitment/candidates`,
@@ -37,6 +40,7 @@ function recruitmentChildren(prefix: string): RoleNavItem['children'] {
       path: `${prefix}/recruitment/pipeline`,
       feature: 'recruitment.pipeline',
     },
+    { title: 'Interviews & offers', path: `${prefix}/recruitment`, isSectionLabel: true },
     {
       title: 'Interview Scheduling',
       path: `${prefix}/recruitment/interviews`,
@@ -48,10 +52,11 @@ function recruitmentChildren(prefix: string): RoleNavItem['children'] {
       feature: 'recruitment.feedback',
     },
     {
-      title: 'Offers',
+      title: 'Offers & offer letters',
       path: `${prefix}/recruitment/offers`,
       feature: 'recruitment.offers',
     },
+    { title: 'Insights', path: `${prefix}/recruitment`, isSectionLabel: true },
     {
       title: 'Recruitment Analytics',
       path: `${prefix}/recruitment/analytics`,
@@ -200,7 +205,7 @@ const superAdminNav: RoleNavItem[] = [
     children: payrollNavChildrenForRbac('SUPER_ADMIN', '/superadmin'),
   },
   {
-    title: 'Recruitment',
+    title: 'Recruitment & ATS',
     path: '/superadmin/recruitment',
     iconName: 'Briefcase',
     feature: 'recruitment.overview',
@@ -313,13 +318,6 @@ const adminNav: RoleNavItem[] = [
     children: payrollNavChildrenForRbac('HR_ADMIN', '/admin'),
   },
   {
-    title: 'Recruitment',
-    path: '/admin/recruitment',
-    iconName: 'Briefcase',
-    feature: 'recruitment.overview',
-    children: recruitmentChildren('/admin'),
-  },
-  {
     title: 'Leads Management',
     path: '/admin/leads',
     iconName: 'Megaphone',
@@ -415,7 +413,12 @@ const hrNav: RoleNavItem[] = [
   { title: 'Onboarding', path: '/hr/onboarding', iconName: 'UserRoundPlus' },
   { title: 'Offboarding', path: '/hr/offboarding', iconName: 'UserRoundMinus' },
   {
-    title: 'Recruitment',
+    title: 'Request',
+    path: '/hr/support/admin-requests',
+    iconName: 'Headphones',
+  },
+  {
+    title: 'Recruitment & ATS',
     path: '/hr/recruitment',
     iconName: 'Briefcase',
     feature: 'recruitment.overview',

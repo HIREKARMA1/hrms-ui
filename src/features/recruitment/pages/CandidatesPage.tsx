@@ -33,9 +33,11 @@ import {
 
 import {
   MockDataBanner,
+  RecruitmentPageShell,
   ResumeParseBadge,
   StageBadge,
 } from '../components'
+import { RECRUITMENT_FILTER_BAR } from '../components/shared/recruitmentUi'
 import {
   getParsedResume,
   listCandidates,
@@ -209,27 +211,20 @@ export function CandidatesPage() {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-navy">
-            Candidates
-          </h1>
-          <p className="mt-1 text-sm text-text-secondary">
-            Candidate database, resumes, and application history.
-          </p>
-        </div>
+    <RecruitmentPageShell
+      activeSection="Candidates"
+      trailing={
         <Feature name="recruitment.manage">
           <Button type="button" className="gap-2" onClick={openCreate}>
             <Plus className="h-4 w-4" />
             Register Candidate
           </Button>
         </Feature>
-      </div>
-
+      }
+    >
       <MockDataBanner message="Resume upload stores the file name locally. Resume parsing is demo-only until a parsing API exists." />
 
-      <div className="flex flex-col gap-3 rounded-2xl border border-border-soft bg-white p-4 shadow-sm lg:flex-row">
+      <div className={RECRUITMENT_FILTER_BAR}>
         <div className="relative flex-1">
           <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-text-secondary" />
           <Input
@@ -273,13 +268,14 @@ export function CandidatesPage() {
             <TableRow>
               <TableHead>Candidate</TableHead>
               <TableHead>Applied Job</TableHead>
+              <TableHead>Current company</TableHead>
               <TableHead>Experience</TableHead>
               <TableHead>Skills</TableHead>
               <TableHead>Applied</TableHead>
               <TableHead>Stage</TableHead>
               <TableHead>Resume</TableHead>
               <TableHead>Source</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+              <TableHead className="text-center">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -298,6 +294,22 @@ export function CandidatesPage() {
                   </div>
                 </TableCell>
                 <TableCell>{c.appliedJobTitle}</TableCell>
+                <TableCell className="max-w-[160px]">
+                  <p
+                    className="truncate font-medium text-navy"
+                    title={c.currentCompany || undefined}
+                  >
+                    {c.currentCompany || '—'}
+                  </p>
+                  {c.currentDesignation ? (
+                    <p
+                      className="truncate text-xs text-text-secondary"
+                      title={c.currentDesignation}
+                    >
+                      {c.currentDesignation}
+                    </p>
+                  ) : null}
+                </TableCell>
                 <TableCell>{c.totalExperience}</TableCell>
                 <TableCell>
                   <div className="flex max-w-[160px] flex-wrap gap-1">
@@ -319,8 +331,8 @@ export function CandidatesPage() {
                   </div>
                 </TableCell>
                 <TableCell>{c.source}</TableCell>
-                <TableCell className="text-right">
-                  <div className="flex justify-end gap-1">
+                <TableCell className="text-center">
+                  <div className="flex justify-center gap-1">
                     <Button
                       type="button"
                       size="sm"
@@ -578,6 +590,6 @@ export function CandidatesPage() {
           ) : null}
         </DialogContent>
       </Dialog>
-    </div>
+    </RecruitmentPageShell>
   )
 }

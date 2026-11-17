@@ -15,6 +15,7 @@ import { RegularizationPage } from '@/features/attendance/pages/RegularizationPa
 import { WeeklyOffPage } from '@/features/attendance/pages/WeeklyOffPage'
 import { ForgotPasswordPage } from '@/features/auth/pages/ForgotPasswordPage'
 import { LoginPage } from '@/features/auth/pages/LoginPage'
+import { ContactAdministratorPage } from '@/features/support/pages/ContactAdministratorPage'
 import { DashboardPage } from '@/features/dashboard/pages/DashboardPage'
 import { EmployeeDashboardPage } from '@/features/employee/pages/EmployeeDashboardPage'
 import { MyEmployeeDocumentsPage } from '@/features/employees/pages/EmployeeDocumentsPage'
@@ -37,6 +38,10 @@ function App() {
       <Routes>
         <Route path="/" element={<LoginPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route
+          path="/contact-administrator"
+          element={<ContactAdministratorPage />}
+        />
 
         <Route element={<MainLayout />}>
           <Route
