@@ -102,3 +102,25 @@ export type PayrollSummary = {
   employeesIncluded: number
   trend: PayrollPoint[]
 }
+
+/** Extended workforce metrics — additive to existing EmployeeStatSummary. */
+export type WorkforceExtendedSummary = {
+  newJoinersThisMonth: number
+  onProbation: number
+  onNoticePeriod: number
+  resigned: number
+  terminated: number
+}
+
+export type NamedCountItem = {
+  name: string
+  count: number
+  percentage: number
+  color: string
+}
+
+export type RecentlyAddedEmployee = EmployeeListItem & {
+  joiningDate: string
+  employmentType: string
+  status: string
+}

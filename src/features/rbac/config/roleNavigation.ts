@@ -138,6 +138,16 @@ const superAdminNav: RoleNavItem[] = [
         path: '/superadmin/employees',
         feature: 'employee.overview',
       },
+      {
+        title: 'Employee Directory',
+        path: '/superadmin/employees/directory',
+        feature: 'employee.directory',
+      },
+      {
+        title: 'Add Employee',
+        path: '/superadmin/employees/add',
+        feature: 'employee.registration.edit',
+      },
     ],
   },
   {
@@ -156,11 +166,19 @@ const superAdminNav: RoleNavItem[] = [
     title: 'Department Management',
     path: '/superadmin/departments',
     iconName: 'Building2',
+    feature: 'employee.organization.view',
   },
   {
     title: 'Designations',
     path: '/superadmin/designations',
     iconName: 'BadgeCheck',
+    feature: 'employee.organization.view',
+  },
+  {
+    title: 'Employee Documents',
+    path: '/superadmin/documents',
+    iconName: 'FileText',
+    feature: 'employee.documents.view',
   },
   {
     title: 'Attendance Management',
@@ -250,10 +268,31 @@ const adminNav: RoleNavItem[] = [
         path: '/admin/employees',
         feature: 'employee.overview',
       },
+      {
+        title: 'Employee Directory',
+        path: '/admin/employees/directory',
+        feature: 'employee.directory',
+      },
     ],
   },
-  { title: 'Departments', path: '/admin/departments', iconName: 'Building2' },
-  { title: 'Designations', path: '/admin/designations', iconName: 'BadgeCheck' },
+  {
+    title: 'Departments',
+    path: '/admin/departments',
+    iconName: 'Building2',
+    feature: 'employee.organization.view',
+  },
+  {
+    title: 'Designations',
+    path: '/admin/designations',
+    iconName: 'BadgeCheck',
+    feature: 'employee.organization.view',
+  },
+  {
+    title: 'Employee Documents',
+    path: '/admin/documents',
+    iconName: 'FileText',
+    feature: 'employee.documents.view',
+  },
   {
     title: 'Attendance Management',
     path: '/admin/attendance',
@@ -329,20 +368,31 @@ const hrNav: RoleNavItem[] = [
         path: '/hr/employees',
         feature: 'employee.overview',
       },
+      {
+        title: 'Employee Directory',
+        path: '/hr/employees/directory',
+        feature: 'employee.directory',
+      },
     ],
   },
   {
     title: 'Add Employee',
     path: '/hr/employees/add',
     iconName: 'UserPlus',
-    feature: 'employee.manage',
+    feature: 'employee.registration.edit',
   },
   {
     title: 'Employee Documents',
     path: '/hr/documents',
     iconName: 'FileText',
+    feature: 'employee.documents.view',
   },
-  { title: 'Departments', path: '/hr/departments', iconName: 'Building2' },
+  {
+    title: 'Departments',
+    path: '/hr/departments',
+    iconName: 'Building2',
+    feature: 'employee.organization.view',
+  },
   {
     title: 'Attendance',
     path: '/hr/attendance',
@@ -398,7 +448,12 @@ const employeeNav: RoleNavItem[] = [
     path: '/employee/dashboard',
     iconName: 'LayoutDashboard',
   },
-  { title: 'My Profile', path: '/employee/profile', iconName: 'UserRound' },
+  {
+    title: 'My Profile',
+    path: '/employee/profile',
+    iconName: 'UserRound',
+    feature: 'employee.profile.own',
+  },
   {
     title: 'My Attendance',
     path: '/employee/attendance',
@@ -446,6 +501,7 @@ const employeeNav: RoleNavItem[] = [
     title: 'My Documents',
     path: '/employee/documents',
     iconName: 'FileText',
+    feature: 'employee.documents.own',
   },
   {
     title: 'Company Holidays',

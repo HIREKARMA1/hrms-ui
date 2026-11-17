@@ -17,7 +17,9 @@ import { ForgotPasswordPage } from '@/features/auth/pages/ForgotPasswordPage'
 import { LoginPage } from '@/features/auth/pages/LoginPage'
 import { DashboardPage } from '@/features/dashboard/pages/DashboardPage'
 import { EmployeeDashboardPage } from '@/features/employee/pages/EmployeeDashboardPage'
+import { MyEmployeeDocumentsPage } from '@/features/employees/pages/EmployeeDocumentsPage'
 import { EmployeeOverviewPage } from '@/features/employees/pages/EmployeeOverviewPage'
+import { MyEmployeeProfilePage } from '@/features/employees/pages/EmployeeProfilePage'
 import { LeavePage } from '@/features/leave/pages/LeavePage'
 import { PayrollPage } from '@/features/payroll/pages/PayrollPage'
 import { RequireAccess } from '@/features/rbac/components/RequireAccess'
@@ -184,6 +186,28 @@ function App() {
                 featureLabel="Company Holidays"
               >
                 <HolidayPage />
+              </RequireAccess>
+            }
+          />
+          <Route
+            path="/employee/profile"
+            element={
+              <RequireAccess
+                feature="employee.profile.own"
+                featureLabel="My Profile"
+              >
+                <MyEmployeeProfilePage />
+              </RequireAccess>
+            }
+          />
+          <Route
+            path="/employee/documents"
+            element={
+              <RequireAccess
+                feature="employee.documents.own"
+                featureLabel="My Documents"
+              >
+                <MyEmployeeDocumentsPage />
               </RequireAccess>
             }
           />

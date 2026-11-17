@@ -17,10 +17,18 @@ import { EmployeeAttrition } from '../components/EmployeeAttrition'
 import { EmployeeStatsCards } from '../components/EmployeeStatsCards'
 import { LeaveAnalytics } from '../components/LeaveAnalytics'
 import { MonthlyPayrollOverview } from '../components/MonthlyPayrollOverview'
+import { NamedCountDistribution } from '../components/NamedCountDistribution'
 import { NewJoiners } from '../components/NewJoiners'
 import { NoticePeriodEmployees } from '../components/NoticePeriodEmployees'
+import { RecentlyAddedEmployees } from '../components/RecentlyAddedEmployees'
 import { UpcomingBirthdays } from '../components/UpcomingBirthdays'
 import { WorkAnniversaries } from '../components/WorkAnniversaries'
+import { WorkforceExtendedStats } from '../components/WorkforceExtendedStats'
+import {
+  branchDistribution,
+  employmentTypeDistribution,
+  genderDistribution,
+} from '../mocks/employeeDashboard.mock'
 
 export function EmployeeOverviewPage() {
   const [dateRange, setDateRange] = useState('this-month')
@@ -62,6 +70,10 @@ export function EmployeeOverviewPage() {
         <EmployeeStatsCards />
       </Feature>
 
+      <Feature name="employee.workforceExtended">
+        <WorkforceExtendedStats />
+      </Feature>
+
       <div className="grid gap-4 xl:grid-cols-2">
         <Feature name="employee.birthdays">
           <UpcomingBirthdays />
@@ -100,6 +112,30 @@ export function EmployeeOverviewPage() {
 
       <Feature name="employee.payrollOverview">
         <MonthlyPayrollOverview />
+      </Feature>
+
+      <Feature name="employee.workforceExtended">
+        <div className="grid gap-4 xl:grid-cols-3">
+          <NamedCountDistribution
+            title="Branch-wise Employee Count"
+            description="Headcount by work location / branch"
+            data={branchDistribution}
+          />
+          <NamedCountDistribution
+            title="Gender-wise Distribution"
+            description="Workforce gender composition"
+            data={genderDistribution}
+          />
+          <NamedCountDistribution
+            title="Employment-type Distribution"
+            description="Full-time, contract, intern and part-time mix"
+            data={employmentTypeDistribution}
+          />
+        </div>
+      </Feature>
+
+      <Feature name="employee.workforceExtended">
+        <RecentlyAddedEmployees />
       </Feature>
     </div>
   )

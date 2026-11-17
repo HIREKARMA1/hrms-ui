@@ -8,9 +8,12 @@ import type {
   EmployeeStatSummary,
   LeaveStatusSummary,
   LeaveTypeDistribution,
+  NamedCountItem,
   NewJoiner,
   NoticePeriodEmployee,
   PayrollSummary,
+  RecentlyAddedEmployee,
+  WorkforceExtendedSummary,
 } from '../types/employeeDashboard.types'
 
 export const employeeStatSummary: EmployeeStatSummary = {
@@ -244,3 +247,75 @@ export function formatInr(amount: number) {
     maximumFractionDigits: 0,
   }).format(amount)
 }
+
+/** Additive mock metrics for newly requested dashboard widgets. */
+export const workforceExtendedSummary: WorkforceExtendedSummary = {
+  newJoinersThisMonth: 12,
+  onProbation: 18,
+  onNoticePeriod: 3,
+  resigned: 6,
+  terminated: 2,
+}
+
+export const branchDistribution: NamedCountItem[] = [
+  { name: 'Hyderabad HQ', count: 110, percentage: 44.4, color: '#5938DB' },
+  { name: 'Bengaluru', count: 72, percentage: 29.0, color: '#3B82F6' },
+  { name: 'Pune', count: 40, percentage: 16.1, color: '#16A34A' },
+  { name: 'Remote', count: 26, percentage: 10.5, color: '#F59E0B' },
+]
+
+export const genderDistribution: NamedCountItem[] = [
+  { name: 'Female', count: 108, percentage: 43.5, color: '#5938DB' },
+  { name: 'Male', count: 132, percentage: 53.2, color: '#3B82F6' },
+  { name: 'Other / Prefer not to say', count: 8, percentage: 3.3, color: '#94A3B8' },
+]
+
+export const employmentTypeDistribution: NamedCountItem[] = [
+  { name: 'Full-time', count: 198, percentage: 79.8, color: '#5938DB' },
+  { name: 'Contract', count: 28, percentage: 11.3, color: '#F59E0B' },
+  { name: 'Intern', count: 16, percentage: 6.5, color: '#3B82F6' },
+  { name: 'Part-time', count: 6, percentage: 2.4, color: '#16A34A' },
+]
+
+export const recentlyAddedEmployees: RecentlyAddedEmployee[] = [
+  {
+    id: 'ra1',
+    name: 'Ishita Kapoor',
+    employeeId: 'EMP-1201',
+    department: 'Engineering',
+    initials: 'IK',
+    joiningDate: '03 Nov 2026',
+    employmentType: 'Full-time',
+    status: 'Probation',
+  },
+  {
+    id: 'ra2',
+    name: 'Devansh Gupta',
+    employeeId: 'EMP-1202',
+    department: 'Product',
+    initials: 'DG',
+    joiningDate: '05 Nov 2026',
+    employmentType: 'Full-time',
+    status: 'Active',
+  },
+  {
+    id: 'ra3',
+    name: 'Neha Joshi',
+    employeeId: 'EMP-1203',
+    department: 'Operations',
+    initials: 'NJ',
+    joiningDate: '10 Nov 2026',
+    employmentType: 'Contract',
+    status: 'Probation',
+  },
+  {
+    id: 'ra4',
+    name: 'Ayaan Khan',
+    employeeId: 'EMP-1204',
+    department: 'Finance',
+    initials: 'AK',
+    joiningDate: '12 Nov 2026',
+    employmentType: 'Intern',
+    status: 'Active',
+  },
+]

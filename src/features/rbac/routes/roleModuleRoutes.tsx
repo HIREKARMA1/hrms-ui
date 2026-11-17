@@ -11,7 +11,12 @@ import { HolidayPage } from '@/features/attendance/pages/HolidayPage'
 import { OvertimePage } from '@/features/attendance/pages/OvertimePage'
 import { RegularizationPage } from '@/features/attendance/pages/RegularizationPage'
 import { WeeklyOffPage } from '@/features/attendance/pages/WeeklyOffPage'
+import { EmployeeDirectoryPage } from '@/features/employees/pages/EmployeeDirectoryPage'
+import { EmployeeDocumentsPage } from '@/features/employees/pages/EmployeeDocumentsPage'
 import { EmployeeOverviewPage } from '@/features/employees/pages/EmployeeOverviewPage'
+import { EmployeeProfilePage } from '@/features/employees/pages/EmployeeProfilePage'
+import { EmployeeRegistrationPage } from '@/features/employees/pages/EmployeeRegistrationPage'
+import { OrganizationDepartmentsPage } from '@/features/organization/pages/OrganizationDepartmentsPage'
 import { ApplicationPipelinePage } from '@/features/recruitment/pages/ApplicationPipelinePage'
 import { CandidatesPage } from '@/features/recruitment/pages/CandidatesPage'
 import { InterviewFeedbackPage } from '@/features/recruitment/pages/InterviewFeedbackPage'
@@ -42,6 +47,75 @@ export function createOrgRoleModuleRoutes(prefix: RolePrefix): ReactElement[] {
       element={
         <RequireAccess feature="employee.overview" featureLabel="Employee Management">
           <EmployeeOverviewPage />
+        </RequireAccess>
+      }
+    />,
+    <Route
+      key={`${prefix}-employees-directory`}
+      path={`/${prefix}/employees/directory`}
+      element={
+        <RequireAccess feature="employee.directory" featureLabel="Employee Directory">
+          <EmployeeDirectoryPage />
+        </RequireAccess>
+      }
+    />,
+    <Route
+      key={`${prefix}-employees-add`}
+      path={`/${prefix}/employees/add`}
+      element={
+        <RequireAccess
+          feature="employee.registration.edit"
+          featureLabel="Employee Registration"
+        >
+          <EmployeeRegistrationPage />
+        </RequireAccess>
+      }
+    />,
+    <Route
+      key={`${prefix}-employees-profile`}
+      path={`/${prefix}/employees/profile/:employeeId`}
+      element={
+        <RequireAccess
+          feature="employee.registration.view"
+          featureLabel="Employee Profile"
+        >
+          <EmployeeProfilePage />
+        </RequireAccess>
+      }
+    />,
+    <Route
+      key={`${prefix}-departments`}
+      path={`/${prefix}/departments`}
+      element={
+        <RequireAccess
+          feature="employee.organization.view"
+          featureLabel="Organization & Departments"
+        >
+          <OrganizationDepartmentsPage />
+        </RequireAccess>
+      }
+    />,
+    <Route
+      key={`${prefix}-designations`}
+      path={`/${prefix}/designations`}
+      element={
+        <RequireAccess
+          feature="employee.organization.view"
+          featureLabel="Designations"
+        >
+          <OrganizationDepartmentsPage />
+        </RequireAccess>
+      }
+    />,
+    <Route
+      key={`${prefix}-documents`}
+      path={`/${prefix}/documents`}
+      element={
+        <RequireAccess
+          feature="employee.documents.view"
+          featureLabel="Employee Documents"
+        >
+          <EmployeeDocumentsPage />
         </RequireAccess>
       }
     />,
