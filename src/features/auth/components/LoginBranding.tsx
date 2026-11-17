@@ -1,10 +1,6 @@
-import {
-  BriefcaseBusiness,
-  CalendarDays,
-  Coins,
-  Layers,
-  UserCog,
-} from 'lucide-react'
+import { BriefcaseBusiness, CalendarDays, Coins, UserCog } from 'lucide-react'
+
+import { HireKarmaMark } from '@/components/brand/HireKarmaMark'
 
 const features = [
   {
@@ -93,9 +89,7 @@ export function LoginBranding() {
       <div className="relative z-10 flex w-full flex-col justify-between px-10 py-10 xl:px-14 xl:py-12">
         <div>
           <div className="mb-10 flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/15 backdrop-blur-sm">
-              <Layers className="h-6 w-6" strokeWidth={2.25} />
-            </div>
+            <HireKarmaMark />
             <div>
               <p className="text-xl font-bold tracking-tight">HRMS</p>
               <p className="text-sm text-white/75">

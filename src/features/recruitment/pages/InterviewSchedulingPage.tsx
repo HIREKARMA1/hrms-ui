@@ -1,18 +1,10 @@
 import { Pencil, Plus } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 
 import { Feature } from '@/features/rbac/components/Feature'
 import { Button } from '@/components/ui/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import {
   Select,
   SelectContent,
@@ -28,80 +20,40 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Textarea } from '@/components/ui/textarea'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
-import { InterviewStatusBadge, MockDataBanner } from '../components'
+import { InterviewScheduleDialog } from '../components/InterviewScheduleDialog'
+import { InterviewStatusBadge, RecruitmentPageShell } from '../components'
+import { RECRUITMENT_FILTER_BAR, RECRUITMENT_INFO_NOTE } from '../components/shared/recruitmentUi'
+import { useRecruitment } from '../hooks/useRecruitment'
+import type { Interview } from '../types/recruitment'
 import {
-  listCandidates,
-  listInterviews,
-  listJobs,
-} from '../services/recruitmentService'
-import type {
-  Interview,
-  InterviewStatus,
-  InterviewType,
-} from '../types/recruitment'
-
-type InterviewForm = {
-  candidateId: string
-  jobId: string
-  round: string
-  interviewType: InterviewType
-  date: string
-  startTime: string
-  endTime: string
-  interviewers: string
-  meetingLink: string
-  location: string
-  notes: string
-  status: InterviewStatus
-}
-
-const interviewTypes: InterviewType[] = [
-  'Technical',
-  'HR',
-  'Managerial',
-  'Final',
-  'Cultural',
-]
-
-const statuses: InterviewStatus[] = [
-  'Scheduled',
-  'Completed',
-  'Cancelled',
-  'Rescheduled',
-]
-
-const emptyForm: InterviewForm = {
-  candidateId: '',
-  jobId: '',
-  round: 'Technical Round 1',
-  interviewType: 'Technical',
-  date: '',
-  startTime: '10:00',
-  endTime: '11:00',
-  interviewers: '',
-  meetingLink: '',
-  location: 'Virtual',
-  notes: '',
-  status: 'Scheduled',
-}
+  emptyInterviewForm,
+  interviewToForm,
+  type InterviewFormState,
+} from '../utils/interviewForm'
 
 export function InterviewSchedulingPage() {
-  const [interviews, setInterviews] = useState(() => listInterviews())
-  const [candidates] = useState(() => listCandidates())
-  const [jobs] = useState(() => listJobs())
+  const { candidates, jobs, interviews, upsertInterview, cancelInterview } =
+    useRecruitment()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const jobFromUrl = searchParams.get('jobId')
   const [candidateFilter, setCandidateFilter] = useState('All')
+  const [jobFilter, setJobFilter] = useState<string>(jobFromUrl ?? 'All')
   const [interviewerFilter, setInterviewerFilter] = useState('')
   const [dateFilter, setDateFilter] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('All')
   const [formOpen, setFormOpen] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
-  const [form, setForm] = useState<InterviewForm>(emptyForm)
+  const [form, setForm] = useState<InterviewFormState>(emptyInterviewForm)
+
+  useEffect(() => {
+    if (jobFromUrl) setJobFilter(jobFromUrl)
+  }, [jobFromUrl])
 
   const filtered = useMemo(() => {
     return interviews.filter((item) => {
+      if (jobFilter !== 'All' && item.jobId !== jobFilter) return false
       if (candidateFilter !== 'All' && item.candidateId !== candidateFilter)
         return false
       if (statusFilter !== 'All' && item.status !== statusFilter) return false
@@ -116,7 +68,16 @@ export function InterviewSchedulingPage() {
       }
       return true
     })
-  }, [interviews, candidateFilter, statusFilter, dateFilter, interviewerFilter])
+  }, [
+    interviews,
+    jobFilter,
+    candidateFilter,
+    statusFilter,
+    dateFilter,
+    interviewerFilter,
+  ])
+
+  const activeJob = jobs.find((j) => j.id === jobFilter)
 
   const upcoming = filtered.filter((i) => i.status === 'Scheduled' || i.status === 'Rescheduled')
   const completed = filtered.filter((i) => i.status === 'Completed')
@@ -124,77 +85,25 @@ export function InterviewSchedulingPage() {
   const openCreate = () => {
     setEditingId(null)
     setForm({
-      ...emptyForm,
+      ...emptyInterviewForm,
       candidateId: candidates[0]?.id ?? '',
-      jobId: candidates[0]?.appliedJobId ?? jobs[0]?.id ?? '',
+      jobId:
+        jobFilter !== 'All'
+          ? jobFilter
+          : (candidates[0]?.appliedJobId ?? jobs[0]?.id ?? ''),
     })
     setFormOpen(true)
   }
 
   const openEdit = (item: Interview) => {
     setEditingId(item.id)
-    setForm({
-      candidateId: item.candidateId,
-      jobId: item.jobId,
-      round: item.round,
-      interviewType: item.interviewType,
-      date: item.date,
-      startTime: item.startTime,
-      endTime: item.endTime,
-      interviewers: item.interviewers.join(', '),
-      meetingLink: item.meetingLink,
-      location: item.location,
-      notes: item.notes,
-      status: item.status,
-    })
+    setForm(interviewToForm(item))
     setFormOpen(true)
   }
 
   const saveInterview = () => {
-    if (!form.candidateId || !form.date) return
-    const candidate = candidates.find((c) => c.id === form.candidateId)
-    const job = jobs.find((j) => j.id === form.jobId)
-    const payload = {
-      candidateId: form.candidateId,
-      candidateName: candidate?.fullName ?? 'Unknown',
-      jobId: form.jobId,
-      jobTitle: job?.title ?? candidate?.appliedJobTitle ?? 'Unknown',
-      round: form.round.trim(),
-      interviewType: form.interviewType,
-      date: form.date,
-      startTime: form.startTime,
-      endTime: form.endTime,
-      interviewers: form.interviewers
-        .split(',')
-        .map((s) => s.trim())
-        .filter(Boolean),
-      meetingLink: form.meetingLink.trim(),
-      location: form.location.trim(),
-      notes: form.notes.trim(),
-      status: form.status,
-    }
-
-    if (editingId) {
-      setInterviews((prev) =>
-        prev.map((item) =>
-          item.id === editingId ? { ...item, ...payload } : item,
-        ),
-      )
-    } else {
-      setInterviews((prev) => [
-        { ...payload, id: `INT-${300 + prev.length + 1}` },
-        ...prev,
-      ])
-    }
+    upsertInterview(editingId, form)
     setFormOpen(false)
-  }
-
-  const cancelInterview = (id: string) => {
-    setInterviews((prev) =>
-      prev.map((item) =>
-        item.id === id ? { ...item, status: 'Cancelled' } : item,
-      ),
-    )
   }
 
   const renderTable = (rows: Interview[]) => (
@@ -266,27 +175,50 @@ export function InterviewSchedulingPage() {
   )
 
   return (
-    <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-navy">
-            Interview Scheduling
-          </h1>
-          <p className="mt-1 text-sm text-text-secondary">
-            Schedule rounds, assign interviewers, and track status.
-          </p>
-        </div>
+    <RecruitmentPageShell
+      activeSection="Interview Scheduling"
+      trailing={
         <Feature name="recruitment.manage">
           <Button type="button" className="gap-2" onClick={openCreate}>
             <Plus className="h-4 w-4" />
             Schedule Interview
           </Button>
         </Feature>
-      </div>
-
-      <MockDataBanner />
-
-      <div className="flex flex-col gap-3 rounded-2xl border border-border-soft bg-white p-4 shadow-sm lg:flex-row">
+      }
+    >
+      {jobFilter !== 'All' && activeJob ? (
+        <div className={`${RECRUITMENT_INFO_NOTE} flex flex-wrap items-center justify-between gap-2`}>
+          <span>
+            Filtered to <strong className="text-[#17213A]">{activeJob.title}</strong>{' '}
+            (from hiring desk).
+          </span>
+          <Button
+            type="button"
+            variant="link"
+            className="h-auto p-0 text-[#5938DB]"
+            onClick={() => {
+              setJobFilter('All')
+              setSearchParams({})
+            }}
+          >
+            Clear job filter
+          </Button>
+        </div>
+      ) : null}
+      <div className={RECRUITMENT_FILTER_BAR}>
+        <Select value={jobFilter} onValueChange={setJobFilter}>
+          <SelectTrigger className="w-full lg:w-56">
+            <SelectValue placeholder="Job" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="All">All jobs</SelectItem>
+            {jobs.map((job) => (
+              <SelectItem key={job.id} value={job.id}>
+                {job.title}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         <Select value={candidateFilter} onValueChange={setCandidateFilter}>
           <SelectTrigger className="w-full lg:w-52">
             <SelectValue placeholder="Candidate" />
@@ -318,11 +250,13 @@ export function InterviewSchedulingPage() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="All">All statuses</SelectItem>
-            {statuses.map((s) => (
-              <SelectItem key={s} value={s}>
-                {s}
-              </SelectItem>
-            ))}
+            {(['Scheduled', 'Completed', 'Cancelled', 'Rescheduled'] as const).map(
+              (s) => (
+                <SelectItem key={s} value={s}>
+                  {s}
+                </SelectItem>
+              ),
+            )}
           </SelectContent>
         </Select>
       </div>
@@ -344,187 +278,16 @@ export function InterviewSchedulingPage() {
         </TabsContent>
       </Tabs>
 
-      <Dialog open={formOpen} onOpenChange={setFormOpen}>
-        <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>
-              {editingId ? 'Edit Interview' : 'Schedule Interview'}
-            </DialogTitle>
-            <DialogDescription>
-              UI-only scheduling against mock data. No calendar invites are sent.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label>Candidate</Label>
-              <Select
-                value={form.candidateId}
-                onValueChange={(v) => {
-                  const c = candidates.find((x) => x.id === v)
-                  setForm((f) => ({
-                    ...f,
-                    candidateId: v,
-                    jobId: c?.appliedJobId ?? f.jobId,
-                  }))
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select candidate" />
-                </SelectTrigger>
-                <SelectContent>
-                  {candidates.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>
-                      {c.fullName}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Job</Label>
-              <Select
-                value={form.jobId}
-                onValueChange={(v) => setForm((f) => ({ ...f, jobId: v }))}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select job" />
-                </SelectTrigger>
-                <SelectContent>
-                  {jobs.map((job) => (
-                    <SelectItem key={job.id} value={job.id}>
-                      {job.title}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Interview Round</Label>
-              <Input
-                value={form.round}
-                onChange={(e) => setForm((f) => ({ ...f, round: e.target.value }))}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Interview Type</Label>
-              <Select
-                value={form.interviewType}
-                onValueChange={(v) =>
-                  setForm((f) => ({
-                    ...f,
-                    interviewType: v as InterviewType,
-                  }))
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {interviewTypes.map((t) => (
-                    <SelectItem key={t} value={t}>
-                      {t}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Interview Date</Label>
-              <Input
-                type="date"
-                value={form.date}
-                onChange={(e) => setForm((f) => ({ ...f, date: e.target.value }))}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Status</Label>
-              <Select
-                value={form.status}
-                onValueChange={(v) =>
-                  setForm((f) => ({ ...f, status: v as InterviewStatus }))
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {statuses.map((s) => (
-                    <SelectItem key={s} value={s}>
-                      {s}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Start Time</Label>
-              <Input
-                type="time"
-                value={form.startTime}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, startTime: e.target.value }))
-                }
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>End Time</Label>
-              <Input
-                type="time"
-                value={form.endTime}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, endTime: e.target.value }))
-                }
-              />
-            </div>
-            <div className="space-y-2 sm:col-span-2">
-              <Label>Interviewer(s)</Label>
-              <Input
-                placeholder="Comma-separated names"
-                value={form.interviewers}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, interviewers: e.target.value }))
-                }
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Meeting Link</Label>
-              <Input
-                value={form.meetingLink}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, meetingLink: e.target.value }))
-                }
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Location</Label>
-              <Input
-                value={form.location}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, location: e.target.value }))
-                }
-              />
-            </div>
-            <div className="space-y-2 sm:col-span-2">
-              <Label>Notes</Label>
-              <Textarea
-                rows={3}
-                value={form.notes}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, notes: e.target.value }))
-                }
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setFormOpen(false)}>
-              Cancel
-            </Button>
-            <Button type="button" onClick={saveInterview}>
-              Save Interview
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
+      <InterviewScheduleDialog
+        open={formOpen}
+        onOpenChange={setFormOpen}
+        form={form}
+        setForm={setForm}
+        editingId={editingId}
+        candidates={candidates}
+        jobs={jobs}
+        onSave={saveInterview}
+      />
+    </RecruitmentPageShell>
   )
 }

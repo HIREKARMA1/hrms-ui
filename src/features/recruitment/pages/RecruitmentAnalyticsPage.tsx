@@ -17,14 +17,17 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 
+import { cn } from '@/lib/utils'
+
 import {
   CandidateSourceChart,
   HiringTrendsChart,
-  MockDataBanner,
   MonthlyApplicationsChart,
   PipelineFunnelChart,
+  RecruitmentPageShell,
   SummaryStatCards,
 } from '../components'
+import { RECRUITMENT_CARD } from '../components/shared/recruitmentUi'
 import {
   listCandidates,
   listInterviews,
@@ -191,17 +194,7 @@ export function RecruitmentAnalyticsPage() {
   ]
 
   return (
-    <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-navy">
-          Recruitment Analytics
-        </h1>
-        <p className="mt-1 text-sm text-text-secondary">
-          Funnel conversion, source mix, and hiring performance (mock metrics).
-        </p>
-      </div>
-
-      <MockDataBanner />
+    <RecruitmentPageShell activeSection="Recruitment Analytics">
       <SummaryStatCards stats={stats} />
 
       <div className="grid gap-4 xl:grid-cols-2">
@@ -215,7 +208,7 @@ export function RecruitmentAnalyticsPage() {
       </div>
 
       <div className="grid gap-4 xl:grid-cols-2">
-        <Card className="border-border-soft shadow-sm">
+        <Card className={cn(RECRUITMENT_CARD, 'shadow-none')}>
           <CardHeader>
             <CardTitle>Department-wise Hiring</CardTitle>
             <CardDescription>Applications and joined counts</CardDescription>
@@ -260,7 +253,7 @@ export function RecruitmentAnalyticsPage() {
           </CardContent>
         </Card>
 
-        <Card className="border-border-soft shadow-sm">
+        <Card className={cn(RECRUITMENT_CARD, 'shadow-none')}>
           <CardHeader>
             <CardTitle>Job-wise Applications</CardTitle>
             <CardDescription>Volume by open role</CardDescription>
@@ -339,6 +332,6 @@ export function RecruitmentAnalyticsPage() {
           </div>
         </CardContent>
       </Card>
-    </div>
+    </RecruitmentPageShell>
   )
 }

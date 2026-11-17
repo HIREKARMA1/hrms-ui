@@ -21,6 +21,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
+import { cn } from '@/lib/utils'
 
 import {
   candidateSources,
@@ -28,6 +29,9 @@ import {
 } from '../mocks/recruitmentMocks'
 import type { Candidate } from '../types/recruitment'
 import { PIPELINE_STAGES } from '../utils/pipeline'
+import { STAGE_BAR_FILL } from '../utils/pipelineStageStyle'
+
+import { RECRUITMENT_CARD } from './shared/recruitmentUi'
 
 const PIE_COLORS = ['#5938DB', '#7C5CFC', '#A78BFA', '#C4B5FD', '#DDD6FE']
 
@@ -38,8 +42,8 @@ export function PipelineFunnelChart({ candidates }: { candidates: Candidate[] })
   }))
 
   return (
-    <Card className="h-full border-border-soft shadow-sm">
-      <CardHeader>
+    <Card className={cn('h-full shadow-none', RECRUITMENT_CARD)}>
+      <CardHeader className="border-b border-[#E2E6EF] bg-[#FAFBFD]">
         <CardTitle>Recruitment Pipeline Funnel</CardTitle>
         <CardDescription>Candidates by hiring stage</CardDescription>
       </CardHeader>
@@ -60,7 +64,14 @@ export function PipelineFunnelChart({ candidates }: { candidates: Candidate[] })
               <Tooltip
                 contentStyle={{ borderRadius: 12, border: '1px solid #E2E6EF' }}
               />
-              <Bar dataKey="count" fill="#5938DB" radius={[0, 6, 6, 0]} maxBarSize={18} />
+              <Bar dataKey="count" radius={[0, 6, 6, 0]} maxBarSize={18}>
+                {data.map((row) => (
+                  <Cell
+                    key={row.stage}
+                    fill={STAGE_BAR_FILL[row.stage as keyof typeof STAGE_BAR_FILL]}
+                  />
+                ))}
+              </Bar>
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -71,8 +82,8 @@ export function PipelineFunnelChart({ candidates }: { candidates: Candidate[] })
 
 export function MonthlyApplicationsChart() {
   return (
-    <Card className="h-full border-border-soft shadow-sm">
-      <CardHeader>
+    <Card className={cn('h-full shadow-none', RECRUITMENT_CARD)}>
+      <CardHeader className="border-b border-[#E2E6EF] bg-[#FAFBFD]">
         <CardTitle>Applications Received Monthly</CardTitle>
         <CardDescription>Mock trend for the last six months</CardDescription>
       </CardHeader>
@@ -117,8 +128,8 @@ export function HiringTrendsChart() {
   }))
 
   return (
-    <Card className="h-full border-border-soft shadow-sm">
-      <CardHeader>
+    <Card className={cn('h-full shadow-none', RECRUITMENT_CARD)}>
+      <CardHeader className="border-b border-[#E2E6EF] bg-[#FAFBFD]">
         <CardTitle>Hiring Trends</CardTitle>
         <CardDescription>Offers vs joined (mock)</CardDescription>
       </CardHeader>
@@ -166,8 +177,8 @@ export function HiringTrendsChart() {
 
 export function CandidateSourceChart() {
   return (
-    <Card className="h-full border-border-soft shadow-sm">
-      <CardHeader>
+    <Card className={cn('h-full shadow-none', RECRUITMENT_CARD)}>
+      <CardHeader className="border-b border-[#E2E6EF] bg-[#FAFBFD]">
         <CardTitle>Candidate Source Distribution</CardTitle>
         <CardDescription>Where applicants originate (mock)</CardDescription>
       </CardHeader>

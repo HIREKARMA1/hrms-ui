@@ -1,14 +1,11 @@
-import { Badge } from '@/components/ui/badge'
+import { RECRUITMENT_INFO_NOTE } from './shared/recruitmentUi'
 
-/** Visible marker that recruitment screens use local mock data (no API). */
+/** Inline note when a screen needs extra mock-data context (overview uses demo pill). */
 export function MockDataBanner({ message }: { message?: string }) {
   return (
-    <div className="flex flex-wrap items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm text-amber-900">
-      <Badge variant="warning">Mock data</Badge>
-      <span>
-        {message ??
-          'Recruitment APIs are not connected yet. Changes stay in this browser session only.'}
-      </span>
-    </div>
+    <p className={RECRUITMENT_INFO_NOTE}>
+      {message ??
+        'Recruitment APIs are not connected yet. Changes stay in this browser session only.'}
+    </p>
   )
 }

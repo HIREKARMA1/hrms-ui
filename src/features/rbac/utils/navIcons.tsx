@@ -11,6 +11,7 @@ import {
   Clock,
   FilePlus2,
   FileText,
+  Headphones,
   KeyRound,
   LayoutDashboard,
   Megaphone,
@@ -55,6 +56,7 @@ const iconMap: Record<string, LucideIcon> = {
   UserRound,
   Clock,
   FilePlus2,
+  Headphones,
   Palmtree,
   Megaphone,
 }

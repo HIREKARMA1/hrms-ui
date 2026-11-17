@@ -1,4 +1,6 @@
-import { ChevronDown, Layers, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
+import { ChevronDown, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
+
+import { HireKarmaMark } from '@/components/brand/HireKarmaMark'
 import { useEffect, useMemo, useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 
@@ -83,7 +85,7 @@ function toSidebarNavItems(
     title: string
     path: string
     iconName: string
-    children?: { title: string; path: string }[]
+    children?: { title: string; path: string; isSectionLabel?: boolean }[]
   }[],
 ): NavItem[] {
   return items.map((item) => ({
@@ -106,8 +108,9 @@ function SidebarNavItem({
   const location = useLocation()
   const hasChildren = Boolean(item.children?.length)
   const childActive =
-    item.children?.some((child) =>
-      isPathActive(location.pathname, child.path),
+    item.children?.some(
+      (child) =>
+        !child.isSectionLabel && isPathActive(location.pathname, child.path),
     ) ?? false
   const parentActive = isPathActive(location.pathname, item.path) || childActive
   const [open, setOpen] = useState(childActive)
@@ -183,7 +186,10 @@ function SidebarNavItem({
         <Tooltip>
           <TooltipTrigger asChild>
             <NavLink
-              to={item.children![0].path}
+              to={
+                item.children!.find((c) => !c.isSectionLabel)?.path ??
+                item.children![0].path
+              }
               onClick={onNavigate}
               className={linkClass(Boolean(parentActive))}
             >
@@ -205,25 +211,33 @@ function SidebarNavItem({
         >
           <div className="overflow-hidden">
             <ul className="mt-1 ml-4 space-y-1 border-l border-white/10 pl-3">
-              {item.children?.map((child) => (
-                <li key={child.path}>
-                  <NavLink
-                    to={child.path}
-                    end={EXACT_ONLY_PATHS.has(child.path)}
-                    onClick={onNavigate}
-                    className={() =>
-                      cn(
-                        'block rounded-lg px-3 py-2 text-sm transition-colors',
-                        isPathActive(location.pathname, child.path)
-                          ? 'bg-white/15 font-medium text-white'
-                          : 'text-slate-400 hover:bg-white/5 hover:text-white',
-                      )
-                    }
-                  >
-                    {child.title}
-                  </NavLink>
-                </li>
-              ))}
+              {item.children?.map((child) =>
+                child.isSectionLabel ? (
+                  <li key={`${child.title}-label`} className="pt-2 first:pt-0">
+                    <p className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+                      {child.title}
+                    </p>
+                  </li>
+                ) : (
+                  <li key={child.path + child.title}>
+                    <NavLink
+                      to={child.path}
+                      end={EXACT_ONLY_PATHS.has(child.path)}
+                      onClick={onNavigate}
+                      className={() =>
+                        cn(
+                          'block rounded-lg px-3 py-2 text-sm transition-colors',
+                          isPathActive(location.pathname, child.path)
+                            ? 'bg-white/15 font-medium text-white'
+                            : 'text-slate-400 hover:bg-white/5 hover:text-white',
+                        )
+                      }
+                    >
+                      {child.title}
+                    </NavLink>
+                  </li>
+                ),
+              )}
             </ul>
           </div>
         </div>
@@ -264,9 +278,7 @@ export function Sidebar({ variant = 'desktop', onNavigate }: SidebarProps) {
             isCollapsed && 'justify-center px-2',
           )}
         >
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-500 text-white shadow-sm">
-            <Layers className="h-5 w-5" strokeWidth={2.25} />
-          </div>
+          <HireKarmaMark />
           {!isCollapsed ? (
             <div className="min-w-0 pt-0.5">
               <p className="text-base font-bold tracking-tight">HRMS</p>
