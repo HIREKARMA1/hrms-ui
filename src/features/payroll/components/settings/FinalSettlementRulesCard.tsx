@@ -23,6 +23,9 @@ export function FinalSettlementRulesCard({ draft, onChange }: FinalSettlementRul
 
   return (
     <SettingsCard title="Final settlement rules">
+      <p className="text-sm text-hrms-text-secondary">
+        Defaults for full &amp; final calculations. Open individual exit cases on the Final Settlement tab.
+      </p>
       <WageBaseSelect
         id="fs-leave-base"
         label="Leave encashment rate base"

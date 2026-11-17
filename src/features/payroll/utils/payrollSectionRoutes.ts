@@ -7,6 +7,7 @@ import { isHrAdminExperience } from '@/features/leave/constants/userRoles'
 
 import type { PayrollPageTabId } from '../hooks/usePayrollPageTabs'
 import { defaultPayrollTabForRole, payrollTabsForRole } from '../hooks/usePayrollPageTabs'
+import { payrollBaseFromPathname } from './payrollModuleBasePath'
 
 const SLUG_BY_TAB: Record<PayrollPageTabId, string> = {
   Overview: '',
@@ -23,9 +24,9 @@ const TAB_BY_SLUG: Record<string, PayrollPageTabId> = Object.fromEntries(
     .map(([tab, slug]) => [slug, tab as PayrollPageTabId]),
 )
 
-export function payrollPathForTab(tab: PayrollPageTabId): string {
+export function payrollPathForTab(tab: PayrollPageTabId, base = '/payroll'): string {
   const slug = SLUG_BY_TAB[tab]
-  return slug ? `/payroll/${slug}` : '/payroll'
+  return slug ? `${base}/${slug}` : base
 }
 
 export function payrollTabFromSection(
@@ -36,7 +37,9 @@ export function payrollTabFromSection(
   const allowed = payrollTabsForRole(role)
   const defaultTab = defaultPayrollTabForRole(role)
 
-  if (pathname === '/payroll' || pathname === '/payroll/') {
+  const base = payrollBaseFromPathname(pathname)
+
+  if (pathname === base || pathname === `${base}/`) {
     return isHrAdminExperience(role) ? 'Overview' : defaultTab
   }
 
@@ -46,11 +49,13 @@ export function payrollTabFromSection(
 }
 
 export function isPayrollOverviewPath(pathname: string) {
-  return pathname === '/payroll' || pathname === '/payroll/'
+  const base = payrollBaseFromPathname(pathname)
+  return pathname === base || pathname === `${base}/`
 }
 
 export function payrollNonHrOverviewRedirect(role: UserRole, pathname: string): string | null {
   if (!isPayrollOverviewPath(pathname)) return null
   if (isHrAdminExperience(role)) return null
-  return payrollPathForTab(defaultPayrollTabForRole(role))
+  const base = payrollBaseFromPathname(pathname)
+  return payrollPathForTab(defaultPayrollTabForRole(role), base)
 }

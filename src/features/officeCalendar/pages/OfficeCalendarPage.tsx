@@ -1,0 +1,94 @@
+import { useMemo } from 'react'
+
+import type { UserRole } from '@/features/leave/constants/userRoles'
+import { useRbacSession } from '@/features/rbac/hooks/useRbacSession'
+
+import { OfficeCalendarEventDialogHost } from '../components/OfficeCalendarEventDialogHost'
+import { OfficeCalendarPageHeader } from '../components/OfficeCalendarPageHeader'
+import { OfficeCalendarPageSkeleton } from '../components/OfficeCalendarPageSkeleton'
+import { OfficeCalendarTabSection } from '../components/OfficeCalendarTabSection'
+import { OfficeCalendarProvider } from '../context/OfficeCalendarProvider'
+import { OfficeCalendarConfirmProvider } from '../context/OfficeCalendarConfirmProvider'
+import { OfficeCalendarToastProvider } from '../context/OfficeCalendarToastProvider'
+import { useOfficeCalendar } from '../hooks/useOfficeCalendar'
+import { useOfficeCalendarEventDialogs } from '../hooks/useOfficeCalendarEventDialogs'
+import { useOfficeCalendarRoute } from '../hooks/useOfficeCalendarRoute'
+import { useOfficeCalendarScope } from '../hooks/useOfficeCalendarScope'
+import { visibleEventsForRole } from '../utils/visibleCalendarForRole'
+
+function OfficeCalendarPanels() {
+  const session = useRbacSession()
+  const role = (session.roleCode ?? 'HR_ADMIN') as UserRole
+  const { activeTab, goToTab } = useOfficeCalendarRoute(role)
+  const { loading, error, reload, events, holidays, saveHoliday, removeHoliday } = useOfficeCalendar()
+  const scope = useOfficeCalendarScope(role)
+  const visibleEvents = useMemo(() => visibleEventsForRole(events, role), [events, role])
+  const dialogs = useOfficeCalendarEventDialogs(visibleEvents)
+
+  if (loading) {
+    return <OfficeCalendarPageSkeleton />
+  }
+
+  if (error) {
+    return (
+      <div className="rounded-xl border border-hrms-danger/30 bg-red-50 p-4 text-sm text-hrms-danger">
+        {error}{' '}
+        <button type="button" className="underline" onClick={reload}>
+          Retry
+        </button>
+      </div>
+    )
+  }
+
+  return (
+    <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-4">
+      <header className="border-b border-hrms-border pb-3 pt-1">
+        <OfficeCalendarPageHeader activeSection={activeTab} />
+      </header>
+
+      <OfficeCalendarTabSection
+        activeTab={activeTab}
+        role={role}
+        holidays={holidays}
+        visibleEvents={visibleEvents}
+        canViewOverview={scope.canViewOverview}
+        isReadOnlyHolidays={scope.isReadOnlyHolidays}
+        canManageEvents={scope.canManageEvents}
+        goToTab={goToTab}
+        onCreateEvent={dialogs.openCreateEvent}
+        onOpenEvent={dialogs.setDetailEventId}
+        onSaveHoliday={saveHoliday}
+        onDeleteHoliday={removeHoliday}
+      />
+
+      <OfficeCalendarEventDialogHost
+        eventForm={dialogs.eventForm}
+        setEventFormOpen={(open) => dialogs.setEventForm((state) => ({ ...state, open }))}
+        detailEvent={dialogs.detailEvent}
+        detailOpen={Boolean(dialogs.detailEvent)}
+        onDetailOpenChange={(open) => {
+          if (!open) dialogs.setDetailEventId(null)
+        }}
+        canManageEvents={scope.canManageEvents}
+        onEditDetail={() => {
+          if (dialogs.detailEvent) dialogs.openEditEvent(dialogs.detailEvent)
+        }}
+        onDetailDeleted={() => dialogs.setDetailEventId(null)}
+      />
+    </div>
+  )
+}
+
+export function OfficeCalendarPage() {
+  return (
+    <OfficeCalendarProvider>
+      <OfficeCalendarToastProvider>
+        <OfficeCalendarConfirmProvider>
+          <OfficeCalendarPanels />
+        </OfficeCalendarConfirmProvider>
+      </OfficeCalendarToastProvider>
+    </OfficeCalendarProvider>
+  )
+}
+
+export default OfficeCalendarPage

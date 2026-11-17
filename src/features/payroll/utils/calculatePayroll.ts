@@ -40,19 +40,14 @@ export function computeStructurePreviewPayroll(
   const componentAmounts = resolveComponentAmounts(settings, structure.componentValues)
   const fixedGross = sumGross(componentAmounts)
   const gross = fixedGross
-  const { employeePf, employerPf } = calculatePf(settings, structure.flags, componentAmounts)
+  const { employeePf, employerPf } = calculatePf(settings, structure, componentAmounts)
   const { employeeEsi, employerEsi, esiApplicable } = calculateEsi(
     settings,
     structure.flags,
     fixedGross,
     componentAmounts,
   )
-  const professionalTax = calculateProfessionalTax(
-    settings,
-    structure.flags,
-    gross,
-    payrollMonth,
-  )
+  const professionalTax = calculateProfessionalTax(settings, structure, gross, payrollMonth)
   const lopDivisor = getLossOfPayDivisor(settings)
   const unpaidLeaveDeduction = roundMoney(
     (fixedGross / lopDivisor) * employee.unpaidLeaveDays,

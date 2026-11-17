@@ -40,12 +40,7 @@ export function computePayrollFieldsWithOptions(
   const gross = roundMoney(fixedGross + variablePay.total)
   const { pfAdd, esiAdd, ptAdd } = variablePayForPfEsiPt(settings, variablePay)
 
-  const { employeePf, employerPf } = calculatePf(
-    settings,
-    structure.flags,
-    componentAmounts,
-    pfAdd,
-  )
+  const { employeePf, employerPf } = calculatePf(settings, structure, componentAmounts, pfAdd)
   const { employeeEsi, employerEsi, esiApplicable } = calculateEsi(
     settings,
     structure.flags,
@@ -55,7 +50,7 @@ export function computePayrollFieldsWithOptions(
   )
   const professionalTax = calculateProfessionalTax(
     settings,
-    structure.flags,
+    structure,
     fixedGross + ptAdd,
     options.payrollMonth,
   )

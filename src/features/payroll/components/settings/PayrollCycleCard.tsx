@@ -19,6 +19,9 @@ export function PayrollCycleCard({ draft, onChange }: PayrollCycleCardProps) {
 
   return (
     <SettingsCard title="Payroll cycle & TDS">
+      <p className="text-sm text-hrms-text-secondary">
+        Loss-of-pay divisor should match how attendance is counted. TDS amounts are set per employee, not here.
+      </p>
       <div>
         <label htmlFor="lop-basis" className="text-sm font-medium text-hrms-navy">
           Loss of pay day basis

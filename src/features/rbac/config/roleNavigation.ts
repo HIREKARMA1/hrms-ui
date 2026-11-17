@@ -1,6 +1,15 @@
 import type { BackendRoleCode, RoleNavItem, RoleUiConfig } from '../types/roles'
 import { ROLE_ROUTE_MAP } from '../utils/roleRouteMap'
 
+import {
+  employeeLeaveNavChildren,
+  employeePayrollNavChildren,
+  leaveNavChildrenForRbac,
+  payrollNavChildrenForRbac,
+} from './leavePayrollNavChildren'
+import { calendarNavChildrenForRbac, employeeCalendarNavChildren } from './calendarNavChildren'
+import { employeeLeadsNavChildren, leadsNavChildrenForRbac } from './leadsNavChildren'
+
 function recruitmentChildren(prefix: string): RoleNavItem['children'] {
   return [
     {
@@ -164,11 +173,13 @@ const superAdminNav: RoleNavItem[] = [
     title: 'Leave Management',
     path: '/superadmin/leave',
     iconName: 'CalendarDays',
+    children: leaveNavChildrenForRbac('SUPER_ADMIN', '/superadmin'),
   },
   {
     title: 'Payroll Management',
     path: '/superadmin/payroll',
     iconName: 'Wallet',
+    children: payrollNavChildrenForRbac('SUPER_ADMIN', '/superadmin'),
   },
   {
     title: 'Recruitment',
@@ -176,6 +187,20 @@ const superAdminNav: RoleNavItem[] = [
     iconName: 'Briefcase',
     feature: 'recruitment.overview',
     children: recruitmentChildren('/superadmin'),
+  },
+  {
+    title: 'Leads Management',
+    path: '/superadmin/leads',
+    iconName: 'Megaphone',
+    feature: 'leads.overview',
+    children: leadsNavChildrenForRbac('SUPER_ADMIN', '/superadmin'),
+  },
+  {
+    title: 'Office Calendar',
+    path: '/superadmin/calendar',
+    iconName: 'CalendarRange',
+    feature: 'calendar.view',
+    children: calendarNavChildrenForRbac('SUPER_ADMIN', '/superadmin'),
   },
   {
     title: 'Performance Management',
@@ -236,14 +261,38 @@ const adminNav: RoleNavItem[] = [
     feature: 'attendance.overview',
     children: attendanceChildren('/admin'),
   },
-  { title: 'Leave Management', path: '/admin/leave', iconName: 'CalendarDays' },
-  { title: 'Payroll Management', path: '/admin/payroll', iconName: 'Wallet' },
+  {
+    title: 'Leave Management',
+    path: '/admin/leave',
+    iconName: 'CalendarDays',
+    children: leaveNavChildrenForRbac('HR_ADMIN', '/admin'),
+  },
+  {
+    title: 'Payroll Management',
+    path: '/admin/payroll',
+    iconName: 'Wallet',
+    children: payrollNavChildrenForRbac('HR_ADMIN', '/admin'),
+  },
   {
     title: 'Recruitment',
     path: '/admin/recruitment',
     iconName: 'Briefcase',
     feature: 'recruitment.overview',
     children: recruitmentChildren('/admin'),
+  },
+  {
+    title: 'Leads Management',
+    path: '/admin/leads',
+    iconName: 'Megaphone',
+    feature: 'leads.overview',
+    children: leadsNavChildrenForRbac('HR_ADMIN', '/admin'),
+  },
+  {
+    title: 'Office Calendar',
+    path: '/admin/calendar',
+    iconName: 'CalendarRange',
+    feature: 'calendar.view',
+    children: calendarNavChildrenForRbac('HR_ADMIN', '/admin'),
   },
   {
     title: 'Performance Management',
@@ -305,11 +354,13 @@ const hrNav: RoleNavItem[] = [
     title: 'Leave Management',
     path: '/hr/leave',
     iconName: 'CalendarDays',
+    children: leaveNavChildrenForRbac('MANAGER', '/hr'),
   },
   {
-    title: 'Leave Approvals',
-    path: '/hr/leave/approvals',
-    iconName: 'CheckSquare',
+    title: 'Payroll Management',
+    path: '/hr/payroll',
+    iconName: 'Wallet',
+    children: payrollNavChildrenForRbac('MANAGER', '/hr'),
   },
   { title: 'Onboarding', path: '/hr/onboarding', iconName: 'UserRoundPlus' },
   { title: 'Offboarding', path: '/hr/offboarding', iconName: 'UserRoundMinus' },
@@ -321,6 +372,13 @@ const hrNav: RoleNavItem[] = [
     children: recruitmentChildren('/hr'),
   },
   {
+    title: 'Leads Management',
+    path: '/hr/leads',
+    iconName: 'Megaphone',
+    feature: 'leads.my',
+    children: leadsNavChildrenForRbac('MANAGER', '/hr'),
+  },
+  {
     title: 'Employee Reports',
     path: '/hr/reports',
     iconName: 'BarChart3',
@@ -329,6 +387,8 @@ const hrNav: RoleNavItem[] = [
     title: 'Office Calendar',
     path: '/hr/calendar',
     iconName: 'CalendarRange',
+    feature: 'calendar.view',
+    children: calendarNavChildrenForRbac('MANAGER', '/hr'),
   },
 ]
 
@@ -364,16 +424,24 @@ const employeeNav: RoleNavItem[] = [
     feature: 'attendance.regularization',
   },
   {
-    title: 'My Leave Requests',
+    title: 'Leave Management',
     path: '/employee/leave',
     iconName: 'CalendarDays',
+    children: employeeLeaveNavChildren(),
   },
   {
-    title: 'Apply for Leave',
-    path: '/employee/leave/apply',
-    iconName: 'FilePlus2',
+    title: 'Payroll Management',
+    path: '/employee/payslips',
+    iconName: 'Wallet',
+    children: employeePayrollNavChildren(),
   },
-  { title: 'My Payslips', path: '/employee/payslips', iconName: 'Wallet' },
+  {
+    title: 'Leads Management',
+    path: '/employee/leads',
+    iconName: 'Megaphone',
+    feature: 'leads.my',
+    children: employeeLeadsNavChildren(),
+  },
   {
     title: 'My Documents',
     path: '/employee/documents',
@@ -389,6 +457,8 @@ const employeeNav: RoleNavItem[] = [
     title: 'Office Calendar',
     path: '/employee/calendar',
     iconName: 'CalendarRange',
+    feature: 'calendar.view',
+    children: employeeCalendarNavChildren(),
   },
   {
     title: 'Announcements',

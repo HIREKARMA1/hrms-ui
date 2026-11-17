@@ -11,6 +11,7 @@ import { SALARY_COMPONENT_IDS, SALARY_COMPONENT_LABELS } from '../../constants/s
 import type { PayrollSettings } from '../../types/payrollSettings'
 import type { SalaryStructure } from '../../types/salaryStructure'
 import { StructureLivePreview } from './StructureLivePreview'
+import { StructureStatutoryFields } from './StructureStatutoryFields'
 import type { ComputedPayroll } from '../../types/payroll'
 
 type StructureEditorTabProps = {
@@ -75,6 +76,7 @@ export function StructureEditorTab({
           </label>
         ))}
       </div>
+      <StructureStatutoryFields draft={draft} settings={settings} onChange={onChange} />
       <div>
         <Label htmlFor="effective-from">Effective from</Label>
         <Input

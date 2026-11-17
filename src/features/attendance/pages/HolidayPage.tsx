@@ -1,6 +1,18 @@
 import { useMemo, useState } from 'react'
-import { ChevronLeft, ChevronRight, Pencil, Plus, Trash2 } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Plus } from 'lucide-react'
 
+import { HolidayListRowActions } from '@/components/shared/holidayList/HolidayListRowActions'
+import { HolidayMandatoryBadge } from '@/components/shared/holidayList/HolidayMandatoryBadge'
+import {
+  HOLIDAY_LIST_EMPTY_CELL,
+  HOLIDAY_LIST_ROW,
+  HOLIDAY_LIST_TABLE,
+  HOLIDAY_LIST_TABLE_THEAD,
+  HOLIDAY_LIST_TABLE_WRAPPER,
+  HOLIDAY_LIST_TD_MUTED,
+  HOLIDAY_LIST_TD_NAME,
+  HOLIDAY_LIST_TH,
+} from '@/components/shared/holidayList/holidayListTableUi'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import {
@@ -21,8 +33,6 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Badge } from '@/components/ui/badge'
-
 import { departments, holidayRecords } from '../mocks/attendanceMocks'
 import type { HolidayRecord } from '../types/attendance'
 
@@ -312,64 +322,40 @@ export function HolidayPage() {
         </TabsContent>
 
         <TabsContent value="list">
-          <div className="overflow-x-auto rounded-2xl border border-border-soft bg-white shadow-sm">
-            <table className="w-full min-w-[720px] text-left text-sm">
-              <thead className="bg-muted-bg/70 text-text-secondary">
+          <div className={HOLIDAY_LIST_TABLE_WRAPPER}>
+            <table className={`${HOLIDAY_LIST_TABLE} min-w-[720px]`}>
+              <thead className={HOLIDAY_LIST_TABLE_THEAD}>
                 <tr>
-                  <th className="px-3 py-3 font-medium">Holiday Name</th>
-                  <th className="px-3 py-3 font-medium">Date</th>
-                  <th className="px-3 py-3 font-medium">Type</th>
-                  <th className="px-3 py-3 font-medium">Department</th>
-                  <th className="px-3 py-3 font-medium">Mandatory</th>
-                  <th className="px-3 py-3 font-medium">Actions</th>
+                  <th className={HOLIDAY_LIST_TH}>Holiday Name</th>
+                  <th className={HOLIDAY_LIST_TH}>Date</th>
+                  <th className={HOLIDAY_LIST_TH}>Type</th>
+                  <th className={HOLIDAY_LIST_TH}>Department</th>
+                  <th className={HOLIDAY_LIST_TH}>Mandatory</th>
+                  <th className={HOLIDAY_LIST_TH}>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredHolidays.map((holiday) => (
-                  <tr key={holiday.id} className="border-t border-border-soft">
-                    <td className="px-3 py-3 font-medium text-navy">{holiday.name}</td>
-                    <td className="px-3 py-3 text-text-secondary">{holiday.date}</td>
-                    <td className="px-3 py-3 text-text-secondary">{holiday.type}</td>
-                    <td className="px-3 py-3 text-text-secondary">
-                      {holiday.department}
+                  <tr key={holiday.id} className={HOLIDAY_LIST_ROW}>
+                    <td className={HOLIDAY_LIST_TD_NAME}>{holiday.name}</td>
+                    <td className={HOLIDAY_LIST_TD_MUTED}>{holiday.date}</td>
+                    <td className={HOLIDAY_LIST_TD_MUTED}>{holiday.type}</td>
+                    <td className={HOLIDAY_LIST_TD_MUTED}>{holiday.department}</td>
+                    <td className={HOLIDAY_LIST_TD_MUTED}>
+                      <HolidayMandatoryBadge mandatory={holiday.mandatory} />
                     </td>
-                    <td className="px-3 py-3">
-                      <Badge variant={holiday.mandatory ? 'success' : 'secondary'}>
-                        {holiday.mandatory ? 'Yes' : 'No'}
-                      </Badge>
-                    </td>
-                    <td className="px-3 py-3">
-                      <div className="flex items-center gap-1">
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-text-secondary"
-                          onClick={() => openEdit(holiday)}
-                          aria-label={`Edit ${holiday.name}`}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-[#EF4444] hover:bg-rose-50"
-                          onClick={() => setDeleteTarget(holiday)}
-                          aria-label={`Delete ${holiday.name}`}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
+                    <td className={HOLIDAY_LIST_TD_MUTED}>
+                      <HolidayListRowActions
+                        holidayName={holiday.name}
+                        onEdit={() => openEdit(holiday)}
+                        onDelete={() => setDeleteTarget(holiday)}
+                      />
                     </td>
                   </tr>
                 ))}
                 {filteredHolidays.length === 0 ? (
                   <tr>
-                    <td
-                      colSpan={6}
-                      className="px-4 py-10 text-center text-text-secondary"
-                    >
+                    <td colSpan={6} className={HOLIDAY_LIST_EMPTY_CELL}>
                       No holidays found for {year}.
                     </td>
                   </tr>

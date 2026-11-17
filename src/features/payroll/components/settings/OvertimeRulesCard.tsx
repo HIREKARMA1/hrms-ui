@@ -24,6 +24,9 @@ export function OvertimeRulesCard({ draft, onChange }: OvertimeRulesCardProps) {
 
   return (
     <SettingsCard title="Overtime rules">
+      <p className="text-sm text-hrms-text-secondary">
+        Policy for pay rate and limits. Record actual overtime hours on the Variable Pay tab.
+      </p>
       <label className="flex items-center gap-2 text-sm">
         <input
           type="checkbox"

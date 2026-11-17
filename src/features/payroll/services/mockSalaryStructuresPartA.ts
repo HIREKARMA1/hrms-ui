@@ -28,6 +28,12 @@ export const mockSalaryStructuresPartA: SalaryStructure[] = [
 
     flags: { pfApplicable: true, esiApplicable: true, professionalTaxApplicable: true },
 
+    statutoryOverrides: {
+      pfEmployeeRate: 4,
+      pfEmployerRate: null,
+      professionalTaxState: null,
+    },
+
     effectiveFrom: '2026-04-01',
 
     revisionCount: 2,
@@ -48,6 +54,12 @@ export const mockSalaryStructuresPartA: SalaryStructure[] = [
 
     flags: { pfApplicable: true, esiApplicable: true, professionalTaxApplicable: true },
 
+    statutoryOverrides: {
+      pfEmployeeRate: 9,
+      pfEmployerRate: null,
+      professionalTaxState: null,
+    },
+
     effectiveFrom: '2026-04-01',
 
     revisionCount: 1,
@@ -67,6 +79,12 @@ export const mockSalaryStructuresPartA: SalaryStructure[] = [
     componentValues: { basic: 55000, hra: 35, conveyance: 1600, special: 2500, other: 1500 },
 
     flags: { pfApplicable: true, esiApplicable: true, professionalTaxApplicable: true },
+
+    statutoryOverrides: {
+      pfEmployeeRate: null,
+      pfEmployerRate: null,
+      professionalTaxState: 'Maharashtra',
+    },
 
     effectiveFrom: '2026-01-01',
 

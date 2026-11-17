@@ -8,6 +8,7 @@ import {
 } from '../constants/userRoles'
 import type { LeavePageTabId } from '../hooks/useLeavePageTabs'
 import { tabsForRole } from '../hooks/useLeavePageTabs'
+import { leaveBaseFromPathname } from './leaveModuleBasePath'
 
 const SLUG_BY_TAB: Record<LeavePageTabId, string> = {
   Overview: '',
@@ -29,16 +30,17 @@ const TAB_BY_SLUG: Record<string, LeavePageTabId> = Object.fromEntries(
     .map(([tab, slug]) => [slug, tab as LeavePageTabId]),
 )
 
-export function leavePathForTab(tab: LeavePageTabId): string {
+export function leavePathForTab(tab: LeavePageTabId, base = '/leave'): string {
   const slug = SLUG_BY_TAB[tab]
-  return slug ? `/leave/${slug}` : '/leave'
+  return slug ? `${base}/${slug}` : base
 }
 
 export function leaveTabFromSection(section: string | undefined, pathname: string, role: UserRole): LeavePageTabId {
   const allowed = tabsForRole(role)
   const defaultTab = isHrAdminExperience(role) ? 'Overview' : allowed[0]
+  const base = leaveBaseFromPathname(pathname)
 
-  if (pathname === '/leave' || pathname === '/leave/') {
+  if (pathname === base || pathname === `${base}/`) {
     return isHrAdminExperience(role) ? 'Overview' : defaultTab
   }
 
@@ -48,11 +50,13 @@ export function leaveTabFromSection(section: string | undefined, pathname: strin
 }
 
 export function isLeaveOverviewPath(pathname: string) {
-  return pathname === '/leave' || pathname === '/leave/'
+  const base = leaveBaseFromPathname(pathname)
+  return pathname === base || pathname === `${base}/`
 }
 
 export function leaveNonHrOverviewRedirect(role: UserRole, pathname: string): string | null {
   if (!isLeaveOverviewPath(pathname)) return null
   if (isHrAdminExperience(role)) return null
-  return leavePathForTab(tabsForRole(role)[0])
+  const base = leaveBaseFromPathname(pathname)
+  return leavePathForTab(tabsForRole(role)[0], base)
 }

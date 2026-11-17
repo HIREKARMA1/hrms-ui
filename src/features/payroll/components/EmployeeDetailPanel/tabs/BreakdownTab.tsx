@@ -5,6 +5,7 @@
 
 import type { EmployeeWithComputed } from '../../../types/payroll'
 import { formatCurrency } from '../../../utils/formatCurrency'
+import { EmployeeMonthlyInputsCard } from '../EmployeeMonthlyInputsCard'
 import { EmployeePayrollBreakdown } from '../../shared/EmployeePayrollBreakdown'
 
 type BreakdownTabProps = {
@@ -14,6 +15,7 @@ type BreakdownTabProps = {
 export function BreakdownTab({ employee }: BreakdownTabProps) {
   return (
     <div className="space-y-5 text-sm">
+      <EmployeeMonthlyInputsCard employee={employee} />
       <div className="grid grid-cols-1 gap-3 rounded-xl bg-hrms-page p-4 min-[380px]:grid-cols-3">
         <SummaryTile label="Gross" value={employee.gross} tone="navy" />
         <SummaryTile label="Deductions" value={employee.totalDeductions} tone="danger" />

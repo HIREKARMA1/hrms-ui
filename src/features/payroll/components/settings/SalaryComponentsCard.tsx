@@ -32,7 +32,10 @@ export function SalaryComponentsCard({ draft, onChange }: SalaryComponentsCardPr
   }
 
   return (
-    <SettingsCard title="Salary components">
+    <SettingsCard title="Pay components (template)">
+      <p className="text-sm text-hrms-text-secondary">
+        Defaults for new structures only. Set each employee&apos;s amounts under Salary Structures.
+      </p>
       {draft.salaryComponents.map((component, index) => (
         <div key={component.id} className="space-y-2 rounded-xl border border-hrms-border p-3">
           <p className="font-semibold text-hrms-navy">{component.label}</p>

@@ -43,6 +43,22 @@ const EXACT_ONLY_PATHS = new Set([
   '/superadmin/recruitment',
   '/admin/recruitment',
   '/hr/recruitment',
+  '/superadmin/leave',
+  '/admin/leave',
+  '/hr/leave',
+  '/superadmin/payroll',
+  '/admin/payroll',
+  '/hr/payroll',
+  '/superadmin/leads',
+  '/admin/leads',
+  '/hr/leads',
+  '/employee/leads',
+  '/employee/leave',
+  '/employee/payslips',
+  '/superadmin/calendar',
+  '/admin/calendar',
+  '/hr/calendar',
+  '/employee/calendar',
 ])
 
 function isPathActive(pathname: string, path: string) {
@@ -193,12 +209,13 @@ function SidebarNavItem({
                 <li key={child.path}>
                   <NavLink
                     to={child.path}
+                    end={EXACT_ONLY_PATHS.has(child.path)}
                     onClick={onNavigate}
-                    className={({ isActive }) =>
+                    className={() =>
                       cn(
                         'block rounded-lg px-3 py-2 text-sm transition-colors',
-                        isActive || isPathActive(location.pathname, child.path)
-                          ? 'bg-brand-500/90 font-medium text-white'
+                        isPathActive(location.pathname, child.path)
+                          ? 'bg-white/15 font-medium text-white'
                           : 'text-slate-400 hover:bg-white/5 hover:text-white',
                       )
                     }

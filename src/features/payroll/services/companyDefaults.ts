@@ -72,6 +72,23 @@ export const companyDefaultSettings: PayrollSettings = {
       februaryAmount: 300,
     },
   ],
+  professionalTaxSlabsByState: {
+    Karnataka: [
+      { id: 'pt-1', fromGross: 0, toGross: 24999, monthlyAmount: 0 },
+      {
+        id: 'pt-2',
+        fromGross: 25000,
+        toGross: null,
+        monthlyAmount: 200,
+        februaryAmount: 300,
+      },
+    ],
+    Maharashtra: [
+      { id: 'pt-mh-1', fromGross: 0, toGross: 7499, monthlyAmount: 0 },
+      { id: 'pt-mh-2', fromGross: 7500, toGross: 9999, monthlyAmount: 175 },
+      { id: 'pt-mh-3', fromGross: 10000, toGross: null, monthlyAmount: 200, februaryAmount: 300 },
+    ],
+  },
   tdsMode: 'manual_per_employee',
   lossOfPayBasis: 'fixed_30',
   workingDaysPerMonth: 22,

@@ -30,6 +30,20 @@ export type SalaryStructureFlags = {
 
 
 
+/** null fields fall back to company defaults in Payroll Settings. */
+
+export type StructureStatutoryOverrides = {
+
+  pfEmployeeRate: number | null
+
+  pfEmployerRate: number | null
+
+  professionalTaxState: string | null
+
+}
+
+
+
 export type SalaryStructure = {
 
   id: string
@@ -43,6 +57,8 @@ export type SalaryStructure = {
   componentValues: StructureComponentValues
 
   flags: SalaryStructureFlags
+
+  statutoryOverrides?: StructureStatutoryOverrides
 
   effectiveFrom: string
 

@@ -1,70 +1,94 @@
 /**
 
- * Payroll Settings tab with statutory configuration form.
-
- * Rendered from PayrollPage when the Settings tab is active.
+ * Two-pane Payroll Settings: guards, validation routing, statutory cards.
 
  */
 
 
 
+import { useEffect, useState } from 'react'
+
+
+
+import type { PayrollSettingsSectionId } from '../../constants/payrollSettingsSections'
+
 import {
 
-  CA_COMPLIANCE_NOTICE,
+  PAYROLL_SETTINGS_LEAVE_CONFIRM,
 
-  SALARY_SETTINGS_SECTION_DESC,
+  registerPayrollSettingsGuard,
 
-  VARIABLE_PAY_SETTINGS_NOTICE,
-
-} from '../../constants/payrollRules'
+} from '../../hooks/payrollSettingsUnsavedBridge'
 
 import { usePayrollSettingsForm } from '../../hooks/usePayrollSettingsForm'
 
+import { usePayrollSettingsLeaveBlocker } from '../../hooks/usePayrollSettingsLeaveBlocker'
+
+import { usePayrollSettingsNavigate } from '../../hooks/usePayrollSettingsNavigate'
+
 import { usePayrollToast } from '../../hooks/usePayrollToast'
 
-import { BonusRulesCard } from './BonusRulesCard'
+import { PayrollSettingsIntroCard } from './PayrollSettingsIntroCard'
 
-import { EsiSettingsCard } from './EsiSettingsCard'
+import { PayrollSettingsSectionMenu } from './PayrollSettingsSectionMenu'
 
-import { FinalSettlementRulesCard } from './FinalSettlementRulesCard'
-
-import { OvertimeRulesCard } from './OvertimeRulesCard'
-
-import { PayrollCycleCard } from './PayrollCycleCard'
-
-import { PfSettingsCard } from './PfSettingsCard'
-
-import { ProfessionalTaxCard } from './ProfessionalTaxCard'
-
-import { SalaryComponentsCard } from './SalaryComponentsCard'
+import { PayrollSettingsSectionPanel } from './PayrollSettingsSectionPanel'
 
 import { SettingsSaveBar } from './SettingsSaveBar'
 
-import { SettingsSectionHeading } from './SettingsSectionHeading'
-
-import { VariablePayTreatmentCard } from './VariablePayTreatmentCard'
+import { PayrollSettingsSectionFrame } from './shared/PayrollSettingsSectionFrame'
 
 
 
 export function PayrollSettingsTab() {
 
-  const { draft, setDraft, isDirty, fieldErrors, slabErrorsById, handleSave, discard } =
+  const { draft, setDraft, isDirty, fieldErrors, issues, slabErrorsById, handleSave, discard } =
 
     usePayrollSettingsForm()
 
   const { showToast } = usePayrollToast()
 
+  const { navigateToTab } = usePayrollSettingsNavigate()
+
+  const [active, setActive] = useState<PayrollSettingsSectionId>('pay-cycle')
+
+
+
+  usePayrollSettingsLeaveBlocker(isDirty)
+
+
+
+  useEffect(() => {
+
+    registerPayrollSettingsGuard({
+
+      isDirty,
+
+      promptConfirm: () => window.confirm(PAYROLL_SETTINGS_LEAVE_CONFIRM),
+
+    })
+
+    return () => registerPayrollSettingsGuard(null)
+
+  }, [isDirty])
+
 
 
   async function onSave() {
 
-    const ok = await handleSave()
+    const result = await handleSave()
 
-    if (ok) {
+    if (!result.ok) {
 
-      showToast('Payroll settings saved.')
+      if (result.firstErrorSection) setActive(result.firstErrorSection)
+
+      showToast('Fix validation errors before saving.')
+
+      return
 
     }
+
+    showToast('Payroll settings saved.')
 
   }
 
@@ -72,77 +96,40 @@ export function PayrollSettingsTab() {
 
   return (
 
-    <div className="flex flex-col gap-6 pb-28">
+    <div className="pb-28">
 
-      <p className="text-sm text-hrms-text-secondary">{CA_COMPLIANCE_NOTICE}</p>
+      <PayrollSettingsIntroCard onNavigateTab={navigateToTab} />
 
-      <SettingsSectionHeading title="Salary and statutory rules" description={SALARY_SETTINGS_SECTION_DESC} />
+      <div className="mt-5 flex min-w-0 flex-col gap-6 lg:flex-row lg:items-start">
 
-      <div className="flex flex-col gap-6 xl:flex-row xl:items-start">
+        <PayrollSettingsSectionMenu active={active} onSelect={setActive} issues={issues} isDirty={isDirty} />
 
-        <div className="flex min-w-0 flex-1 flex-col gap-6">
+        <section aria-label="Active settings section" className="min-w-0 flex-1 rounded-xl border border-hrms-border bg-white p-4 shadow-sm sm:p-6">
 
-          <SalaryComponentsCard draft={draft} onChange={setDraft} />
+          <PayrollSettingsSectionFrame sectionId={active} onNavigateTab={navigateToTab}>
 
-        </div>
+            <PayrollSettingsSectionPanel
 
-        <div className="flex min-w-0 flex-1 flex-col gap-6">
+              sectionId={active}
 
-          <PfSettingsCard draft={draft} onChange={setDraft} />
+              draft={draft}
 
-          <EsiSettingsCard draft={draft} onChange={setDraft} />
+              slabErrorsById={slabErrorsById}
 
-          <PayrollCycleCard draft={draft} onChange={setDraft} />
+              onChange={setDraft}
 
-        </div>
+            />
 
-      </div>
+          </PayrollSettingsSectionFrame>
 
-      <ProfessionalTaxCard draft={draft} slabErrorsById={slabErrorsById} onChange={setDraft} />
-
-      <SettingsSectionHeading
-
-        title="Variable pay and settlement rules"
-
-        description={VARIABLE_PAY_SETTINGS_NOTICE}
-
-      />
-
-      <div className="flex flex-col gap-6 xl:flex-row xl:items-start">
-
-        <div className="flex min-w-0 flex-1 flex-col gap-6">
-
-          <OvertimeRulesCard draft={draft} onChange={setDraft} />
-
-          <VariablePayTreatmentCard draft={draft} onChange={setDraft} />
-
-        </div>
-
-        <div className="flex min-w-0 flex-1 flex-col gap-6">
-
-          <BonusRulesCard draft={draft} onChange={setDraft} />
-
-          <FinalSettlementRulesCard draft={draft} onChange={setDraft} />
-
-        </div>
+        </section>
 
       </div>
 
-      <SettingsSaveBar
-
-        isDirty={isDirty}
-
-        errors={fieldErrors}
-
-        onSave={onSave}
-
-        onDiscard={discard}
-
-      />
+      <SettingsSaveBar isDirty={isDirty} errors={fieldErrors} onSave={() => void onSave()} onDiscard={discard} />
 
     </div>
 
   )
 
 }
-

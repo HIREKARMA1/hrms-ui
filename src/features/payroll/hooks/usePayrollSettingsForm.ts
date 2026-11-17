@@ -6,6 +6,8 @@
 import { useEffect, useMemo, useState } from 'react'
 
 import type { PayrollSettings } from '../types/payrollSettings'
+import type { PayrollSettingsSectionId } from '../constants/payrollSettingsSections'
+import { validatePayrollSettingsDraft } from '../utils/validatePayrollSettings'
 import { validateProfessionalTaxSlabs } from '../utils/validateProfessionalTaxSlabs'
 import { usePayroll } from './usePayroll'
 
@@ -13,6 +15,7 @@ export function usePayrollSettingsForm() {
   const { settings, saveSettings } = usePayroll()
   const [draft, setDraft] = useState<PayrollSettings>(settings)
   const [fieldErrors, setFieldErrors] = useState<string[]>([])
+  const [issues, setIssues] = useState<ReturnType<typeof validatePayrollSettingsDraft>['issues']>([])
 
   const slabValidation = useMemo(
     () => validateProfessionalTaxSlabs(draft.professionalTaxSlabs),
@@ -29,36 +32,29 @@ export function usePayrollSettingsForm() {
     [draft, settings],
   )
 
-  function validate(): boolean {
-    const validation = validateProfessionalTaxSlabs(draft.professionalTaxSlabs)
-    const errors = [...validation.globalErrors]
-    if (draft.payDayOfMonth < 1 || draft.payDayOfMonth > 28) {
-      errors.push('Pay day must be between 1 and 28.')
-    }
-    if (draft.workingDaysPerMonth < 1) {
-      errors.push('Working days must be at least 1.')
-    }
-    if (draft.overtimeRules.workingDaysPerMonth < 1 || draft.overtimeRules.hoursPerDay < 1) {
-      errors.push('Overtime working days and hours per day must be at least 1.')
-    }
-    if (draft.finalSettlementRules.leaveEncashmentDayDivisor < 1) {
-      errors.push('Settlement day divisors must be at least 1.')
-    }
-    setFieldErrors(errors)
-    return errors.length === 0 && Object.keys(validation.errorsBySlabId).length === 0
+  function runValidation() {
+    return validatePayrollSettingsDraft(draft)
   }
 
-  async function handleSave(): Promise<boolean> {
-    if (!validate()) {
-      return false
+  async function handleSave(): Promise<{
+    ok: boolean
+    firstErrorSection?: PayrollSettingsSectionId
+  }> {
+    const result = runValidation()
+    setFieldErrors(result.fieldErrors)
+    setIssues(result.issues)
+    if (!result.ok) {
+      return { ok: false, firstErrorSection: result.firstErrorSection }
     }
     await saveSettings(structuredClone(draft))
-    return true
+    setIssues([])
+    return { ok: true }
   }
 
   function discard() {
     setDraft(structuredClone(settings))
     setFieldErrors([])
+    setIssues([])
   }
 
   return {
@@ -66,6 +62,7 @@ export function usePayrollSettingsForm() {
     setDraft,
     isDirty,
     fieldErrors,
+    issues,
     slabErrorsById: slabValidation.errorsBySlabId,
     handleSave,
     discard,

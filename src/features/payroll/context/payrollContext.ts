@@ -16,6 +16,7 @@ import type {
   OvertimeEntry,
 } from '../types/variablePay'
 import type { SettlementStatus } from '../types/finalSettlement'
+import type { EmployeeMonthlyInputsPatch } from '../services/payrollService'
 import { buildAlerts } from '../utils/buildAlerts'
 import { enrichEmployees } from '../utils/calculatePayroll'
 import { summarizePayroll } from '../utils/summarizePayroll'
@@ -38,6 +39,10 @@ export type PayrollContextValue = {
   reload: () => void
   saveSettings: (settings: PayrollSettings) => Promise<void>
   saveSalaryStructure: (structure: SalaryStructure, reason: string) => Promise<void>
+  updateEmployeeMonthlyInputs: (
+    employeeId: string,
+    patch: EmployeeMonthlyInputsPatch,
+  ) => Promise<void>
   fetchRevisions: (employeeId: string) => Promise<SalaryRevision[]>
   payrollStage: PayrollStage
   setPayrollStage: (stage: PayrollStage) => void

@@ -9,6 +9,11 @@ import { Label } from '@/components/ui/label'
 import { INDIAN_STATES } from '../../constants/indianStates'
 import { SAMPLE_PT_SLAB_NOTE } from '../../constants/payrollRules'
 import type { PayrollSettings, ProfessionalTaxSlab } from '../../types/payrollSettings'
+import {
+  payrollSettingsWithPtSlabs,
+  payrollSettingsWithPtState,
+} from '../../utils/syncProfessionalTaxSlabs'
+import { listConfiguredProfessionalTaxStates } from '../../utils/structureStatutory'
 import { ProfessionalTaxSlabRow } from './ProfessionalTaxSlabRow'
 import { SettingsCard } from './SettingsCard'
 
@@ -30,17 +35,18 @@ export function ProfessionalTaxCard({
   function updateSlab(index: number, slab: ProfessionalTaxSlab) {
     const slabs = structuredClone(draft.professionalTaxSlabs)
     slabs[index] = slab
-    patch({ professionalTaxSlabs: slabs })
+    onChange(payrollSettingsWithPtSlabs(draft, slabs))
   }
 
   function addSlab() {
-    patch({
-      professionalTaxSlabs: [
-        ...draft.professionalTaxSlabs,
-        { id: `pt-${Date.now()}`, fromGross: 0, toGross: null, monthlyAmount: 0 },
-      ],
-    })
+    const slabs = [
+      ...draft.professionalTaxSlabs,
+      { id: `pt-${Date.now()}`, fromGross: 0, toGross: null, monthlyAmount: 0 },
+    ]
+    onChange(payrollSettingsWithPtSlabs(draft, slabs))
   }
+
+  const configuredStates = listConfiguredProfessionalTaxStates(draft)
 
   return (
     <SettingsCard title="Professional tax">
@@ -57,7 +63,7 @@ export function ProfessionalTaxCard({
         <select
           id="pt-state"
           value={draft.professionalTaxState}
-          onChange={(event) => patch({ professionalTaxState: event.target.value })}
+          onChange={(event) => onChange(payrollSettingsWithPtState(draft, event.target.value))}
           className="mt-1 h-11 w-full rounded-xl border border-hrms-border px-3 text-sm"
         >
           {INDIAN_STATES.map((state) => (
@@ -67,6 +73,12 @@ export function ProfessionalTaxCard({
           ))}
         </select>
         <p className="mt-1 text-xs text-hrms-text-muted">{SAMPLE_PT_SLAB_NOTE}</p>
+        {configuredStates.length > 1 ? (
+          <p className="mt-1 text-xs text-hrms-text-secondary">
+            Slab sets configured: {configuredStates.join(', ')}. Override per employee on Salary
+            Structures.
+          </p>
+        ) : null}
       </div>
       {draft.professionalTaxSlabs.map((slab, index) => (
         <ProfessionalTaxSlabRow
@@ -75,9 +87,12 @@ export function ProfessionalTaxCard({
           error={slabErrorsById[slab.id]}
           onChange={(next) => updateSlab(index, next)}
           onRemove={() =>
-            patch({
-              professionalTaxSlabs: draft.professionalTaxSlabs.filter((_, i) => i !== index),
-            })
+            onChange(
+              payrollSettingsWithPtSlabs(
+                draft,
+                draft.professionalTaxSlabs.filter((_, i) => i !== index),
+              ),
+            )
           }
         />
       ))}

@@ -65,6 +65,26 @@ export async function getRevisions(employeeId: string): Promise<SalaryRevision[]
     .map((item) => structuredClone(item))
 }
 
+export type EmployeeMonthlyInputsPatch = Pick<
+  PayrollEmployee,
+  'incomeTax' | 'unpaidLeaveDays' | 'loanRecovery'
+>
+
+export async function updateEmployeeMonthlyInputs(
+  employeeId: string,
+  patch: EmployeeMonthlyInputsPatch,
+): Promise<PayrollEmployee> {
+  await delayPayrollService(PAYROLL_SERVICE_DELAY_MS)
+  throwIfPayrollServiceFail()
+  const index = payrollMockStore.employees.findIndex((item) => item.id === employeeId)
+  if (index < 0) {
+    throw new Error('Employee not found')
+  }
+  const updated = { ...payrollMockStore.employees[index], ...patch }
+  payrollMockStore.employees[index] = structuredClone(updated)
+  return structuredClone(updated)
+}
+
 export async function saveSalaryStructure(
   structure: SalaryStructure,
   reason: string,

@@ -30,7 +30,10 @@ export function VariablePayTreatmentCard({ draft, onChange }: VariablePayTreatme
   }
 
   return (
-    <SettingsCard title="Variable pay treatment">
+    <SettingsCard title="Statutory inclusion for variable pay">
+      <p className="text-sm text-hrms-text-secondary">
+        Choose whether approved overtime, bonus, and incentives count toward PF, ESI, and professional tax.
+      </p>
       {(Object.keys(KIND_LABELS) as VariablePayKind[]).map((kind) => (
         <fieldset key={kind} className="space-y-2 border-t border-hrms-border pt-3 first:border-0 first:pt-0">
           <legend className="text-sm font-semibold text-hrms-navy">{KIND_LABELS[kind]}</legend>

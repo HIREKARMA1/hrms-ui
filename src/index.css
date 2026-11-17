@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 @import 'tailwindcss';
 
 @theme {
@@ -15,6 +16,7 @@
   --color-hrms-primary: #5938db;
   --color-hrms-primary-hover: #7055eb;
   --color-hrms-lavender: #f0edff;
+  --color-hrms-lavender-border: #dcd4ff;
   --color-hrms-page: #f7f8fc;
   --color-hrms-muted-bg: #eef0f6;
   --color-hrms-text-secondary: #667085;
@@ -44,6 +46,7 @@
   --color-border-soft: #e2e6ef;
   --color-text-secondary: #667085;
   --font-sans: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --font-inter: 'Inter', 'Segoe UI', system-ui, sans-serif;
 }
 
 *,

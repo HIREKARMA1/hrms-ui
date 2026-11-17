@@ -8,6 +8,7 @@ import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import type { UserRole } from '../constants/userRoles'
 import type { LeavePageTabId } from './useLeavePageTabs'
 import { tabsForRole } from './useLeavePageTabs'
+import { leaveBaseFromPathname } from '../utils/leaveModuleBasePath'
 import { leaveNonHrOverviewRedirect, leavePathForTab, leaveTabFromSection } from '../utils/leaveSectionRoutes'
 import type { HrOverviewNavigateOpts } from '../context/hrOverviewNavigate'
 
@@ -17,6 +18,7 @@ export function useLeaveRoute(role: UserRole) {
   const { section } = useParams<{ section?: string }>()
   const allowedTabs = useMemo(() => [...tabsForRole(role)], [role])
   const activeTab = leaveTabFromSection(section, location.pathname, role)
+  const leaveBase = leaveBaseFromPathname(location.pathname)
 
   useEffect(() => {
     const nonHr = leaveNonHrOverviewRedirect(role, location.pathname)
@@ -24,11 +26,11 @@ export function useLeaveRoute(role: UserRole) {
       navigate(nonHr, { replace: true })
       return
     }
-    const expected = leavePathForTab(activeTab)
+    const expected = leavePathForTab(activeTab, leaveBase)
     if (location.pathname !== expected) {
       navigate(`${expected}${location.search}`, { replace: true })
     }
-  }, [activeTab, location.pathname, location.search, navigate, role])
+  }, [activeTab, leaveBase, location.pathname, location.search, navigate, role])
 
   const goToTab = useCallback(
     (tab: LeavePageTabId, opts?: HrOverviewNavigateOpts) => {
@@ -38,11 +40,11 @@ export function useLeaveRoute(role: UserRole) {
       if (opts?.leaveTypeCode) params.set('q', opts.leaveTypeCode)
       if (opts?.calendarDepartment) params.set('department', opts.calendarDepartment)
       if (opts?.accrualConfirm) params.set('accrual', 'confirm')
-      const base = leavePathForTab(tab)
+      const base = leavePathForTab(tab, leaveBaseFromPathname(location.pathname))
       const search = params.toString()
       navigate(search ? `${base}?${search}` : base)
     },
-    [navigate],
+    [location.pathname, navigate],
   )
 
   return { activeTab, goToTab, allowedTabs }

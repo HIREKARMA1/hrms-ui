@@ -2,6 +2,8 @@
  * Payroll title row with demo role switcher (shared with Leave demo viewer).
  */
 
+import { useOptionalRbacSession } from '@/features/rbac/hooks/useRbacSession'
+
 import { LeaveDemoViewSelect } from '@/features/leave/components/LeaveDemoViewSelect'
 import { RolePill } from '@/features/leave/components/RolePill'
 import type { UserRole } from '@/features/leave/constants/userRoles'
@@ -26,6 +28,7 @@ type PayrollPageHeaderProps = {
 }
 
 export function PayrollPageHeader({ viewer, role, onRoleChange }: PayrollPageHeaderProps) {
+  const rbac = useOptionalRbacSession()
   const hrView = isHrAdminExperience(role)
 
   return (
@@ -46,7 +49,7 @@ export function PayrollPageHeader({ viewer, role, onRoleChange }: PayrollPageHea
         </div>
       </div>
       <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
-        <LeaveDemoViewSelect value={role} onChange={onRoleChange} />
+        {rbac ? null : <LeaveDemoViewSelect value={role} onChange={onRoleChange} />}
         {hrView ? <PayrollHrToolbar /> : <PayrollMonthField />}
       </div>
     </div>

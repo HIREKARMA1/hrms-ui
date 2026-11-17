@@ -7,7 +7,13 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 
 import { PAYROLL_STAGES } from '../constants/payrollStages'
 import { companyDefaultSettings } from '../services/companyDefaults'
-import { getRevisions, saveSalaryStructure, saveSettings } from '../services/payrollService'
+import {
+  getRevisions,
+  saveSalaryStructure,
+  saveSettings,
+  updateEmployeeMonthlyInputs,
+} from '../services/payrollService'
+import type { EmployeeMonthlyInputsPatch } from '../services/payrollService'
 import type { FinalSettlement } from '../types/finalSettlement'
 import type { PayrollEmployee, PayrollStage } from '../types/payroll'
 import type { PayrollSettings } from '../types/payrollSettings'
@@ -116,6 +122,16 @@ export function usePayrollProviderState() {
     [],
   )
 
+  const handleUpdateEmployeeMonthlyInputs = useCallback(
+    async (employeeId: string, patch: EmployeeMonthlyInputsPatch) => {
+      const saved = await updateEmployeeMonthlyInputs(employeeId, patch)
+      setRawEmployees((current) =>
+        current.map((item) => (item.id === saved.id ? saved : item)),
+      )
+    },
+    [],
+  )
+
   return {
     employees,
     rawEmployees,
@@ -134,6 +150,7 @@ export function usePayrollProviderState() {
     reload: load,
     saveSettings: handleSaveSettings,
     saveSalaryStructure: handleSaveStructure,
+    updateEmployeeMonthlyInputs: handleUpdateEmployeeMonthlyInputs,
     fetchRevisions: getRevisions,
     payrollStage,
     setPayrollStage,

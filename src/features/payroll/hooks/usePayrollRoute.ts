@@ -7,7 +7,10 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom'
 
 import type { UserRole } from '@/features/leave/constants/userRoles'
 
+import { isPayrollSettingsPath } from '../utils/isPayrollSettingsPath'
 import type { PayrollPageTabId } from './usePayrollPageTabs'
+import { payrollBaseFromPathname } from '../utils/payrollModuleBasePath'
+import { consumePayrollSettingsGuard } from './payrollSettingsUnsavedBridge'
 import {
   payrollNonHrOverviewRedirect,
   payrollPathForTab,
@@ -19,6 +22,7 @@ export function usePayrollRoute(role: UserRole) {
   const location = useLocation()
   const { section } = useParams<{ section?: string }>()
   const activeTab = payrollTabFromSection(section, location.pathname, role)
+  const payrollBase = payrollBaseFromPathname(location.pathname)
 
   useEffect(() => {
     const nonHr = payrollNonHrOverviewRedirect(role, location.pathname)
@@ -26,17 +30,22 @@ export function usePayrollRoute(role: UserRole) {
       navigate(nonHr, { replace: true })
       return
     }
-    const expected = payrollPathForTab(activeTab)
+    const expected = payrollPathForTab(activeTab, payrollBase)
     if (location.pathname !== expected) {
       navigate(`${expected}${location.search}`, { replace: true })
     }
-  }, [activeTab, location.pathname, location.search, navigate, role])
+  }, [activeTab, location.pathname, location.search, navigate, payrollBase, role])
 
   const goToTab = useCallback(
     (tab: PayrollPageTabId) => {
-      navigate(payrollPathForTab(tab))
+      const target = payrollPathForTab(tab, payrollBaseFromPathname(location.pathname))
+      if (isPayrollSettingsPath(location.pathname) && target !== location.pathname) {
+        const guard = consumePayrollSettingsGuard()
+        if (guard?.isDirty && !guard.promptConfirm()) return
+      }
+      navigate(target)
     },
-    [navigate],
+    [location.pathname, navigate],
   )
 
   return { activeTab, goToTab }

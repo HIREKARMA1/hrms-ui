@@ -29,7 +29,7 @@ export function DetailPanelTabs({
     <div
       role="tablist"
       aria-label="Employee payroll details"
-      className="flex flex-wrap gap-2 border-b border-hrms-border pb-2"
+      className="flex flex-wrap gap-2"
     >
       {DETAIL_TABS.map((tab) => (
         <button

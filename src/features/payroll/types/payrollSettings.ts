@@ -84,6 +84,8 @@ export type PayrollSettings = {
   professionalTaxEnabled: boolean
   professionalTaxState: string
   professionalTaxSlabs: ProfessionalTaxSlab[]
+  /** Slabs keyed by state name; default state also mirrored in professionalTaxSlabs. */
+  professionalTaxSlabsByState: Record<string, ProfessionalTaxSlab[]>
   tdsMode: 'manual_per_employee'
   lossOfPayBasis: LossOfPayBasis
   workingDaysPerMonth: number

@@ -24,6 +24,10 @@ import { RecruitmentOverviewPage } from '@/features/recruitment/pages/Recruitmen
 
 import { RequireAccess } from '../components/RequireAccess'
 
+import { createLeavePayrollRoutes } from './leavePayrollModuleRoutes'
+import { createLeadsModuleRoutes } from './leadsModuleRoutes'
+import { createOfficeCalendarModuleRoutes } from './calendarModuleRoutes'
+
 type RolePrefix = 'superadmin' | 'admin' | 'hr'
 
 /**
@@ -236,5 +240,12 @@ export function createOrgRoleModuleRoutes(prefix: RolePrefix): ReactElement[] {
         </RequireAccess>
       }
     />,
+    ...createLeavePayrollRoutes(prefix),
+    ...(prefix === 'admin' || prefix === 'superadmin' || prefix === 'hr'
+      ? createLeadsModuleRoutes(prefix)
+      : []),
+    ...(prefix === 'admin' || prefix === 'superadmin' || prefix === 'hr'
+      ? createOfficeCalendarModuleRoutes(prefix)
+      : []),
   ]
 }

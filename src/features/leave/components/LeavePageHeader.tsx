@@ -3,6 +3,8 @@
  * Rendered inside LeavePageChrome on LeavePage.
  */
 
+import { useOptionalRbacSession } from '@/features/rbac/hooks/useRbacSession'
+
 import { LeaveDemoViewSelect } from './LeaveDemoViewSelect'
 import { RolePill } from './RolePill'
 import type { LeaveViewer, LeaveViewerRole } from '../types/viewer'
@@ -22,6 +24,8 @@ type LeavePageHeaderProps = {
 }
 
 export function LeavePageHeader({ viewer, role, onRoleChange }: LeavePageHeaderProps) {
+  const rbac = useOptionalRbacSession()
+
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
       <div>
@@ -39,7 +43,7 @@ export function LeavePageHeader({ viewer, role, onRoleChange }: LeavePageHeaderP
           </span>
         </div>
       </div>
-      <LeaveDemoViewSelect value={role} onChange={onRoleChange} />
+      {rbac ? null : <LeaveDemoViewSelect value={role} onChange={onRoleChange} />}
     </div>
   )
 }

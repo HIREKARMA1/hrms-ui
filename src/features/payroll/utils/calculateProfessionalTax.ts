@@ -4,21 +4,27 @@
  */
 
 import type { PayrollSettings } from '../types/payrollSettings'
-import type { SalaryStructureFlags } from '../types/salaryStructure'
+import type { SalaryStructure } from '../types/salaryStructure'
 import { payrollMonthIsFebruary } from './defaultPayrollMonth'
+import {
+  getProfessionalTaxSlabsForState,
+  resolveProfessionalTaxState,
+} from './structureStatutory'
 import { roundMoney } from './roundMoney'
 
 export function calculateProfessionalTax(
   settings: PayrollSettings,
-  flags: SalaryStructureFlags,
+  structure: SalaryStructure,
   gross: number,
   payrollMonth: string,
 ): number {
-  if (!settings.professionalTaxEnabled || !flags.professionalTaxApplicable) {
+  if (!settings.professionalTaxEnabled || !structure.flags.professionalTaxApplicable) {
     return 0
   }
 
-  const slab = settings.professionalTaxSlabs.find((item) => {
+  const state = resolveProfessionalTaxState(settings, structure)
+  const slabs = getProfessionalTaxSlabsForState(settings, state)
+  const slab = slabs.find((item) => {
     const withinUpper = item.toGross === null || gross <= item.toGross
     return gross >= item.fromGross && withinUpper
   })

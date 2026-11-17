@@ -10,9 +10,11 @@
 
 import type { PayrollSettings } from '../types/payrollSettings'
 
-import type { SalaryStructureFlags } from '../types/salaryStructure'
+import type { SalaryStructure } from '../types/salaryStructure'
 
 import type { StructureComponentValues } from '../types/salaryStructure'
+
+import { resolvePfRates } from './structureStatutory'
 
 import { roundMoney } from './roundMoney'
 
@@ -22,7 +24,7 @@ export function calculatePf(
 
   settings: PayrollSettings,
 
-  flags: SalaryStructureFlags,
+  structure: SalaryStructure,
 
   components: StructureComponentValues,
 
@@ -30,11 +32,13 @@ export function calculatePf(
 
 ): { employeePf: number; employerPf: number } {
 
-  if (!settings.pfEnabled || !flags.pfApplicable) {
+  if (!settings.pfEnabled || !structure.flags.pfApplicable) {
 
     return { employeePf: 0, employerPf: 0 }
 
   }
+
+  const { employeeRate, employerRate } = resolvePfRates(settings, structure)
 
 
 
@@ -66,9 +70,9 @@ export function calculatePf(
 
   return {
 
-    employeePf: roundMoney((pfWage * settings.pfEmployeeRate) / 100),
+    employeePf: roundMoney((pfWage * employeeRate) / 100),
 
-    employerPf: roundMoney((pfWage * settings.pfEmployerRate) / 100),
+    employerPf: roundMoney((pfWage * employerRate) / 100),
 
   }
 

@@ -37,7 +37,7 @@ Single-company payroll: Overview run, salary structures, variable pay, full & fi
 - Status pills (colors, contrast, dots) → `constants/approvalStatuses.ts`, `constants/paymentStatuses.ts`, `ApprovalStatusPill.tsx`, `StatusPill.tsx`
 - Row and header buttons (approve/reject/links, lavender secondary) → `components/shared/PayrollRowActions.tsx` and `payrollUi.ts`
 - Payroll modals (overlay, header/footer, selects, Cancel) → `components/shared/PayrollDialog.tsx`, `PayrollDialogField.tsx`, dialog tokens in `payrollUi.ts`
-- Statutory & variable pay seeds → `services/companyDefaults.ts` or **Payroll Settings**
+- Statutory & variable pay seeds → `services/companyDefaults.ts` or **Payroll Settings** (sections, related tab links, unsaved `payrollSettingsUnsavedBridge` + leave guard hook, validation → section in `utils/validatePayrollSettings.ts`)
 - Overtime rate / cap → **Payroll Settings** → Overtime rules card
 - Bonus statutory % and ceilings → Bonus rules card; mock runs → `services/mockBonusRuns.ts`
 - Variable pay in monthly gross → approved rows only; aggregation → `utils/variablePayCalculations.ts`

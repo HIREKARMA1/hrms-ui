@@ -27,9 +27,9 @@ function filterNavigation(
       }
       return true
     })
-    .map((item) => ({
-      ...item,
-      children: item.children?.filter((child) => {
+    .flatMap((item) => {
+      const hadChildren = Boolean(item.children?.length)
+      const children = item.children?.filter((child) => {
         if (child.permission && !hasPermission(permissions, child.permission)) {
           return false
         }
@@ -40,8 +40,16 @@ function filterNavigation(
           return false
         }
         return true
-      }),
-    }))
+      })
+      if (hadChildren && (!children || children.length === 0)) {
+        return []
+      }
+      const next: RoleNavItem = {
+        ...item,
+        children: children?.length ? children : undefined,
+      }
+      return [next]
+    })
 }
 
 export function RbacProvider({ roleCode, children }: RbacProviderProps) {

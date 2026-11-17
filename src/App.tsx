@@ -23,6 +23,9 @@ import { PayrollPage } from '@/features/payroll/pages/PayrollPage'
 import { RequireAccess } from '@/features/rbac/components/RequireAccess'
 import { RoleLayout } from '@/features/rbac/components/RoleLayout'
 import { RoleModulePage } from '@/features/rbac/components/RoleModulePage'
+import { createEmployeeCalendarModuleRoutes } from '@/features/rbac/routes/calendarModuleRoutes'
+import { createEmployeeLeadsModuleRoutes } from '@/features/rbac/routes/leadsModuleRoutes'
+import { createEmployeeLeavePayrollRoutes } from '@/features/rbac/routes/leavePayrollModuleRoutes'
 import { createOrgRoleModuleRoutes } from '@/features/rbac/routes/roleModuleRoutes'
 import { SuperAdminDashboardPage } from '@/features/superadmin/pages/SuperAdminDashboardPage'
 
@@ -71,7 +74,8 @@ function App() {
 
           <Route path="/recruitment" element={<DashboardPage />} />
           <Route path="/performance" element={<DashboardPage />} />
-          <Route path="/leads" element={<DashboardPage />} />
+          <Route path="/leads" element={<Navigate to="/admin/leads" replace />} />
+          <Route path="/leads/*" element={<Navigate to="/admin/leads" replace />} />
           <Route path="/organization/*" element={<DashboardPage />} />
           <Route path="/documents" element={<DashboardPage />} />
           <Route path="/calendar" element={<DashboardPage />} />
@@ -183,6 +187,9 @@ function App() {
               </RequireAccess>
             }
           />
+          {createEmployeeLeavePayrollRoutes()}
+          {createEmployeeLeadsModuleRoutes()}
+          {createEmployeeCalendarModuleRoutes()}
           <Route path="/employee/*" element={<RoleModulePage />} />
         </Route>
 
