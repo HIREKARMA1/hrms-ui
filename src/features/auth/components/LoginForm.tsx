@@ -1,29 +1,38 @@
-import { IdCard } from 'lucide-react'
+import { Loader2, Mail } from 'lucide-react'
 
 import { HireKarmaMark } from '@/components/brand/HireKarmaMark'
 import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 
+import { useAppDispatch } from '@/app/store/hooks'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { getLandingRouteForRole } from '@/features/rbac/utils/roleRouteMap'
 import { cn } from '@/lib/utils'
+import { getApiErrorMessage } from '@/services/api/errors'
 
+import { useLoginMutation } from '../api/authApi'
+import { clearCredentials } from '../store/authSlice'
+import { getLandingRouteForUserRole } from '../utils/landingRoute'
 import { PasswordInput } from './PasswordInput'
 
 type FormErrors = {
-  employeeId?: string
+  email?: string
   password?: string
 }
 
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
 export function LoginForm() {
   const navigate = useNavigate()
-  const [employeeId, setEmployeeId] = useState('')
+  const dispatch = useAppDispatch()
+  const [login, { isLoading }] = useLoginMutation()
+  const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [rememberMe, setRememberMe] = useState(false)
   const [errors, setErrors] = useState<FormErrors>({})
+  const [formError, setFormError] = useState<string | null>(null)
   const [toastMessage, setToastMessage] = useState<string | null>(null)
 
   useEffect(() => {
@@ -35,8 +44,10 @@ export function LoginForm() {
   const validate = (): FormErrors => {
     const nextErrors: FormErrors = {}
 
-    if (!employeeId.trim()) {
-      nextErrors.employeeId = 'Employee ID is required.'
+    if (!email.trim()) {
+      nextErrors.email = 'Email is required.'
+    } else if (!EMAIL_PATTERN.test(email.trim())) {
+      nextErrors.email = 'Enter a valid email address.'
     }
 
     if (!password) {
@@ -46,20 +57,33 @@ export function LoginForm() {
     return nextErrors
   }
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     const nextErrors = validate()
     setErrors(nextErrors)
+    setFormError(null)
 
     if (Object.keys(nextErrors).length > 0) return
 
-    // UI preview: no real auth yet. HR role lands on the existing dashboard
-    // reused at /hr/dashboard. Replace with backend role resolution later.
-    const hrLanding = getLandingRouteForRole('MANAGER')
-    setToastMessage('Signed in (UI preview). Redirecting to HR dashboard...')
-    window.setTimeout(() => {
-      navigate(hrLanding, { replace: true })
-    }, 500)
+    try {
+      const session = await login({
+        email: email.trim(),
+        password,
+        rememberMe,
+      }).unwrap()
+
+      const landing = getLandingRouteForUserRole(session.user.role)
+      if (!landing) {
+        dispatch(clearCredentials())
+        setFormError('Your account role is not supported in this portal.')
+        return
+      }
+
+      setToastMessage('Signed in. Redirecting...')
+      navigate(landing, { replace: true })
+    } catch (error) {
+      setFormError(getApiErrorMessage(error, 'Unable to sign in. Please try again.'))
+    }
   }
 
   return (
@@ -86,39 +110,36 @@ export function LoginForm() {
 
         <form className="space-y-5" onSubmit={handleSubmit} noValidate>
           <div className="space-y-2">
-            <Label htmlFor="employee-id">Employee ID</Label>
+            <Label htmlFor="email">Email</Label>
             <div className="relative">
-              <IdCard
+              <Mail
                 className="pointer-events-none absolute top-1/2 left-3.5 h-4 w-4 -translate-y-1/2 text-slate-400"
                 aria-hidden="true"
               />
               <Input
-                id="employee-id"
-                name="employeeId"
-                type="text"
+                id="email"
+                name="email"
+                type="email"
                 autoComplete="username"
-                placeholder="Enter your Employee ID"
-                value={employeeId}
+                placeholder="Enter your email"
+                value={email}
                 onChange={(event) => {
-                  setEmployeeId(event.target.value)
-                  if (errors.employeeId) {
-                    setErrors((prev) => ({ ...prev, employeeId: undefined }))
+                  setEmail(event.target.value)
+                  if (errors.email) {
+                    setErrors((prev) => ({ ...prev, email: undefined }))
                   }
                 }}
-                aria-invalid={Boolean(errors.employeeId)}
-                aria-describedby={
-                  errors.employeeId ? 'employee-id-error' : undefined
-                }
+                aria-invalid={Boolean(errors.email)}
+                aria-describedby={errors.email ? 'email-error' : undefined}
                 className={cn(
                   'pl-10',
-                  errors.employeeId &&
-                    'border-red-400 focus-visible:ring-red-200',
+                  errors.email && 'border-red-400 focus-visible:ring-red-200',
                 )}
               />
             </div>
-            {errors.employeeId ? (
-              <p id="employee-id-error" className="text-xs text-red-500">
-                {errors.employeeId}
+            {errors.email ? (
+              <p id="email-error" className="text-xs text-red-500">
+                {errors.email}
               </p>
             ) : null}
           </div>
@@ -170,8 +191,29 @@ export function LoginForm() {
             </Label>
           </div>
 
-          <Button type="submit" className="w-full" size="lg">
-            Sign In
+          {formError ? (
+            <p
+              role="alert"
+              className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600"
+            >
+              {formError}
+            </p>
+          ) : null}
+
+          <Button
+            type="submit"
+            className="w-full"
+            size="lg"
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                Signing in...
+              </>
+            ) : (
+              'Sign In'
+            )}
           </Button>
         </form>
 
