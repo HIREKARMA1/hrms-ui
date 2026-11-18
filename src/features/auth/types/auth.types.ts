@@ -17,6 +17,16 @@ export interface LoginRequest {
   rememberMe?: boolean
 }
 
+/** `data` payload of GET /auth/me (the user is nested under `user`). */
+export interface CurrentUserResponseData {
+  user: AuthUser
+}
+
+/** Body of POST /auth/logout. */
+export interface LogoutRequest {
+  refreshToken: string
+}
+
 /** `data` payload of POST /auth/login. */
 export interface LoginResponseData {
   accessToken: string
