@@ -2,6 +2,11 @@ npm warn Unknown env config "devdir". This will stop working in the next major v
 19.02.15 [vite] (client) [console.warn] ImmutableStateInvariantMiddleware took 47ms, which is more than the warning threshold of 32ms. 
 If your state or actions are very large, you may want to disable the middleware as it might cause too much of a slowdown in development mode. See https://redux-toolkit.js.org/api/getDefaultMiddleware for instructions.
 It is disabled in production builds, so you don't need to worry about that.
+
+npm warn Unknown env config "devdir". This will stop working in the next major version of npm.
+19.02.15 [vite] (client) [console.warn] ImmutableStateInvariantMiddleware took 47ms, which is more than the warning threshold of 32ms. 
+If your state or actions are very large, you may want to disable the middleware as it might cause too much of a slowdown in development mode. See https://redux-toolkit.js.org/api/getDefaultMiddleware for instructions.
+It is disabled in production builds, so you don't need to worry about that.
 19.03.40 [vite] (client) [console.error] [vite] Failed to reload /src/features/auth/components/SessionBootstrap.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above)
 19.03.40 [vite] (client) Pre-transform error: Failed to load url /src/features/auth/hooks/useSignOut.ts (resolved id: D:/hrms/hrms-ui/src/features/auth/hooks/useSignOut.ts) in D:/hrms/hrms-ui/src/components/layout/Header.tsx. Does the file exist?
 19.03.41 [vite] (client) [console.error] [vite] Failed to reload /src/components/layout/Header.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above)
