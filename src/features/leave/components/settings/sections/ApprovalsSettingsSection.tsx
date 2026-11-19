@@ -10,6 +10,7 @@ import { EditLeaveTypeDialog } from '../editLeaveType/EditLeaveTypeDialog'
 import { SettingsField } from '../shared/SettingsField'
 import { SettingsNumberInput } from '../shared/SettingsNumberInput'
 import { buildApprovalReadableLine } from '../../../utils/buildApprovalReadableLine'
+import { ApprovalWorkflowsLiveTable } from '../ApprovalWorkflowsLiveTable'
 
 type ApprovalsSettingsSectionProps = {
   draft: LeaveSettings
@@ -28,6 +29,7 @@ export function ApprovalsSettingsSection({ draft, onChange, onApplied }: Approva
 
   return (
     <div className="space-y-6">
+      <ApprovalWorkflowsLiveTable />
       <div className="rounded-xl border border-hrms-border bg-hrms-muted-bg/40 p-4">
         <SettingsField label="Escalate a request that stays pending for" helper="Escalated requests are flagged and also show for HR.">
           <SettingsNumberInput

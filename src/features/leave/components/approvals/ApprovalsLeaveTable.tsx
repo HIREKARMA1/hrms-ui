@@ -21,6 +21,9 @@ type ApprovalsLeaveTableProps = {
   onApprove: (id: string) => void
   onReject: (id: string) => void
   busyId: string | null
+  /** Hide approve/reject when rows come from GET /leave-approval/pending. */
+  hideApproveReject?: boolean
+  emptyLabel?: string
 }
 
 export function ApprovalsLeaveTable({
@@ -30,12 +33,14 @@ export function ApprovalsLeaveTable({
   onApprove,
   onReject,
   busyId,
+  hideApproveReject = false,
+  emptyLabel = 'No pending leave requests in this queue.',
 }: ApprovalsLeaveTableProps) {
   if (rows.length === 0) {
     return (
       <Card>
         <CardContent className="p-0">
-          <LeaveEmptyState message="No pending leave requests in this queue." />
+          <LeaveEmptyState message={emptyLabel} />
         </CardContent>
       </Card>
     )
@@ -70,7 +75,9 @@ export function ApprovalsLeaveTable({
                   }
                 }}
               >
-                <td className={leaveTdClass('left')}>{employeeName(row.employeeId)}</td>
+                <td className={leaveTdClass('left')}>
+                  {row.employeeName ?? employeeName(row.employeeId)}
+                </td>
                 <td className={leaveTdClass('left', 'font-normal')}>
                   <LeaveTypeChip code={row.leaveTypeCode} abbreviated />
                 </td>
@@ -89,8 +96,12 @@ export function ApprovalsLeaveTable({
                 <td className="px-4 py-3 text-right" onClick={(event) => event.stopPropagation()}>
                   <div className="flex flex-wrap items-center justify-end gap-2">
                     <RowLinkButton onClick={() => onView(row)}>View</RowLinkButton>
-                    <ApproveRowButton disabled={busyId === row.id} onClick={() => onApprove(row.id)} />
-                    <RejectRowButton disabled={busyId === row.id} onClick={() => onReject(row.id)} />
+                    {!hideApproveReject ? (
+                      <>
+                        <ApproveRowButton disabled={busyId === row.id} onClick={() => onApprove(row.id)} />
+                        <RejectRowButton disabled={busyId === row.id} onClick={() => onReject(row.id)} />
+                      </>
+                    ) : null}
                   </div>
                 </td>
               </tr>

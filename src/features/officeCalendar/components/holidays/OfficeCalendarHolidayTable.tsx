@@ -20,6 +20,8 @@ type OfficeCalendarHolidayTableProps = {
   onEdit: (item: OfficeHoliday) => void
   onDelete: (id: string) => void
   emptyLabel?: string
+  /** Hide delete when rows come from the live API (mutations not wired). */
+  hideDelete?: boolean
 }
 
 export function OfficeCalendarHolidayTable({
@@ -28,6 +30,7 @@ export function OfficeCalendarHolidayTable({
   onEdit,
   onDelete,
   emptyLabel = 'No holidays match your filters.',
+  hideDelete = false,
 }: OfficeCalendarHolidayTableProps) {
   const colSpan = readOnly ? 4 : 5
 
@@ -65,6 +68,7 @@ export function OfficeCalendarHolidayTable({
                       holidayName={item.name}
                       onEdit={() => onEdit(item)}
                       onDelete={() => onDelete(item.id)}
+                      showDelete={!hideDelete}
                     />
                   </td>
                 ) : null}

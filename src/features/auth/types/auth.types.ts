@@ -8,6 +8,8 @@ export interface AuthUser {
   roles: string[]
   permissions: string[]
   isActive: boolean
+  /** Present when the auth user is linked to an Employee row. */
+  employeeId?: string
 }
 
 /** Form values for the login mutation. `rememberMe` is client-only and not sent. */

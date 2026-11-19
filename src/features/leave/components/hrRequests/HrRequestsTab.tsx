@@ -26,6 +26,7 @@ import { ledgerBalanceForType } from '../../utils/calculateBalance'
 import { HrRequestsTable } from './HrRequestsTable'
 import { HrApplyOnBehalfDialog } from './HrApplyOnBehalfDialog'
 import { HrCancelRequestDialog } from './HrCancelRequestDialog'
+import { HrEncashmentRequestsLiveSection } from './HrEncashmentRequestsLiveSection'
 
 const SEGMENTS = [
   { value: 'action' as const, label: 'Needs my action' },
@@ -64,14 +65,22 @@ export function HrRequestsTab({
     <div className="space-y-6">
       <LeaveTabHeader title="Requests" subtitle="All leave, encashment and comp-off requests." actions={<Button type="button" onClick={() => setApplyOpen(true)}>Apply on behalf</Button>} />
       <LeaveSegmentedControl options={SEGMENTS} value={segment} onChange={setSegment} ariaLabel="Request queues" />
-      {segment === 'encashment' || segment === 'compoff' ? (
-        <LeaveEmptyState message="Switch to Needs my action or All requests for leave queues." />
-      ) : (
+      {segment === 'encashment' ? (
+        <HrEncashmentRequestsLiveSection
+          search={search}
+          onSearchChange={setSearch}
+          employeeName={nameFor}
+        />
+      ) : null}
+      {segment === 'compoff' ? (
+        <LeaveEmptyState message="Comp-off requests are still demo-only until the comp-off list API is wired." />
+      ) : null}
+      {segment === 'action' || segment === 'all' ? (
         <>
           <LeaveTableFilters searchId="hr-req-search" searchPlaceholder="Search employee or type" searchValue={search} onSearchChange={setSearch} showing={leaveRows.length} total={snapshot.requests.length} />
           {leaveRows.length === 0 ? <LeaveEmptyState message="No requests match this filter." /> : <HrRequestsTable rows={leaveRows} employees={snapshot.employees} requests={snapshot.requests} onView={setDetail} onApprove={(id) => pickAction(snapshot, id, 'approve', setAction)} onReject={(id) => pickAction(snapshot, id, 'reject', setAction)} onCancel={setCancelTarget} busyId={busyId} />}
         </>
-      )}
+      ) : null}
       <HrApplyOnBehalfDialog
         open={applyOpen}
         onOpenChange={setApplyOpen}

@@ -25,11 +25,16 @@ import { LEAVE_TABLE_ROW, LEAVE_TABLE_THEAD } from '../shared/leaveUi'
 import { LEAVE_TABLE_BASE, leaveTdClass, leaveThClass } from '../shared/leaveTableLayout'
 import { LeaveEmptyState } from '../shared/LeaveEmptyState'
 import { BalanceLedgerDialog } from '../dialogs/BalanceLedgerDialog'
+import { useShouldFetchLeaveList } from '../../hooks/useShouldFetchLeaveList'
+import { BalancesHrOverviewLiveSection } from './BalancesHrOverviewLiveSection'
 
 export function BalancesTab() {
   const { snapshot } = useLeave()
+  const canFetchLeaves = useShouldFetchLeaveList()
   const [search, setSearch] = useState('')
+  const [liveSearch, setLiveSearch] = useState('')
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [liveSelectedId, setLiveSelectedId] = useState<string | null>(null)
 
   const allRows = useMemo(
     () => activeEmployees(snapshot?.employees ?? []).filter((item) => !item.id.startsWith('EMP-HR')),
@@ -61,6 +66,14 @@ export function BalancesTab() {
           { label: 'EL pending encashment', value: String(snapshot.encashments.filter((item) => item.status === 'Pending payout').length), icon: Wallet, tone: 'primary' },
         ]}
       />
+      {canFetchLeaves ? (
+        <BalancesHrOverviewLiveSection
+          search={liveSearch}
+          onSearchChange={setLiveSearch}
+          selectedEmployeeId={liveSelectedId}
+          onSelectEmployeeId={setLiveSelectedId}
+        />
+      ) : null}
       <LeaveTableFilters
         searchId="balances-search"
         searchPlaceholder="Search employees"

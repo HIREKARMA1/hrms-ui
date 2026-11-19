@@ -38,6 +38,8 @@ export type LeaveStep = {
 export type LeaveRequest = {
   id: string
   employeeId: string
+  /** Populated from API leave list for HR employee-id resolution. */
+  employeeName?: string
   leaveTypeCode: string
   fromDate: string
   toDate: string

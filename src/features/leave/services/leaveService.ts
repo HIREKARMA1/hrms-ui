@@ -24,6 +24,8 @@ import {
 import { createDefaultLeaveSettings } from './companyDefaults'
 
 export type LeaveSnapshot = {
+  /** When `api`, `requests` came from GET /leaves; otherwise mock store data. */
+  requestsSource?: 'api' | 'mock'
   employees: LeaveEmployee[]
   settings: LeaveSettings
   requests: LeaveRequest[]

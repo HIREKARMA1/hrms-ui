@@ -23,6 +23,8 @@ type ApprovalsTabDialogsProps = {
   viewerCanAct: boolean
   onApproveFromDetail: () => void
   onRejectFromDetail: () => void
+  useLiveRequestDetail?: boolean
+  allowApproveReject?: boolean
 }
 
 export function ApprovalsTabDialogs(props: ApprovalsTabDialogsProps) {
@@ -44,14 +46,16 @@ export function ApprovalsTabDialogs(props: ApprovalsTabDialogsProps) {
       <RequestDetailDialog
         open={Boolean(req)}
         request={req}
-        employeeName={req ? nameFor(req.employeeId) : undefined}
+        employeeName={req ? req.employeeName ?? nameFor(req.employeeId) : undefined}
         balanceBefore={req ? ledgerBalanceForType(props.snapshot.ledger, req.employeeId, req.leaveTypeCode) : 0}
         balanceAfter={req ? ledgerBalanceForType(props.snapshot.ledger, req.employeeId, req.leaveTypeCode) - req.days : 0}
         onOpenChange={(open) => !open && props.setDetail(null)}
-        canApprove={props.viewerCanAct}
-        canReject={props.viewerCanAct}
+        canApprove={props.allowApproveReject !== false && props.viewerCanAct}
+        canReject={props.allowApproveReject !== false && props.viewerCanAct}
         onApprove={props.onApproveFromDetail}
         onReject={props.onRejectFromDetail}
+        useLiveApi={props.useLiveRequestDetail}
+        useLiveApprovalHistory={props.useLiveRequestDetail}
       />
     </>
   )
