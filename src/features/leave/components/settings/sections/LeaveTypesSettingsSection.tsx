@@ -14,6 +14,7 @@ import { isLeaveTypeEdited } from '../../../utils/isLeaveTypeEdited'
 import { ApprovalFlowChips } from '../shared/ApprovalFlowChips'
 import { EditLeaveTypeDialog } from '../editLeaveType/EditLeaveTypeDialog'
 import { LEAVE_MOTION, LEAVE_TABLE_THEAD } from '../../shared/leaveUi'
+import { useLeavePermissions } from '../../../hooks/useLeavePermissions'
 
 type LeaveTypesSettingsSectionProps = {
   draft: LeaveSettings
@@ -24,6 +25,9 @@ type LeaveTypesSettingsSectionProps = {
 
 export function LeaveTypesSettingsSection({ draft, saved, onChange, onApplied }: LeaveTypesSettingsSectionProps) {
   const [editing, setEditing] = useState<LeaveTypePolicy | null>(null)
+  // Editing or toggling a leave type is PATCH /leave-types/:id (leave_types:update);
+  // leave_types:read only allows viewing.
+  const canEdit = useLeavePermissions().canUpdateLeaveTypes
 
   function updateType(next: LeaveTypePolicy) {
     onChange({
@@ -52,7 +56,8 @@ export function LeaveTypesSettingsSection({ draft, saved, onChange, onApplied }:
                 key={policy.code}
                 policy={policy}
                 edited={isLeaveTypeEdited(draft, saved, policy.code)}
-                onEdit={() => setEditing(policy)}
+                canEdit={canEdit}
+                onEdit={() => canEdit && setEditing(policy)}
                 onToggle={(enabled) =>
                   onChange({
                     ...draft,
@@ -64,7 +69,7 @@ export function LeaveTypesSettingsSection({ draft, saved, onChange, onApplied }:
           </tbody>
         </table>
       </div>
-      <EditLeaveTypeDialog open={editing != null} policy={editing} onOpenChange={(open) => !open && setEditing(null)} onApply={updateType} />
+      <EditLeaveTypeDialog open={canEdit && editing != null} policy={editing} onOpenChange={(open) => !open && setEditing(null)} onApply={updateType} />
     </>
   )
 }
@@ -72,20 +77,22 @@ export function LeaveTypesSettingsSection({ draft, saved, onChange, onApplied }:
 function TypeRow({
   policy,
   edited,
+  canEdit,
   onEdit,
   onToggle,
 }: {
   policy: LeaveTypePolicy
   edited: boolean
+  canEdit: boolean
   onEdit: () => void
   onToggle: (enabled: boolean) => void
 }) {
   const approvalNote = buildApprovalReadableLine(policy)
   return (
     <tr
-      onClick={onEdit}
-      onKeyDown={(event) => event.key === 'Enter' && onEdit()}
-      tabIndex={0}
+      onClick={canEdit ? onEdit : undefined}
+      onKeyDown={canEdit ? (event) => event.key === 'Enter' && onEdit() : undefined}
+      tabIndex={canEdit ? 0 : undefined}
       className={cn('border-t border-hrms-border/60', LEAVE_MOTION, 'hover:bg-hrms-row-hover', !policy.enabled && 'opacity-50')}
     >
       <td className="px-2 py-2">
@@ -109,12 +116,14 @@ function TypeRow({
         {approvalNote ? <p className="mt-1 text-xs text-hrms-text-secondary">{approvalNote}</p> : null}
       </td>
       <td className="px-2 py-2" onClick={(event) => event.stopPropagation()}>
-        <Switch checked={policy.enabled} onCheckedChange={onToggle} aria-label={`${policy.label} active`} />
+        <Switch checked={policy.enabled} disabled={!canEdit} onCheckedChange={onToggle} aria-label={`${policy.label} active`} />
       </td>
       <td className="px-2 py-2">
-        <button type="button" className="text-sm font-medium text-hrms-primary hover:underline" onClick={onEdit}>
-          Edit
-        </button>
+        {canEdit ? (
+          <button type="button" className="text-sm font-medium text-hrms-primary hover:underline" onClick={onEdit}>
+            Edit
+          </button>
+        ) : null}
       </td>
     </tr>
   )

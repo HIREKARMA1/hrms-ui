@@ -58,13 +58,19 @@ export function ApplyLeaveDialog(props: ApplyLeaveDialogProps) {
     onOpenChange(next)
   }
 
+  // The grid takes its natural height; the dialog body (below) is the single
+  // scroll container. Columns stack on small screens and split from `lg`.
   const gridClass = onBehalf
-    ? 'grid min-h-[32rem] flex-1 grid-cols-2 grid-rows-1 items-stretch divide-x divide-hrms-border overflow-y-auto'
-    : 'grid min-h-0 flex-1 gap-0 lg:grid-cols-2'
+    ? 'grid grid-cols-1 items-stretch divide-y divide-hrms-border lg:min-h-[32rem] lg:grid-cols-2 lg:divide-x lg:divide-y-0'
+    : 'grid grid-cols-1 items-stretch gap-0 lg:grid-cols-2'
 
   return (
     <LeaveDialogRoot open={open} onOpenChange={handleOpenChange}>
-      <LeaveDialogContent size={onBehalf ? 'xl' : 'lg'} describedBy="apply-leave-subtitle">
+      <LeaveDialogContent
+        size={onBehalf ? 'xl' : 'lg'}
+        describedBy="apply-leave-subtitle"
+        className="max-h-[calc(100dvh-2rem)]"
+      >
         <LeaveDialogHeader
           title={onBehalf ? 'Apply on behalf' : 'Apply for leave'}
           subtitle={
@@ -75,9 +81,9 @@ export function ApplyLeaveDialog(props: ApplyLeaveDialogProps) {
           subtitleId="apply-leave-subtitle"
           icon={onBehalf ? UserRound : CalendarPlus}
         />
-        <LeaveDialogBody className="flex min-h-0 flex-1 flex-col overflow-hidden p-0">
+        <LeaveDialogBody className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-0">
           <div className={gridClass}>
-            <div className="flex min-h-full min-w-0 flex-col bg-white">
+            <div className="flex min-w-0 flex-col bg-white">
               {hrEmployeePicker ? (
                 <div className="border-b border-hrms-border px-6 py-4">
                   <ApplyOnBehalfEmployeeField
@@ -114,7 +120,7 @@ export function ApplyLeaveDialog(props: ApplyLeaveDialogProps) {
                 onBehalf={onBehalf}
               />
             </div>
-            <div className="flex min-h-full min-w-0 flex-col bg-hrms-muted-bg/30 p-5">
+            <div className="flex min-w-0 flex-col bg-hrms-muted-bg/30 p-5">
               <ApplyLeaveSummaryPanel
                 preview={state.preview}
                 chain={state.chain}
@@ -128,7 +134,7 @@ export function ApplyLeaveDialog(props: ApplyLeaveDialogProps) {
             </div>
           </div>
         </LeaveDialogBody>
-        <LeaveDialogFooter>
+        <LeaveDialogFooter className="bg-white">
           <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-xs text-hrms-text-muted">
               {state.preview && state.preview.errors.length > 0

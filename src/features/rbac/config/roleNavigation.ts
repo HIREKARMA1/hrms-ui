@@ -416,6 +416,7 @@ const hrNav: RoleNavItem[] = [
     title: 'Request',
     path: '/hr/support/admin-requests',
     iconName: 'Headphones',
+    feature: 'support.adminRequests',
   },
   {
     title: 'Recruitment & ATS',

@@ -1,5 +1,5 @@
 /** Routes that are reachable without a session (see `App.tsx`). */
-const PUBLIC_PATHS = ['/', '/forgot-password', '/contact-administrator']
+export const PUBLIC_PATHS = ['/', '/forgot-password', '/contact-administrator']
 
 /** Login screen route (the `/` route renders `LoginPage`). */
 export const LOGIN_PATH = '/'

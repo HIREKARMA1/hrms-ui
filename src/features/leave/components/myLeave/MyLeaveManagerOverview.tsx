@@ -5,7 +5,7 @@
 import { CalendarDays, ListChecks, Sun, Users } from 'lucide-react'
 
 import type { LeaveSnapshot } from '../../services/leaveService'
-import type { LeaveViewer } from '../../types/viewer'
+import type { LinkedLeaveViewer } from '../../types/viewer'
 import { managerOverviewStats } from '../../utils/myLeaveManagerInsights'
 import { managerDepartmentLabel } from '../../utils/managerTeam'
 import { LeaveStatGrid } from '../LeaveStatGrid'
@@ -14,7 +14,7 @@ import { totalAvailableDays } from '../../utils/myLeaveEmployeeInsights'
 
 type MyLeaveManagerOverviewProps = {
   snapshot: LeaveSnapshot
-  viewer: LeaveViewer
+  viewer: LinkedLeaveViewer
   cards: BalanceCardModel[]
 }
 

@@ -8,6 +8,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 
+import { useOptionalFeatureAccess } from '@/features/rbac/hooks/useFeatureAccess'
+
 import { useLeads } from '../hooks/useLeads'
 import type { Lead } from '../types/lead'
 import { formatLeadDate } from '../utils/formatLeadDate'
@@ -55,6 +57,8 @@ export function LeadDetailDialog({
   canDelete = true,
 }: LeadDetailDialogProps) {
   const { addNote, addAttachment } = useLeads()
+  // Reading notes follows leads:read; adding one needs leads:notes.
+  const canAddNotes = useOptionalFeatureAccess().canAccess('leads.notes')
   const [tab, setTab] = useState<DetailTab>('Details')
   const [noteText, setNoteText] = useState('')
   const [fileName, setFileName] = useState('')
@@ -127,16 +131,18 @@ export function LeadDetailDialog({
             ) : null}
             {tab === 'Notes' ? (
               <div className="space-y-3">
-                <div className="flex gap-2">
-                  <Input
-                    value={noteText}
-                    placeholder="Add a note or comment…"
-                    onChange={(e) => setNoteText(e.target.value)}
-                  />
-                  <Button type="button" onClick={() => void saveNote()}>
-                    Add
-                  </Button>
-                </div>
+                {canAddNotes ? (
+                  <div className="flex gap-2">
+                    <Input
+                      value={noteText}
+                      placeholder="Add a note or comment…"
+                      onChange={(e) => setNoteText(e.target.value)}
+                    />
+                    <Button type="button" onClick={() => void saveNote()}>
+                      Add
+                    </Button>
+                  </div>
+                ) : null}
                 <ul className="space-y-2">
                   {lead.notes.length === 0 ? (
                     <li className="text-hrms-text-muted">No notes yet.</li>

@@ -1,6 +1,8 @@
 import { useMemo } from 'react'
 
 import type { UserRole } from '@/features/leave/constants/userRoles'
+import { AccessDeniedPage } from '@/features/rbac/components/AccessDeniedPage'
+import { useFeatureAccess } from '@/features/rbac/hooks/useFeatureAccess'
 import { useRbacSession } from '@/features/rbac/hooks/useRbacSession'
 
 import { OfficeCalendarEventDialogHost } from '../components/OfficeCalendarEventDialogHost'
@@ -14,6 +16,7 @@ import { useOfficeCalendar } from '../hooks/useOfficeCalendar'
 import { useOfficeCalendarEventDialogs } from '../hooks/useOfficeCalendarEventDialogs'
 import { useOfficeCalendarRoute } from '../hooks/useOfficeCalendarRoute'
 import { useOfficeCalendarScope } from '../hooks/useOfficeCalendarScope'
+import { isOfficeCalendarHolidayTab } from '../utils/officeCalendarTabFeatures'
 import { visibleEventsForRole } from '../utils/visibleCalendarForRole'
 
 function OfficeCalendarPanels() {
@@ -24,6 +27,12 @@ function OfficeCalendarPanels() {
   const scope = useOfficeCalendarScope(role)
   const visibleEvents = useMemo(() => visibleEventsForRole(events, role), [events, role])
   const dialogs = useOfficeCalendarEventDialogs(visibleEvents)
+  const { canAccess } = useFeatureAccess()
+
+  // Same rule as the sidebar child: Holidays needs `calendar.holidays`.
+  if (isOfficeCalendarHolidayTab(activeTab) && !canAccess('calendar.holidays')) {
+    return <AccessDeniedPage featureLabel="Office Calendar Holidays" />
+  }
 
   if (loading) {
     return <OfficeCalendarPageSkeleton />

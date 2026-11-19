@@ -10,6 +10,9 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
+import { useAuthenticatedUser } from '@/features/auth/hooks/useAuthenticatedUser'
+import { getUserDisplayName, getUserInitials } from '@/features/auth/utils/authUser'
+import { useOptionalRbacSession } from '@/features/rbac/hooks/useRbacSession'
 import { ToastBanner, useToast } from '@/hooks/useToast'
 
 import { AttendanceTimeline, type TimelineEvent } from '../components'
@@ -69,6 +72,8 @@ function SessionStat({ label, value }: { label: string; value: string }) {
 }
 
 export function CheckInPage() {
+  const { user } = useAuthenticatedUser()
+  const rbac = useOptionalRbacSession()
   const { message, toast } = useToast()
   const [now, setNow] = useState(() => new Date())
   const [phase, setPhase] = useState<AttendancePhase>('not-checked-in')
@@ -196,12 +201,14 @@ export function CheckInPage() {
           <CardContent className="flex items-center gap-4 p-6">
             <Avatar className="h-14 w-14">
               <AvatarFallback className="bg-lavender text-lg font-semibold text-brand-500">
-                RG
+                {user ? getUserInitials(user) : 'U'}
               </AvatarFallback>
             </Avatar>
-            <div>
-              <p className="text-lg font-semibold text-navy">Rohith Goud</p>
-              <p className="text-sm text-text-secondary">EMP-1001 · HR Manager</p>
+            <div className="min-w-0">
+              <p className="truncate text-lg font-semibold text-navy">
+                {user ? getUserDisplayName(user) : 'User'}
+              </p>
+              <p className="text-sm text-text-secondary">{rbac?.roleLabel ?? user?.role ?? ''}</p>
             </div>
           </CardContent>
         </Card>

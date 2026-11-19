@@ -1,10 +1,7 @@
 import { configureStore } from '@reduxjs/toolkit'
 import { setupListeners } from '@reduxjs/toolkit/query'
 
-import {
-  clearCredentials,
-  setCredentials,
-} from '@/features/auth/store/authSlice'
+import { createAuthSessionHandlers } from '@/features/auth/store/authSessionHandlers'
 import {
   clearStoredAuth,
   saveStoredAuth,
@@ -25,27 +22,14 @@ setupListeners(store.dispatch)
 // Token refresh (see baseApi): rotated tokens go through the existing
 // `setCredentials` action (rememberMe is preserved) and the persistence
 // subscriber below; a dead session clears state/storage and returns to login.
-registerAuthSessionHandlers({
-  onTokensRefreshed: (session) => {
-    const { user: currentUser, rememberMe } = store.getState().auth
-    const user = session.user ?? currentUser
-    if (!user) return false
-    store.dispatch(
-      setCredentials({
-        accessToken: session.accessToken,
-        refreshToken: session.refreshToken,
-        user,
-        rememberMe,
-      }),
-    )
-    return true
-  },
-  onSessionExpired: () => {
-    store.dispatch(clearCredentials())
-    clearStoredAuth()
-    redirectToLogin()
-  },
-})
+registerAuthSessionHandlers(
+  createAuthSessionHandlers(store, {
+    onExpired: () => {
+      clearStoredAuth()
+      redirectToLogin()
+    },
+  }),
+)
 
 // Persist the auth slice (only when it actually changes).
 let previousAuth = store.getState().auth

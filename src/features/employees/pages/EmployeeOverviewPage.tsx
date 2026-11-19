@@ -66,6 +66,13 @@ export function EmployeeOverviewPage() {
         </div>
       </div>
 
+      <p className="-mt-2 text-xs text-text-secondary">
+        Headcount and recently added employees are live. Widgets marked{' '}
+        <span className="font-semibold text-amber-700">Sample</span>, along with birthdays,
+        anniversaries, distributions, attendance, leave, attrition and payroll analytics, still use
+        sample data until their APIs are available.
+      </p>
+
       <Feature name="employee.stats">
         <EmployeeStatsCards />
       </Feature>

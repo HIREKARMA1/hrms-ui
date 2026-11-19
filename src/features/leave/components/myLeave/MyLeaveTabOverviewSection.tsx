@@ -5,7 +5,7 @@
 import type { CompOffLot } from '../../types/compOff'
 import type { LeaveRequest } from '../../types/leaveRequest'
 import type { LeaveSnapshot } from '../../services/leaveService'
-import type { LeaveViewer } from '../../types/viewer'
+import type { LinkedLeaveViewer } from '../../types/viewer'
 import { isEmployeeExperience, isManagerExperience } from '../../constants/userRoles'
 import type { BalanceCardModel } from './MyLeaveBalanceCards'
 import { MyLeaveEmployeeOverview } from './MyLeaveEmployeeOverview'
@@ -13,7 +13,7 @@ import { MyLeaveManagerOverview } from './MyLeaveManagerOverview'
 import { MyLeaveTabOverview } from './MyLeaveTabOverview'
 
 type MyLeaveTabOverviewSectionProps = {
-  viewer: LeaveViewer
+  viewer: LinkedLeaveViewer
   snapshot: LeaveSnapshot
   cards: BalanceCardModel[]
   requests: LeaveRequest[]

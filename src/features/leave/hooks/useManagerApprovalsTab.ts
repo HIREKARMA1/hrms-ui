@@ -22,27 +22,28 @@ export function useManagerApprovalsTab(
   reload: () => Promise<void>,
   showToast: ToastFn,
 ) {
+  // The team is found through the manager's employee record; without one the queues are empty.
   const managerId = viewer.employeeId
 
   const pendingLeave = useMemo(
-    () => (snapshot ? pendingManagerLeaveRequests(snapshot, managerId) : []),
+    () => (snapshot && managerId ? pendingManagerLeaveRequests(snapshot, managerId) : []),
     [managerId, snapshot],
   )
   const pendingEncashment = useMemo(
-    () => (snapshot ? pendingManagerEncashments(snapshot, managerId) : []),
+    () => (snapshot && managerId ? pendingManagerEncashments(snapshot, managerId) : []),
     [managerId, snapshot],
   )
   const pendingCompOff = useMemo(
-    () => (snapshot ? pendingManagerCompOffRequests(snapshot, managerId) : []),
+    () => (snapshot && managerId ? pendingManagerCompOffRequests(snapshot, managerId) : []),
     [managerId, snapshot],
   )
 
   async function runLeaveAction(id: string, mode: 'approve' | 'reject', comment: string) {
     if (mode === 'approve') {
-      approveRequest(id, managerId, viewer.displayName, 'Manager')
+      approveRequest(id, viewer.actorId, viewer.displayName, 'Manager')
       showToast('Request approved.')
     } else {
-      rejectRequest(id, managerId, viewer.displayName, comment.trim() || 'Not approved')
+      rejectRequest(id, viewer.actorId, viewer.displayName, comment.trim() || 'Not approved')
       showToast('Request rejected.')
     }
     await reload()

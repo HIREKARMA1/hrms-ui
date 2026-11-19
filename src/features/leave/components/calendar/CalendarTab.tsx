@@ -15,6 +15,7 @@ import { LeaveTabHeader } from '../LeaveTabHeader'
 import { buildCalendarLeaveByDay, type CalendarLeaveScope } from '../../utils/buildCalendarLeaveByDay'
 import { teamCalendarMemberIds } from '../../utils/managerTeam'
 import { leaveTodayIso } from '../../utils/leaveToday'
+import { LeaveEmployeeLinkNotice } from '../shared/LeaveEmployeeLinkNotice'
 import { LEAVE_SECONDARY_BUTTON } from '../shared/leaveUi'
 import { CalendarAgendaList } from './CalendarAgendaList'
 import { CalendarLegend } from './CalendarLegend'
@@ -59,19 +60,24 @@ export function CalendarTab({ viewer, initialDepartment, scope = 'org' }: Calend
     return map
   }, [snapshot?.settings.holidays])
 
+  const linkedId = viewer.employeeId
+  // "Your" / "your team" views need an employee record; never fall back to org-wide data.
+  const personalUnavailable = scope !== 'org' && !linkedId
+
   const leaveByDay = useMemo(() => {
-    if (!snapshot) return new Map<string, { code: string; label: string }[]>()
+    if (!snapshot || (scope !== 'org' && !linkedId)) return new Map<string, { code: string; label: string }[]>()
     return buildCalendarLeaveByDay(snapshot, {
       scope,
-      employeeId: viewer.employeeId,
+      // Org scope only uses this to label the viewer's own entries.
+      employeeId: linkedId ?? '',
       viewerRole: viewer.role,
       department: initialDepartment,
     })
-  }, [initialDepartment, scope, snapshot, viewer.employeeId, viewer.role])
+  }, [initialDepartment, scope, snapshot, linkedId, viewer.role])
 
   const teamMemberIds = useMemo(
-    () => (scope === 'team' && snapshot ? teamCalendarMemberIds(snapshot, viewer.employeeId) : undefined),
-    [scope, snapshot, viewer.employeeId],
+    () => (scope === 'team' && snapshot && linkedId ? teamCalendarMemberIds(snapshot, linkedId) : undefined),
+    [scope, snapshot, linkedId],
   )
 
   if (!snapshot) return null
@@ -93,12 +99,16 @@ export function CalendarTab({ viewer, initialDepartment, scope = 'org' }: Calend
               : 'Holidays, weekly offs, and team leave at a glance.'
         }
       />
-      <CalendarTabStats
-        snapshot={snapshot}
-        monthPrefix={monthPrefix}
-        employeeId={scope === 'self' ? viewer.employeeId : undefined}
-        teamMemberIds={teamMemberIds}
-      />
+      {personalUnavailable ? (
+        <LeaveEmployeeLinkNotice what={scope === 'team' ? "your team's leave" : 'your leave'} />
+      ) : (
+        <CalendarTabStats
+          snapshot={snapshot}
+          monthPrefix={monthPrefix}
+          employeeId={scope === 'self' ? (linkedId ?? undefined) : undefined}
+          teamMemberIds={teamMemberIds}
+        />
+      )}
       <div className="flex flex-wrap items-center gap-2">
         <Button type="button" variant="outline" className={cn(LEAVE_SECONDARY_BUTTON)} onClick={() => setCursor((value) => ({ ...value, month: value.month - 1 }))}>Previous</Button>
         <Button type="button" variant="outline" className={cn(LEAVE_SECONDARY_BUTTON)} onClick={() => setCursor({ year: Number(base.slice(0, 4)), month: Number(base.slice(5, 7)) - 1 })}>Today</Button>

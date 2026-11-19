@@ -5,7 +5,7 @@
 
 import type { LeaveSnapshot } from '../services/leaveService'
 import { addRequest, cancelRequest, nextRequestId } from '../services/leaveService'
-import type { LeaveViewer } from '../types/viewer'
+import type { LinkedLeaveViewer } from '../types/viewer'
 import type { LeaveRequest } from '../types/leaveRequest'
 import type { LeaveEmployee } from '../types/employee'
 import { getApprovalChain } from '../utils/getApprovalChain'
@@ -13,13 +13,13 @@ import { leaveTodayIso } from '../utils/leaveToday'
 
 export function useMyLeaveActions(
   snapshot: LeaveSnapshot | null,
-  viewer: LeaveViewer,
+  viewer: LinkedLeaveViewer,
   employee: LeaveEmployee | undefined,
   reload: () => Promise<void>,
 ) {
   async function handleCancel(row: LeaveRequest) {
     // Payroll may need a correction if payroll for this month was already processed.
-    cancelRequest(row.id, viewer.employeeId, viewer.displayName, 'Cancelled by employee')
+    cancelRequest(row.id, viewer.actorId, viewer.displayName, 'Cancelled by employee')
     await reload()
   }
 
@@ -59,7 +59,7 @@ export function useMyLeaveActions(
           id: `ST-${Date.now()}`,
           kind: 'applied',
           at: leaveTodayIso(),
-          actorId: viewer.employeeId,
+          actorId: viewer.actorId,
           actorName: viewer.displayName,
         },
       ],

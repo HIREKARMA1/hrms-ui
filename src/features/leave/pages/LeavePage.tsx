@@ -10,6 +10,11 @@
 
 import { useSearchParams, useLocation } from 'react-router-dom'
 
+import { AccessDeniedPage } from '@/features/rbac/components/AccessDeniedPage'
+import { useOptionalFeatureAccess } from '@/features/rbac/hooks/useFeatureAccess'
+
+import { leaveTabFeature } from '../constants/leaveTabFeatures'
+
 
 
 import type { HrRequestsSegment } from '../context/leavePageNavTypes'
@@ -75,6 +80,8 @@ function LeavePagePanels() {
 
   const { activeTab, goToTab } = useLeaveRoute(role)
 
+  const { canAccess } = useOptionalFeatureAccess()
+
   const [searchParams] = useSearchParams()
 
   const location = useLocation()
@@ -126,6 +133,14 @@ function LeavePagePanels() {
   }
 
 
+
+  // Same rule as the sidebar child for this tab: the role-specific tab list
+  // still decides which tabs exist, and the tab's backend permission must
+  // also be held (e.g. Approvals needs leaves:approve, not just leaves:read).
+  const tabFeature = leaveTabFeature(activeTab)
+  if (tabFeature && !canAccess(tabFeature)) {
+    return <AccessDeniedPage featureLabel={`Leave: ${activeTab}`} />
+  }
 
   if (loading) return <LeaveSkeleton />
 

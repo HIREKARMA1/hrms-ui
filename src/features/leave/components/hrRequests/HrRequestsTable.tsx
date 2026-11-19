@@ -6,6 +6,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
+import { useLeavePermissions } from '../../hooks/useLeavePermissions'
 import type { LeaveRequest } from '../../types/leaveRequest'
 import type { LeaveEmployee } from '../../types/employee'
 import { resolveEmploymentStatus } from '../../utils/employmentStatus'
@@ -33,6 +34,7 @@ function hrRowCancelVisible(row: LeaveRequest) {
 }
 
 export function HrRequestsTable({ rows, employees, requests, onView, onApprove, onReject, onCancel, busyId }: HrRequestsTableProps) {
+  const permissions = useLeavePermissions()
   const byId = Object.fromEntries(employees.map((item) => [item.id, item]))
 
   return (
@@ -93,13 +95,13 @@ export function HrRequestsTable({ rows, employees, requests, onView, onApprove, 
                   <td className="px-4 py-3 text-right align-middle" onClick={(event) => event.stopPropagation()}>
                     <div className="flex flex-wrap items-center justify-end gap-2">
                       <RowLinkButton onClick={() => onView(row)}>View</RowLinkButton>
-                      {pending ? (
+                      {pending && permissions.canApprove ? (
                         <>
                           <ApproveRowButton disabled={busyId === row.id} onClick={() => onApprove(row.id)} />
                           <RejectRowButton disabled={busyId === row.id} onClick={() => onReject(row.id)} />
                         </>
                       ) : null}
-                      {showCancel ? (
+                      {showCancel && permissions.canCancel ? (
                         <Button type="button" size="sm" variant="outline" className="h-8 border-hrms-border text-hrms-navy" onClick={() => onCancel(row)}>
                           Cancel
                         </Button>

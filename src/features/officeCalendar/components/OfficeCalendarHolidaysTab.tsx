@@ -1,4 +1,5 @@
 import type { UserRole } from '@/features/leave/constants/userRoles'
+import { useHolidayPermissions } from '@/features/rbac/hooks/useHolidayPermissions'
 
 import { useOfficeCalendarHolidayTab } from '../hooks/useOfficeCalendarHolidayTab'
 import type { OfficeHoliday, OfficeHolidayInput } from '../types/officeCalendar'
@@ -23,6 +24,11 @@ export function OfficeCalendarHolidaysTab({
   onDelete,
 }: OfficeCalendarHolidaysTabProps) {
   const tab = useOfficeCalendarHolidayTab(holidays, onDelete)
+  // Role-based read-only still applies; each action also needs its own
+  // backend permission (holidays:create / update / delete).
+  const perms = useHolidayPermissions()
+  const canCreate = !readOnly && perms.canCreate
+  const canUpdate = !readOnly && perms.canUpdate
 
   return (
     <div className="flex flex-col gap-4">
@@ -31,15 +37,17 @@ export function OfficeCalendarHolidaysTab({
         filters={tab.filters}
         onFiltersChange={tab.setFilters}
         onAdd={tab.openCreate}
-        canManage={!readOnly}
+        canManage={canCreate}
       />
       <OfficeCalendarHolidayTable
         holidays={tab.filtered}
         readOnly={readOnly}
+        canEdit={perms.canUpdate}
+        canDelete={perms.canDelete}
         onEdit={tab.openEdit}
         onDelete={(id) => void tab.handleDelete(id)}
       />
-      {!readOnly ? (
+      {canCreate || canUpdate ? (
         <OfficeHolidayFormDialog
           open={tab.formOpen}
           onOpenChange={tab.setFormOpen}

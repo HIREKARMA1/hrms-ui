@@ -17,6 +17,9 @@ import { formatOfficeDate } from '../../utils/formatOfficeCalendarDate'
 type OfficeCalendarHolidayTableProps = {
   holidays: OfficeHoliday[]
   readOnly: boolean
+  /** Per-action permission (default allowed); combined with `readOnly`. */
+  canEdit?: boolean
+  canDelete?: boolean
   onEdit: (item: OfficeHoliday) => void
   onDelete: (id: string) => void
   emptyLabel?: string
@@ -25,11 +28,14 @@ type OfficeCalendarHolidayTableProps = {
 export function OfficeCalendarHolidayTable({
   holidays,
   readOnly,
+  canEdit = true,
+  canDelete = true,
   onEdit,
   onDelete,
   emptyLabel = 'No holidays match your filters.',
 }: OfficeCalendarHolidayTableProps) {
-  const colSpan = readOnly ? 4 : 5
+  const showActions = !readOnly && (canEdit || canDelete)
+  const colSpan = showActions ? 5 : 4
 
   return (
     <div className={HOLIDAY_LIST_TABLE_WRAPPER}>
@@ -40,7 +46,7 @@ export function OfficeCalendarHolidayTable({
             <th className={HOLIDAY_LIST_TH}>Date</th>
             <th className={HOLIDAY_LIST_TH}>Type</th>
             <th className={HOLIDAY_LIST_TH}>Mandatory</th>
-            {!readOnly ? <th className={HOLIDAY_LIST_TH}>Actions</th> : null}
+            {showActions ? <th className={HOLIDAY_LIST_TH}>Actions</th> : null}
           </tr>
         </thead>
         <tbody>
@@ -59,12 +65,14 @@ export function OfficeCalendarHolidayTable({
                 <td className={HOLIDAY_LIST_TD_MUTED}>
                   <HolidayMandatoryBadge mandatory={item.mandatory} />
                 </td>
-                {!readOnly ? (
+                {showActions ? (
                   <td className={HOLIDAY_LIST_TD_MUTED}>
                     <HolidayListRowActions
                       holidayName={item.name}
                       onEdit={() => onEdit(item)}
                       onDelete={() => onDelete(item.id)}
+                      showEdit={canEdit}
+                      showDelete={canDelete}
                     />
                   </td>
                 ) : null}

@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { createContext, useContext, type ReactNode } from 'react'
 
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -22,6 +22,10 @@ type EmployeeProfileFormProps = {
   value: EmployeeProfileFormState
   onChange: (next: EmployeeProfileFormState) => void
   readOnly?: boolean
+  /** Fields with no backend column; marked "Not saved to the server yet". */
+  unsupportedFields?: ReadonlySet<keyof EmployeeProfileFormState>
+  /** Employment status choices; defaults to every UI status. */
+  statusOptions?: EmploymentStatus[]
 }
 
 const departments = [
@@ -50,17 +54,28 @@ const statuses: EmploymentStatus[] = [
   'Archived',
 ]
 
+type FormField = keyof EmployeeProfileFormState
+
+/** Fields the server cannot store; they get a visible "not saved" hint. */
+const UnsupportedFieldsContext = createContext<ReadonlySet<FormField> | null>(null)
+
 function Field({
   label,
+  name,
   children,
 }: {
   label: string
+  name: FormField
   children: ReactNode
 }) {
+  const unsupported = useContext(UnsupportedFieldsContext)?.has(name) ?? false
   return (
     <div className="space-y-2">
       <Label>{label}</Label>
       {children}
+      {unsupported ? (
+        <p className="text-xs text-amber-700">Not saved to the server yet.</p>
+      ) : null}
     </div>
   )
 }
@@ -73,6 +88,8 @@ export function EmployeeProfileForm({
   value,
   onChange,
   readOnly = false,
+  unsupportedFields,
+  statusOptions = statuses,
 }: EmployeeProfileFormProps) {
   const set = <K extends keyof EmployeeProfileFormState>(
     key: K,
@@ -82,34 +99,35 @@ export function EmployeeProfileForm({
   const disabled = readOnly
 
   return (
+    <UnsupportedFieldsContext.Provider value={unsupportedFields ?? null}>
     <div className="space-y-8">
       <section className="space-y-4">
         <h3 className="text-sm font-semibold tracking-wide text-navy uppercase">
           Personal Information
         </h3>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <Field label="Employee ID">
+          <Field label="Employee ID" name="employeeId">
             <Input
               disabled={disabled}
               value={value.employeeId}
               onChange={(e) => set('employeeId', e.target.value)}
             />
           </Field>
-          <Field label="First Name">
+          <Field label="First Name" name="firstName">
             <Input
               disabled={disabled}
               value={value.firstName}
               onChange={(e) => set('firstName', e.target.value)}
             />
           </Field>
-          <Field label="Middle Name">
+          <Field label="Middle Name" name="middleName">
             <Input
               disabled={disabled}
               value={value.middleName}
               onChange={(e) => set('middleName', e.target.value)}
             />
           </Field>
-          <Field label="Last Name">
+          <Field label="Last Name" name="lastName">
             <Input
               disabled={disabled}
               value={value.lastName}
@@ -133,7 +151,7 @@ export function EmployeeProfileForm({
               }
             />
           </div>
-          <Field label="Date of Birth">
+          <Field label="Date of Birth" name="dateOfBirth">
             <Input
               disabled={disabled}
               type="date"
@@ -141,7 +159,7 @@ export function EmployeeProfileForm({
               onChange={(e) => set('dateOfBirth', e.target.value)}
             />
           </Field>
-          <Field label="Gender">
+          <Field label="Gender" name="gender">
             <Select
               disabled={disabled}
               value={value.gender}
@@ -159,7 +177,7 @@ export function EmployeeProfileForm({
               </SelectContent>
             </Select>
           </Field>
-          <Field label="Marital Status">
+          <Field label="Marital Status" name="maritalStatus">
             <Select
               disabled={disabled}
               value={value.maritalStatus}
@@ -177,21 +195,21 @@ export function EmployeeProfileForm({
               </SelectContent>
             </Select>
           </Field>
-          <Field label="Blood Group (optional)">
+          <Field label="Blood Group (optional)" name="bloodGroup">
             <Input
               disabled={disabled}
               value={value.bloodGroup}
               onChange={(e) => set('bloodGroup', e.target.value)}
             />
           </Field>
-          <Field label="Nationality">
+          <Field label="Nationality" name="nationality">
             <Input
               disabled={disabled}
               value={value.nationality}
               onChange={(e) => set('nationality', e.target.value)}
             />
           </Field>
-          <Field label="Personal Email">
+          <Field label="Personal Email" name="personalEmail">
             <Input
               disabled={disabled}
               type="email"
@@ -199,7 +217,7 @@ export function EmployeeProfileForm({
               onChange={(e) => set('personalEmail', e.target.value)}
             />
           </Field>
-          <Field label="Personal Mobile Number">
+          <Field label="Personal Mobile Number" name="personalMobile">
             <Input
               disabled={disabled}
               value={value.personalMobile}
@@ -214,7 +232,7 @@ export function EmployeeProfileForm({
           Contact Information
         </h3>
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Current Address">
+          <Field label="Current Address" name="currentAddress">
             <Textarea
               disabled={disabled}
               rows={2}
@@ -222,7 +240,7 @@ export function EmployeeProfileForm({
               onChange={(e) => set('currentAddress', e.target.value)}
             />
           </Field>
-          <Field label="Permanent Address">
+          <Field label="Permanent Address" name="permanentAddress">
             <Textarea
               disabled={disabled}
               rows={2}
@@ -230,49 +248,49 @@ export function EmployeeProfileForm({
               onChange={(e) => set('permanentAddress', e.target.value)}
             />
           </Field>
-          <Field label="City">
+          <Field label="City" name="city">
             <Input
               disabled={disabled}
               value={value.city}
               onChange={(e) => set('city', e.target.value)}
             />
           </Field>
-          <Field label="State">
+          <Field label="State" name="state">
             <Input
               disabled={disabled}
               value={value.state}
               onChange={(e) => set('state', e.target.value)}
             />
           </Field>
-          <Field label="Country">
+          <Field label="Country" name="country">
             <Input
               disabled={disabled}
               value={value.country}
               onChange={(e) => set('country', e.target.value)}
             />
           </Field>
-          <Field label="PIN Code">
+          <Field label="PIN Code" name="pinCode">
             <Input
               disabled={disabled}
               value={value.pinCode}
               onChange={(e) => set('pinCode', e.target.value)}
             />
           </Field>
-          <Field label="Emergency Contact Person">
+          <Field label="Emergency Contact Person" name="emergencyContactPerson">
             <Input
               disabled={disabled}
               value={value.emergencyContactPerson}
               onChange={(e) => set('emergencyContactPerson', e.target.value)}
             />
           </Field>
-          <Field label="Emergency Contact Number">
+          <Field label="Emergency Contact Number" name="emergencyContactNumber">
             <Input
               disabled={disabled}
               value={value.emergencyContactNumber}
               onChange={(e) => set('emergencyContactNumber', e.target.value)}
             />
           </Field>
-          <Field label="Relationship with Emergency Contact">
+          <Field label="Relationship with Emergency Contact" name="emergencyRelationship">
             <Input
               disabled={disabled}
               value={value.emergencyRelationship}
@@ -287,14 +305,14 @@ export function EmployeeProfileForm({
           Employment Information
         </h3>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <Field label="Employee Code">
+          <Field label="Employee Code" name="employeeCode">
             <Input
               disabled={disabled}
               value={value.employeeCode}
               onChange={(e) => set('employeeCode', e.target.value)}
             />
           </Field>
-          <Field label="Date of Joining">
+          <Field label="Date of Joining" name="dateOfJoining">
             <Input
               disabled={disabled}
               type="date"
@@ -302,7 +320,7 @@ export function EmployeeProfileForm({
               onChange={(e) => set('dateOfJoining', e.target.value)}
             />
           </Field>
-          <Field label="Employment Type">
+          <Field label="Employment Type" name="employmentType">
             <Select
               disabled={disabled}
               value={value.employmentType}
@@ -320,7 +338,7 @@ export function EmployeeProfileForm({
               </SelectContent>
             </Select>
           </Field>
-          <Field label="Department">
+          <Field label="Department" name="department">
             <Select
               disabled={disabled}
               value={value.department}
@@ -338,49 +356,49 @@ export function EmployeeProfileForm({
               </SelectContent>
             </Select>
           </Field>
-          <Field label="Designation">
+          <Field label="Designation" name="designation">
             <Input
               disabled={disabled}
               value={value.designation}
               onChange={(e) => set('designation', e.target.value)}
             />
           </Field>
-          <Field label="Job Role">
+          <Field label="Job Role" name="jobRole">
             <Input
               disabled={disabled}
               value={value.jobRole}
               onChange={(e) => set('jobRole', e.target.value)}
             />
           </Field>
-          <Field label="Reporting Manager">
+          <Field label="Reporting Manager" name="reportingManager">
             <Input
               disabled={disabled}
               value={value.reportingManager}
               onChange={(e) => set('reportingManager', e.target.value)}
             />
           </Field>
-          <Field label="Team Leader">
+          <Field label="Team Leader" name="teamLeader">
             <Input
               disabled={disabled}
               value={value.teamLeader}
               onChange={(e) => set('teamLeader', e.target.value)}
             />
           </Field>
-          <Field label="Work Location">
+          <Field label="Work Location" name="workLocation">
             <Input
               disabled={disabled}
               value={value.workLocation}
               onChange={(e) => set('workLocation', e.target.value)}
             />
           </Field>
-          <Field label="Branch">
+          <Field label="Branch" name="branch">
             <Input
               disabled={disabled}
               value={value.branch}
               onChange={(e) => set('branch', e.target.value)}
             />
           </Field>
-          <Field label="Work Email">
+          <Field label="Work Email" name="workEmail">
             <Input
               disabled={disabled}
               type="email"
@@ -388,14 +406,14 @@ export function EmployeeProfileForm({
               onChange={(e) => set('workEmail', e.target.value)}
             />
           </Field>
-          <Field label="Work Phone">
+          <Field label="Work Phone" name="workPhone">
             <Input
               disabled={disabled}
               value={value.workPhone}
               onChange={(e) => set('workPhone', e.target.value)}
             />
           </Field>
-          <Field label="Employment Status">
+          <Field label="Employment Status" name="employmentStatus">
             <Select
               disabled={disabled}
               value={value.employmentStatus}
@@ -407,7 +425,7 @@ export function EmployeeProfileForm({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {statuses.map((s) => (
+                {statusOptions.map((s) => (
                   <SelectItem key={s} value={s}>
                     {s}
                   </SelectItem>
@@ -415,7 +433,7 @@ export function EmployeeProfileForm({
               </SelectContent>
             </Select>
           </Field>
-          <Field label="Probation Start Date">
+          <Field label="Probation Start Date" name="probationStartDate">
             <Input
               disabled={disabled}
               type="date"
@@ -423,7 +441,7 @@ export function EmployeeProfileForm({
               onChange={(e) => set('probationStartDate', e.target.value)}
             />
           </Field>
-          <Field label="Probation End Date">
+          <Field label="Probation End Date" name="probationEndDate">
             <Input
               disabled={disabled}
               type="date"
@@ -431,7 +449,7 @@ export function EmployeeProfileForm({
               onChange={(e) => set('probationEndDate', e.target.value)}
             />
           </Field>
-          <Field label="Confirmation Date">
+          <Field label="Confirmation Date" name="confirmationDate">
             <Input
               disabled={disabled}
               type="date"
@@ -439,14 +457,14 @@ export function EmployeeProfileForm({
               onChange={(e) => set('confirmationDate', e.target.value)}
             />
           </Field>
-          <Field label="Notice Period">
+          <Field label="Notice Period" name="noticePeriod">
             <Input
               disabled={disabled}
               value={value.noticePeriod}
               onChange={(e) => set('noticePeriod', e.target.value)}
             />
           </Field>
-          <Field label="Work Shift">
+          <Field label="Work Shift" name="workShift">
             <Input
               disabled={disabled}
               value={value.workShift}
@@ -456,5 +474,6 @@ export function EmployeeProfileForm({
         </div>
       </section>
     </div>
+    </UnsupportedFieldsContext.Provider>
   )
 }

@@ -11,6 +11,7 @@ import { BALANCE_TYPE_CODES } from '../../constants/leaveTypeCodes'
 import { useLeave } from '../../hooks/useLeave'
 import { ledgerBalanceForType } from '../../utils/calculateBalance'
 import { formatDate } from '../../utils/formatDate'
+import { useLeavePermissions } from '../../hooks/useLeavePermissions'
 import { useLeaveToast } from '../../hooks/useLeaveToast'
 import { LeaveStatusPill } from '../LeaveStatusPill'
 import { LEAVE_TABLE_THEAD } from '../shared/leaveUi'
@@ -34,6 +35,7 @@ export function BalanceLedgerDialog({ open, employeeId, onOpenChange }: BalanceL
   const { snapshot } = useLeave()
   const { showToast } = useLeaveToast()
   const [adjustOpen, setAdjustOpen] = useState(false)
+  const permissions = useLeavePermissions()
   if (!snapshot || !employeeId) return null
   const employee = snapshot.employees.find((item) => item.id === employeeId)
   const ledger = snapshot.ledger.filter((item) => item.employeeId === employeeId).sort((a, b) => b.date.localeCompare(a.date))
@@ -74,13 +76,15 @@ export function BalanceLedgerDialog({ open, employeeId, onOpenChange }: BalanceL
               </tbody>
             </table>
           </LeaveDialogBody>
-          <LeaveDialogFooter>
-            <Button type="button" size="sm" onClick={() => setAdjustOpen(true)}>Add adjustment</Button>
-          </LeaveDialogFooter>
+          {permissions.canAdjustBalance ? (
+            <LeaveDialogFooter>
+              <Button type="button" size="sm" onClick={() => setAdjustOpen(true)}>Add adjustment</Button>
+            </LeaveDialogFooter>
+          ) : null}
           <LeaveDialogCloseButton />
         </LeaveDialogContent>
       </LeaveDialogRoot>
-      <BalanceAdjustmentDialog open={adjustOpen} onOpenChange={setAdjustOpen} onSaved={() => showToast('Adjustment saved (demo).')} />
+      <BalanceAdjustmentDialog open={adjustOpen && permissions.canAdjustBalance} onOpenChange={setAdjustOpen} onSaved={() => showToast('Adjustment saved (demo).')} />
     </>
   )
 }

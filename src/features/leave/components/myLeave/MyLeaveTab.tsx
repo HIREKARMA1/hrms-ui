@@ -10,8 +10,9 @@ import { cn } from '@/lib/utils'
 
 import { useLeave } from '../../hooks/useLeave'
 import { useLeaveToast } from '../../hooks/useLeaveToast'
+import { useLeavePermissions } from '../../hooks/useLeavePermissions'
 import { useMyLeaveActions } from '../../hooks/useMyLeaveActions'
-import type { LeaveViewer } from '../../types/viewer'
+import { isLinkedLeaveViewer, type LeaveViewer, type LinkedLeaveViewer } from '../../types/viewer'
 import { LEAVE_TYPE_CODES } from '../../constants/leaveTypeCodes'
 import { canEarnCompOff, canRequestEncashment } from '../../utils/employeeLeavePolicy'
 import { myLeaveTabSubtitle } from '../../utils/myLeaveTabSubtitle'
@@ -26,6 +27,7 @@ import { RequestDetailDialog } from '../dialogs/RequestDetailDialog'
 import { RequestEncashmentDialog } from '../dialogs/RequestEncashmentDialog'
 import { LeaveTabHeader } from '../LeaveTabHeader'
 import { LeaveConfirmDialog } from '../shared/LeaveConfirmDialog'
+import { LeaveEmployeeLinkNotice } from '../shared/LeaveEmployeeLinkNotice'
 import { LeaveTableFilters } from '../shared/LeaveTableFilters'
 import { LEAVE_SECONDARY_BUTTON } from '../shared/leaveUi'
 import { MyLeaveBalanceCards, type BalanceCardModel } from './MyLeaveBalanceCards'
@@ -41,8 +43,21 @@ function canCancel(row: LeaveRequest) {
 }
 
 export function MyLeaveTab({ viewer }: MyLeaveTabProps) {
+  if (!isLinkedLeaveViewer(viewer)) {
+    return (
+      <div className="space-y-6">
+        <LeaveTabHeader title="My leave" subtitle={myLeaveTabSubtitle(viewer.role)} />
+        <LeaveEmployeeLinkNotice what="your leave balances and requests" />
+      </div>
+    )
+  }
+  return <MyLeaveTabContent viewer={viewer} />
+}
+
+function MyLeaveTabContent({ viewer }: { viewer: LinkedLeaveViewer }) {
   const { snapshot, reload } = useLeave()
   const { showToast } = useLeaveToast()
+  const permissions = useLeavePermissions()
   const [year, setYear] = useState(leaveTodayIso().slice(0, 4))
   const [search, setSearch] = useState('')
   const [detail, setDetail] = useState<LeaveRequest | null>(null)
@@ -108,15 +123,17 @@ export function MyLeaveTab({ viewer }: MyLeaveTabProps) {
         subtitle={myLeaveTabSubtitle(viewer.role)}
         actions={
           <>
-            <Button type="button" onClick={() => setApplyOpen(true)}>
-              Apply for leave
-            </Button>
+            {permissions.canCreate ? (
+              <Button type="button" onClick={() => setApplyOpen(true)}>
+                Apply for leave
+              </Button>
+            ) : null}
             {showCompOff ? (
               <Button type="button" variant="outline" className={cn(LEAVE_SECONDARY_BUTTON)} onClick={() => setCompOpen(true)}>
                 Earn comp-off
               </Button>
             ) : null}
-            {showEncashment ? (
+            {showEncashment && permissions.canRequestEncashment ? (
               <Button type="button" variant="outline" className={cn(LEAVE_SECONDARY_BUTTON)} onClick={() => setEncashOpen(true)}>
                 Request encashment
               </Button>
@@ -133,7 +150,7 @@ export function MyLeaveTab({ viewer }: MyLeaveTabProps) {
       />
       <LeaveTableFilters searchId="my-leave-search" searchPlaceholder="Search requests" searchValue={search} onSearchChange={setSearch} selectId="my-leave-year" selectValue={year} selectOptions={[{ value: '2026', label: '2026' }, { value: '2025', label: '2025' }]} onSelectChange={setYear} showing={filtered.length} total={yearRows.length} />
       <MyLeaveBalanceCards cards={cards} compOffLots={snapshot.compOffLots} employeeId={viewer.employeeId} />
-      <MyRequestsTable rows={filtered} onView={setDetail} onCancel={(row) => (row.status === 'Approved' ? setCancelTarget(row) : void submitCancel(row))} canCancel={canCancel} onApply={() => setApplyOpen(true)} />
+      <MyRequestsTable rows={filtered} onView={setDetail} onCancel={(row) => (row.status === 'Approved' ? setCancelTarget(row) : void submitCancel(row))} canCancel={(row) => permissions.canCancel && canCancel(row)} onApply={permissions.canCreate ? () => setApplyOpen(true) : undefined} />
       <RequestDetailDialog open={Boolean(detail)} request={detail} balanceBefore={detail ? ledgerBalanceForType(snapshot.ledger, viewer.employeeId, detail.leaveTypeCode) : 0} balanceAfter={detail ? ledgerBalanceForType(snapshot.ledger, viewer.employeeId, detail.leaveTypeCode) - detail.days : 0} onOpenChange={(open) => !open && setDetail(null)} />
       <ApplyLeaveDialog open={applyOpen} onOpenChange={setApplyOpen} employee={employee} settings={snapshot.settings} ledger={snapshot.ledger} existing={snapshot.requests} employees={snapshot.employees} saving={saving} onSubmit={async (input) => { setSaving(true); await handleApply(input); setSaving(false); showToast('Leave request submitted.') }} />
       <EarnCompOffDialog open={compOpen} onOpenChange={setCompOpen} onSubmit={() => showToast('Comp-off credit submitted.')} />
