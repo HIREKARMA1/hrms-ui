@@ -9,33 +9,30 @@ import {
 
 import { Card, CardContent } from '@/components/ui/card'
 
+import { useEmployeeSummary } from '../hooks/useEmployeeSummary'
 import { workforceExtendedSummary } from '../mocks/employeeDashboard.mock'
 import { employeeStatSummary } from '../mocks/employeeDashboard.mock'
 
 /**
  * Additive workforce cards. Does not replace EmployeeStatsCards.
- * Total / Active / Inactive are also surfaced here for the requested widget set.
+ * Headcount, probation and terminated come from GET /dashboard/summary when
+ * permitted; new joiners, notice period and resigned have no API (sample).
  */
 export function WorkforceExtendedStats() {
-  const { totalEmployees, activeEmployees, inactiveEmployees } = employeeStatSummary
-  const {
-    newJoinersThisMonth,
-    onProbation,
-    onNoticePeriod,
-    resigned,
-    terminated,
-  } = workforceExtendedSummary
+  const { summary } = useEmployeeSummary()
+  const live = Boolean(summary)
+  const { newJoinersThisMonth, onNoticePeriod, resigned } = workforceExtendedSummary
 
   const cards = [
-    { label: 'Total Employees', value: totalEmployees, icon: UsersRound },
-    { label: 'Active Employees', value: activeEmployees, icon: BadgeCheck },
-    { label: 'Inactive Employees', value: inactiveEmployees, icon: UserX },
-    { label: 'New Joiners This Month', value: newJoinersThisMonth, icon: UserPlus },
-    { label: 'Employees on Probation', value: onProbation, icon: Hourglass },
-    { label: 'Employees on Notice Period', value: onNoticePeriod, icon: Hourglass },
-    { label: 'Resigned Employees', value: resigned, icon: UserMinus },
-    { label: 'Terminated Employees', value: terminated, icon: UserX },
-  ] as const
+    { label: 'Total Employees', value: summary?.totalEmployees ?? employeeStatSummary.totalEmployees, icon: UsersRound, sample: !live },
+    { label: 'Active Employees', value: summary?.activeEmployees ?? employeeStatSummary.activeEmployees, icon: BadgeCheck, sample: !live },
+    { label: 'Inactive Employees', value: summary?.inactiveEmployees ?? employeeStatSummary.inactiveEmployees, icon: UserX, sample: !live },
+    { label: 'New Joiners This Month', value: newJoinersThisMonth, icon: UserPlus, sample: true },
+    { label: 'Employees on Probation', value: summary?.probationEmployees ?? workforceExtendedSummary.onProbation, icon: Hourglass, sample: !live },
+    { label: 'Employees on Notice Period', value: onNoticePeriod, icon: Hourglass, sample: true },
+    { label: 'Resigned Employees', value: resigned, icon: UserMinus, sample: true },
+    { label: 'Terminated Employees', value: summary?.inactiveEmployees ?? workforceExtendedSummary.terminated, icon: UserX, sample: !live },
+  ]
 
   return (
     <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -48,7 +45,14 @@ export function WorkforceExtendedStats() {
                 <Icon className="h-5 w-5" strokeWidth={1.9} />
               </div>
               <div className="min-w-0">
-                <p className="text-sm text-text-secondary">{card.label}</p>
+                <p className="text-sm text-text-secondary">
+                  {card.label}
+                  {card.sample ? (
+                    <span className="ml-1.5 rounded bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-amber-700">
+                      Sample
+                    </span>
+                  ) : null}
+                </p>
                 <p className="text-2xl font-bold tabular-nums text-navy">
                   {card.value}
                 </p>

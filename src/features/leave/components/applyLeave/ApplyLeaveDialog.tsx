@@ -3,12 +3,7 @@
  */
 
 import { CalendarPlus, UserRound } from 'lucide-react'
-import { useEffect, useMemo } from 'react'
 
-import { getApiErrorMessage } from '@/services/api/errors'
-
-import { useGetLeaveTypesQuery } from '../../api/leaveTypesApi'
-import { useShouldFetchLeaveList } from '../../hooks/useShouldFetchLeaveList'
 import type { LeaveEmployee } from '../../types/employee'
 import type { LeaveSettings } from '../../types/leaveSettings'
 import type { LedgerEntry } from '../../types/ledger'
@@ -25,7 +20,6 @@ import {
 import { ApplyLeaveFormColumn } from './ApplyLeaveFormColumn'
 import { ApplyLeaveSummaryPanel } from './ApplyLeaveSummaryPanel'
 import { ApplyOnBehalfEmployeeField } from './ApplyOnBehalfEmployeeField'
-import { mergeLeaveTypesForApply } from '../../utils/mapApiLeaveTypesForApply'
 import { useApplyLeaveDialogState } from './useApplyLeaveDialogState'
 
 type ApplyLeaveDialogProps = {
@@ -57,51 +51,26 @@ export function ApplyLeaveDialog(props: ApplyLeaveDialogProps) {
   const { open, onOpenChange, employee, settings, ledger, existing, employees, saving, onSubmit, hrEmployeePicker, submitterName } =
     props
   const onBehalf = Boolean(hrEmployeePicker)
-
-  const canFetchLeaves = useShouldFetchLeaveList()
-  const shouldFetchTypes = Boolean(open && canFetchLeaves)
-  const {
-    data: leaveTypesData,
-    isError: leaveTypesIsError,
-    error: leaveTypesError,
-    isFetching: leaveTypesFetching,
-  } = useGetLeaveTypesQuery(undefined, { skip: !shouldFetchTypes })
-
-  const applySettings = useMemo(() => {
-    if (shouldFetchTypes && leaveTypesData && !leaveTypesIsError) {
-      return mergeLeaveTypesForApply(settings, leaveTypesData)
-    }
-    return settings
-  }, [leaveTypesData, leaveTypesIsError, settings, shouldFetchTypes])
-
-  const state = useApplyLeaveDialogState(employee, applySettings, ledger, existing, employees)
-
-  const leaveTypesErrorMessage =
-    shouldFetchTypes && leaveTypesIsError
-      ? getApiErrorMessage(leaveTypesError, 'Unable to load leave types. Using demo policies.')
-      : null
-
-  useEffect(() => {
-    if (!open) return
-    const enabled = applySettings.leaveTypes.filter((item) => item.enabled)
-    const hasCode = enabled.some((item) => item.code === state.leaveTypeCode)
-    if (!hasCode && enabled[0]) {
-      state.setLeaveTypeCode(enabled[0].code)
-    }
-  }, [applySettings.leaveTypes, open, state.leaveTypeCode, state.setLeaveTypeCode])
+  const state = useApplyLeaveDialogState(employee, settings, ledger, existing, employees)
 
   const handleOpenChange = (next: boolean) => {
     if (!next) state.reset()
     onOpenChange(next)
   }
 
+  // The grid takes its natural height; the dialog body (below) is the single
+  // scroll container. Columns stack on small screens and split from `lg`.
   const gridClass = onBehalf
-    ? 'grid min-h-[32rem] flex-1 grid-cols-2 grid-rows-1 items-stretch divide-x divide-hrms-border overflow-y-auto'
-    : 'grid min-h-0 flex-1 gap-0 lg:grid-cols-2'
+    ? 'grid grid-cols-1 items-stretch divide-y divide-hrms-border lg:min-h-[32rem] lg:grid-cols-2 lg:divide-x lg:divide-y-0'
+    : 'grid grid-cols-1 items-stretch gap-0 lg:grid-cols-2'
 
   return (
     <LeaveDialogRoot open={open} onOpenChange={handleOpenChange}>
-      <LeaveDialogContent size={onBehalf ? 'xl' : 'lg'} describedBy="apply-leave-subtitle">
+      <LeaveDialogContent
+        size={onBehalf ? 'xl' : 'lg'}
+        describedBy="apply-leave-subtitle"
+        className="max-h-[calc(100dvh-2rem)]"
+      >
         <LeaveDialogHeader
           title={onBehalf ? 'Apply on behalf' : 'Apply for leave'}
           subtitle={
@@ -112,20 +81,9 @@ export function ApplyLeaveDialog(props: ApplyLeaveDialogProps) {
           subtitleId="apply-leave-subtitle"
           icon={onBehalf ? UserRound : CalendarPlus}
         />
-        <LeaveDialogBody className="flex min-h-0 flex-1 flex-col overflow-hidden p-0">
-          {leaveTypesErrorMessage ? (
-            <p
-              className="mx-6 mt-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-900"
-              role="alert"
-            >
-              {leaveTypesErrorMessage}
-            </p>
-          ) : null}
-          {leaveTypesFetching && shouldFetchTypes ? (
-            <p className="px-6 pt-4 text-xs text-hrms-text-muted">Loading leave types…</p>
-          ) : null}
+        <LeaveDialogBody className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-0">
           <div className={gridClass}>
-            <div className="flex min-h-full min-w-0 flex-col bg-white">
+            <div className="flex min-w-0 flex-col bg-white">
               {hrEmployeePicker ? (
                 <div className="border-b border-hrms-border px-6 py-4">
                   <ApplyOnBehalfEmployeeField
@@ -139,7 +97,7 @@ export function ApplyLeaveDialog(props: ApplyLeaveDialogProps) {
               ) : null}
               <ApplyLeaveFormColumn
                 employee={employee}
-                settings={applySettings}
+                settings={settings}
                 ledger={ledger}
                 existing={existing}
                 policy={state.policy}
@@ -162,7 +120,7 @@ export function ApplyLeaveDialog(props: ApplyLeaveDialogProps) {
                 onBehalf={onBehalf}
               />
             </div>
-            <div className="flex min-h-full min-w-0 flex-col bg-hrms-muted-bg/30 p-5">
+            <div className="flex min-w-0 flex-col bg-hrms-muted-bg/30 p-5">
               <ApplyLeaveSummaryPanel
                 preview={state.preview}
                 chain={state.chain}
@@ -176,7 +134,7 @@ export function ApplyLeaveDialog(props: ApplyLeaveDialogProps) {
             </div>
           </div>
         </LeaveDialogBody>
-        <LeaveDialogFooter>
+        <LeaveDialogFooter className="bg-white">
           <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-xs text-hrms-text-muted">
               {state.preview && state.preview.errors.length > 0

@@ -40,7 +40,7 @@ export function useHrRequestActions(snapshot: LeaveSnapshot | null, viewer: Leav
           id: `ST-${Date.now()}`,
           kind: 'applied',
           at: leaveTodayIso(),
-          actorId: viewer.employeeId,
+          actorId: viewer.actorId,
           actorName: viewer.displayName,
           onBehalfOfId: employee.id,
           onBehalfOfName: employee.name,
@@ -52,7 +52,7 @@ export function useHrRequestActions(snapshot: LeaveSnapshot | null, viewer: Leav
   }
 
   async function hrCancel(requestId: string, reason: string) {
-    cancelRequest(requestId, viewer.employeeId, viewer.displayName, reason)
+    cancelRequest(requestId, viewer.actorId, viewer.displayName, reason)
     await reload()
   }
 

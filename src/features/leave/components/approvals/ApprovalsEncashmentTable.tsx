@@ -5,6 +5,7 @@
 import { Card, CardContent } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 
+import { useLeavePermissions } from '../../hooks/useLeavePermissions'
 import type { EncashmentRequest } from '../../types/encashment'
 import { formatDate } from '../../utils/formatDate'
 import { LeaveStatusPill } from '../LeaveStatusPill'
@@ -29,6 +30,7 @@ export function ApprovalsEncashmentTable({
   onReject,
   busyId,
 }: ApprovalsEncashmentTableProps) {
+  const permissions = useLeavePermissions()
   if (rows.length === 0) {
     return (
       <Card>
@@ -67,8 +69,13 @@ export function ApprovalsEncashmentTable({
                 </td>
                 <td className="px-4 py-3 text-right">
                   <div className="flex flex-wrap items-center justify-end gap-2">
-                    <ApproveRowButton disabled={busyId === row.id} onClick={() => onApprove(row.id)} />
-                    <RejectRowButton disabled={busyId === row.id} onClick={() => onReject(row.id)} />
+                    {/* Encashment approve / reject use their own backend codes, not leaves:approve. */}
+                    {permissions.canApproveEncashment ? (
+                      <ApproveRowButton disabled={busyId === row.id} onClick={() => onApprove(row.id)} />
+                    ) : null}
+                    {permissions.canRejectEncashment ? (
+                      <RejectRowButton disabled={busyId === row.id} onClick={() => onReject(row.id)} />
+                    ) : null}
                   </div>
                 </td>
               </tr>

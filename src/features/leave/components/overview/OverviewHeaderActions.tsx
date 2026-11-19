@@ -18,6 +18,7 @@ import type { LeaveSnapshot } from '../../services/leaveService'
 
 import type { HrOverviewNavigate } from '../../context/hrOverviewNavigate'
 
+import { useLeavePermissions } from '../../hooks/useLeavePermissions'
 import { useLeaveViewer } from '../../hooks/useLeaveViewer'
 import { isSuperAdminExperience } from '../../constants/userRoles'
 import { OverviewSuperAdminActions } from '../superAdmin/OverviewSuperAdminActions'
@@ -46,6 +47,8 @@ export function OverviewHeaderActions({ snapshot, onNavigate }: { snapshot: Leav
 
   const { showToast } = useLeaveToast()
 
+  const permissions = useLeavePermissions()
+
   const { applyOnBehalf } = useHrRequestActions(snapshot, viewer, reload)
 
   const [applyOpen, setApplyOpen] = useState(false)
@@ -58,17 +61,21 @@ export function OverviewHeaderActions({ snapshot, onNavigate }: { snapshot: Leav
 
   <>
 
-      <Button type="button" onClick={() => setApplyOpen(true)}>
+      {permissions.canCreateOnBehalf ? (
+        <Button type="button" onClick={() => setApplyOpen(true)}>
 
-        Apply on behalf
+          Apply on behalf
 
-      </Button>
+        </Button>
+      ) : null}
 
-      <Button type="button" variant="outline" className={cn(LEAVE_SECONDARY_BUTTON)} onClick={() => setAccrualOpen(true)}>
+      {permissions.canRunAccrual ? (
+        <Button type="button" variant="outline" className={cn(LEAVE_SECONDARY_BUTTON)} onClick={() => setAccrualOpen(true)}>
 
-        Run accrual
+          Run accrual
 
-      </Button>
+        </Button>
+      ) : null}
 
       <Button type="button" variant="outline" className={cn(LEAVE_SECONDARY_BUTTON)} onClick={() => onNavigate('Reports')}>
 

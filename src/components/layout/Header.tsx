@@ -22,7 +22,10 @@ import {
 import { Input } from '@/components/ui/input'
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
 
+import { useAuthenticatedUser } from '@/features/auth/hooks/useAuthenticatedUser'
 import { useSignOut } from '@/features/auth/hooks/useSignOut'
+import { getUserDisplayName, getUserInitials } from '@/features/auth/utils/authUser'
+import { WorkspaceSwitcher } from '@/features/rbac/components/WorkspaceSwitcher'
 import { useOptionalRbacSession } from '@/features/rbac/hooks/useRbacSession'
 
 import { useLayout } from './LayoutContext'
@@ -31,15 +34,14 @@ import { Sidebar } from './Sidebar'
 export function Header() {
   const { mobileOpen, setMobileOpen } = useLayout()
   const rbac = useOptionalRbacSession()
+  const { user } = useAuthenticatedUser()
   const { signOut, isSigningOut } = useSignOut()
-  const displayName = rbac?.session.displayName ?? 'Rohith Goud'
-  const roleLabel = rbac?.roleLabel ?? 'HR Manager'
-  const initials = displayName
-    .split(' ')
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase() ?? '')
-    .join('')
+  // Identity always comes from the Redux auth user; the workspace only sets the role label.
+  const displayName = user ? getUserDisplayName(user) : 'User'
+  const email = user?.email ?? ''
+  // Workspace label for a role the user holds (RoleLayout enforces that).
+  const roleLabel = rbac?.roleLabel ?? user?.role ?? ''
+  const initials = user ? getUserInitials(user) : 'U'
 
   return (
     <header className="sticky top-0 z-20 border-b border-slate-200/80 bg-white/95 backdrop-blur">
@@ -89,6 +91,8 @@ export function Header() {
             <CircleHelp className="h-5 w-5" />
           </Button>
 
+          <WorkspaceSwitcher />
+
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
@@ -96,10 +100,10 @@ export function Header() {
                 className="flex items-center gap-2.5 rounded-xl px-1.5 py-1.5 transition-colors hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:outline-none"
               >
                 <Avatar className="h-9 w-9">
-                  <AvatarFallback>{initials || 'RG'}</AvatarFallback>
+                  <AvatarFallback>{initials || 'U'}</AvatarFallback>
                 </Avatar>
                 <div className="hidden text-left md:block">
-                  <p className="text-sm font-semibold text-slate-900">
+                  <p className="max-w-[220px] truncate text-sm font-semibold text-slate-900">
                     {displayName}
                   </p>
                   <p className="text-xs text-slate-500">{roleLabel}</p>
@@ -108,7 +112,14 @@ export function Header() {
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-52">
-              <DropdownMenuLabel>My Account</DropdownMenuLabel>
+              <DropdownMenuLabel>
+                My Account
+                {email && email !== displayName ? (
+                  <span className="block truncate text-xs font-normal text-slate-500">
+                    {email}
+                  </span>
+                ) : null}
+              </DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem>
                 <UserRound className="mr-2 h-4 w-4" />

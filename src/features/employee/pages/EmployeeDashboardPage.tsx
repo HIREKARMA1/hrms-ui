@@ -10,6 +10,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { Feature } from '@/features/rbac/components/Feature'
 import { employeeDashboardMock } from '@/features/rbac/mocks/rbacMocks'
 import { cn } from '@/lib/utils'
 
@@ -76,6 +77,7 @@ export function EmployeeDashboardPage() {
       </Card>
 
       <div className="grid gap-4 xl:grid-cols-2">
+        <Feature name="leave.myLeave">
         <Card className="border-border-soft shadow-sm">
           <CardHeader>
             <CardTitle className="text-navy">Leave history</CardTitle>
@@ -98,7 +100,9 @@ export function EmployeeDashboardPage() {
             </ul>
           </CardContent>
         </Card>
+        </Feature>
 
+        <Feature name="attendance.holidays">
         <Card className="border-border-soft shadow-sm">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-navy">
@@ -121,6 +125,7 @@ export function EmployeeDashboardPage() {
             </ul>
           </CardContent>
         </Card>
+        </Feature>
       </div>
 
       <Card className="border-border-soft shadow-sm">

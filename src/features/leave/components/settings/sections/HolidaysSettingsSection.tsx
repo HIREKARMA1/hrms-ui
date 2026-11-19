@@ -14,6 +14,7 @@ import { formatDate } from '../../../utils/formatDate'
 import { LeaveConfirmDialog } from '../../shared/LeaveConfirmDialog'
 import { LEAVE_SECONDARY_BUTTON, LEAVE_TABLE_THEAD } from '../../shared/leaveUi'
 import { HolidayEditDialog } from '../holidays/HolidayEditDialog'
+import { useHolidayPermissions } from '@/features/rbac/hooks/useHolidayPermissions'
 
 type HolidaysSettingsSectionProps = {
   draft: LeaveSettings
@@ -25,6 +26,7 @@ export function HolidaysSettingsSection({ draft, onChange, showSampleBanner }: H
   const [year, setYear] = useState(new Date().getFullYear())
   const [editor, setEditor] = useState<Holiday | 'new' | null>(null)
   const [removing, setRemoving] = useState<Holiday | null>(null)
+  const { canCreate, canUpdate, canDelete } = useHolidayPermissions()
 
   const holidays = useMemo(
     () =>
@@ -60,13 +62,15 @@ export function HolidaysSettingsSection({ draft, onChange, showSampleBanner }: H
             </option>
           ))}
         </select>
-        <Button type="button" className="ml-auto gap-1" onClick={() => setEditor('new')}>
-          <Plus className="h-4 w-4" aria-hidden />
-          Add holiday
-        </Button>
+        {canCreate ? (
+          <Button type="button" className="ml-auto gap-1" onClick={() => setEditor('new')}>
+            <Plus className="h-4 w-4" aria-hidden />
+            Add holiday
+          </Button>
+        ) : null}
       </div>
       {holidays.length === 0 ? (
-        <HolidaysEmptyState onAdd={() => setEditor('new')} />
+        <HolidaysEmptyState canAdd={canCreate} onAdd={() => setEditor('new')} />
       ) : (
         <div className="overflow-x-auto">
           <table className="min-w-full text-left text-sm">
@@ -95,12 +99,16 @@ export function HolidaysSettingsSection({ draft, onChange, showSampleBanner }: H
                   </td>
                   <td className="px-2 py-2">
                     <div className="flex gap-1">
-                      <button type="button" className="rounded-lg p-2 text-hrms-primary hover:bg-hrms-row-hover" aria-label="Edit holiday" onClick={() => setEditor(holiday)}>
-                        <Pencil className="h-4 w-4" />
-                      </button>
-                      <button type="button" className="rounded-lg p-2 text-hrms-danger hover:bg-hrms-row-hover" aria-label="Remove holiday" onClick={() => setRemoving(holiday)}>
-                        <Trash2 className="h-4 w-4" />
-                      </button>
+                      {canUpdate ? (
+                        <button type="button" className="rounded-lg p-2 text-hrms-primary hover:bg-hrms-row-hover" aria-label="Edit holiday" onClick={() => setEditor(holiday)}>
+                          <Pencil className="h-4 w-4" />
+                        </button>
+                      ) : null}
+                      {canDelete ? (
+                        <button type="button" className="rounded-lg p-2 text-hrms-danger hover:bg-hrms-row-hover" aria-label="Remove holiday" onClick={() => setRemoving(holiday)}>
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      ) : null}
                     </div>
                   </td>
                 </tr>
@@ -110,14 +118,14 @@ export function HolidaysSettingsSection({ draft, onChange, showSampleBanner }: H
         </div>
       )}
       <HolidayEditDialog
-        open={editor != null}
+        open={editor != null && (editor === 'new' ? canCreate : canUpdate)}
         initial={editor === 'new' ? null : editor}
         takenDates={takenDates}
         onOpenChange={(open) => !open && setEditor(null)}
         onSave={upsert}
       />
       <LeaveConfirmDialog
-        open={removing != null}
+        open={removing != null && canDelete}
         title="Remove holiday?"
         description={removing ? `${removing.name} on ${formatDate(removing.date)} will be removed.` : ''}
         confirmLabel="Remove"
@@ -129,13 +137,15 @@ export function HolidaysSettingsSection({ draft, onChange, showSampleBanner }: H
   )
 }
 
-function HolidaysEmptyState({ onAdd }: { onAdd: () => void }) {
+function HolidaysEmptyState({ canAdd, onAdd }: { canAdd: boolean; onAdd: () => void }) {
   return (
     <div className="rounded-xl border border-dashed border-hrms-border px-4 py-8 text-center">
       <p className="text-sm text-hrms-text-secondary">No holidays for this year yet.</p>
-      <Button type="button" variant="outline" className={`mt-3 ${LEAVE_SECONDARY_BUTTON}`} onClick={onAdd}>
-        Add holiday
-      </Button>
+      {canAdd ? (
+        <Button type="button" variant="outline" className={`mt-3 ${LEAVE_SECONDARY_BUTTON}`} onClick={onAdd}>
+          Add holiday
+        </Button>
+      ) : null}
     </div>
   )
 }

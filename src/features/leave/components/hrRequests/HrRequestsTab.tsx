@@ -7,6 +7,7 @@ import { useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
 
 import { useLeave } from '../../hooks/useLeave'
+import { useLeavePermissions } from '../../hooks/useLeavePermissions'
 import { useLeaveToast } from '../../hooks/useLeaveToast'
 import type { HrRequestsSegment } from '../../context/leavePageNavTypes'
 import { useHrRequestActions } from '../../hooks/useHrRequestActions'
@@ -47,6 +48,7 @@ export function HrRequestsTab({
   const { snapshot, reload } = useLeave()
   const { showToast } = useLeaveToast()
   const { applyOnBehalf, hrCancel } = useHrRequestActions(snapshot, viewer, reload)
+  const permissions = useLeavePermissions()
   const [segment, setSegment] = useState<HrRequestsSegment>(initialSegment)
   const [search, setSearch] = useState(initialSearch)
   const [detail, setDetail] = useState<LeaveRequest | null>(null)
@@ -63,7 +65,7 @@ export function HrRequestsTab({
 
   return (
     <div className="space-y-6">
-      <LeaveTabHeader title="Requests" subtitle="All leave, encashment and comp-off requests." actions={<Button type="button" onClick={() => setApplyOpen(true)}>Apply on behalf</Button>} />
+      <LeaveTabHeader title="Requests" subtitle="All leave, encashment and comp-off requests." actions={permissions.canCreateOnBehalf ? <Button type="button" onClick={() => setApplyOpen(true)}>Apply on behalf</Button> : null} />
       <LeaveSegmentedControl options={SEGMENTS} value={segment} onChange={setSegment} ariaLabel="Request queues" />
       {segment === 'encashment' ? (
         <HrEncashmentRequestsLiveSection
@@ -101,8 +103,8 @@ export function HrRequestsTab({
         balanceBefore={detail ? ledgerBalanceForType(snapshot.ledger, detail.employeeId, detail.leaveTypeCode) : 0}
         balanceAfter={detail ? ledgerBalanceForType(snapshot.ledger, detail.employeeId, detail.leaveTypeCode) - detail.days : 0}
         onOpenChange={(open) => !open && setDetail(null)}
-        canApprove={detail ? isHrActionRequest(snapshot, detail) : false}
-        canReject={detail ? isHrActionRequest(snapshot, detail) : false}
+        canApprove={permissions.canApprove && detail ? isHrActionRequest(snapshot, detail) : false}
+        canReject={permissions.canApprove && detail ? isHrActionRequest(snapshot, detail) : false}
         onApprove={() => detail && pickAction(snapshot, detail.id, 'approve', setAction)}
         onReject={() => detail && pickAction(snapshot, detail.id, 'reject', setAction)}
       />
@@ -128,10 +130,10 @@ async function confirmAction(
 ) {
   setBusyId(action.request.id)
   if (action.mode === 'approve') {
-    approveRequest(action.request.id, viewer.employeeId, viewer.displayName, 'HR')
+    approveRequest(action.request.id, viewer.actorId, viewer.displayName, 'HR')
     showToast('Request approved.')
   } else {
-    rejectRequest(action.request.id, viewer.employeeId, viewer.displayName, comment.trim() || 'Not approved')
+    rejectRequest(action.request.id, viewer.actorId, viewer.displayName, comment.trim() || 'Not approved')
     showToast('Request rejected.')
   }
   await reload()

@@ -14,13 +14,16 @@ import { useOptionalRbacSession } from '../hooks/useRbacSession'
 
 type AccessDeniedPageProps = {
   featureLabel?: string
+  /** Where "Back to dashboard" goes; defaults to the current workspace. */
+  homeHref?: string
 }
 
 export function AccessDeniedPage({
   featureLabel = 'this resource',
+  homeHref,
 }: AccessDeniedPageProps) {
   const rbac = useOptionalRbacSession()
-  const home = rbac?.routePrefix ?? '/'
+  const home = homeHref ?? rbac?.routePrefix ?? '/'
 
   return (
     <div className="mx-auto flex w-full max-w-lg items-center justify-center py-16">

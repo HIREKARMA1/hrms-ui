@@ -23,7 +23,7 @@ import {
 } from '../shared/leadsUi'
 
 type AllLeadsTabProps = {
-  onOpenCreate: () => void
+  onOpenCreate?: () => void
   onOpenEdit: (lead: Lead) => void
   canEditLead: boolean
   canDeleteLeads: boolean
@@ -94,10 +94,12 @@ export function AllLeadsTab({
               </option>
             ))}
           </select>
-          <Button type="button" className="gap-2" onClick={onOpenCreate}>
-            <Plus className="h-4 w-4" />
-            Create lead
-          </Button>
+          {onOpenCreate ? (
+            <Button type="button" className="gap-2" onClick={onOpenCreate}>
+              <Plus className="h-4 w-4" />
+              Create lead
+            </Button>
+          ) : null}
         </div>
       </div>
       <div className={LEADS_TABLE_SHELL}>

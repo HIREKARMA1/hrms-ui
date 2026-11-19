@@ -1,32 +1,21 @@
 /**
- * Demo viewers for each role until real authentication is wired.
+ * Demo personas for the Leave / Payroll UI when nobody is signed in.
+ * Never used for an authenticated user (see `resolveLeaveViewer`).
  */
 
 import type { UserRole } from './userRoles'
 import { HR_DEMO_USER_ID, HR_DEMO_USER_NAME } from './leaveRules'
-import type { LeaveViewer } from '../types/viewer'
+import type { LinkedLeaveViewer } from '../types/viewer'
 
-export const LEAVE_DEMO_VIEWERS: Record<UserRole, LeaveViewer> = {
-  EMPLOYEE: {
-    role: 'EMPLOYEE',
-    employeeId: 'EMP-1006',
-    displayName: 'Arjun Das',
-  },
-  MANAGER: {
-    role: 'MANAGER',
-    employeeId: 'EMP-1001',
-    displayName: 'Ananya Sharma',
-  },
-  HR_ADMIN: {
-    role: 'HR_ADMIN',
-    employeeId: HR_DEMO_USER_ID,
-    displayName: HR_DEMO_USER_NAME,
-  },
-  SUPER_ADMIN: {
-    role: 'SUPER_ADMIN',
-    employeeId: HR_DEMO_USER_ID,
-    displayName: 'Rohith Goud (Super Admin)',
-  },
+function demoViewer(role: UserRole, employeeId: string, displayName: string): LinkedLeaveViewer {
+  return { role, employeeId, actorId: employeeId, displayName, email: null, source: 'demo' }
+}
+
+export const LEAVE_DEMO_VIEWERS: Record<UserRole, LinkedLeaveViewer> = {
+  EMPLOYEE: demoViewer('EMPLOYEE', 'EMP-1006', 'Arjun Das'),
+  MANAGER: demoViewer('MANAGER', 'EMP-1001', 'Ananya Sharma'),
+  HR_ADMIN: demoViewer('HR_ADMIN', HR_DEMO_USER_ID, HR_DEMO_USER_NAME),
+  SUPER_ADMIN: demoViewer('SUPER_ADMIN', HR_DEMO_USER_ID, 'Rohith Goud (Super Admin)'),
 }
 
 const STORAGE_KEY = 'leave-demo-role'

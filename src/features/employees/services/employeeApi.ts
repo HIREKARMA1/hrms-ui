@@ -1,10 +1,22 @@
 /**
- * Employee profile photo upload.
+ * Employee profile photo upload via the verified POST /uploads endpoint.
  *
- * No confirmed backend upload endpoint exists in this frontend yet.
- * Set VITE_EMPLOYEE_PHOTO_UPLOAD_URL when the API is available.
- * This module never returns a mock/fake successful upload.
+ * Opt-in: disabled unless VITE_EMPLOYEE_PHOTO_UPLOAD_ENABLED=true. When
+ * disabled it returns `missing_api` and never fakes a successful upload.
+ * The returned `assetUrl` is not yet saved on the employee record: the
+ * Employee pages still use mock data (PATCH /employees/:id `photoUrl` is the
+ * backend field for that).
  */
+
+import { env } from '@/config/env'
+import { getApiErrorMessage } from '@/services/api/errors'
+import {
+  MAX_UPLOAD_BYTES,
+  type UploadedAsset,
+  type UploadFileRequest,
+} from '@/services/api/uploadsApi'
+
+export const EMPLOYEE_PHOTO_FOLDER = 'employees/photos'
 
 export type ProfilePhotoUploadResult =
   | {
@@ -18,25 +30,35 @@ export type ProfilePhotoUploadResult =
       message: string
     }
 
-export function getEmployeePhotoUploadEndpoint(): string | null {
-  const value = import.meta.env.VITE_EMPLOYEE_PHOTO_UPLOAD_URL
-  if (typeof value === 'string' && value.trim()) return value.trim()
-  return null
-}
+/** Performs the upload, e.g. `(req) => uploadFile(req).unwrap()` from `useUploadFileMutation`. */
+export type UploadFileFn = (request: UploadFileRequest) => Promise<UploadedAsset>
 
 export function isEmployeePhotoUploadConfigured() {
-  return Boolean(getEmployeePhotoUploadEndpoint())
+  return env.employeePhotoUploadEnabled
+}
+
+function isNetworkError(error: unknown) {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'status' in error &&
+    ((error as { status: unknown }).status === 'FETCH_ERROR' ||
+      (error as { status: unknown }).status === 'TIMEOUT_ERROR')
+  )
 }
 
 /**
- * Uploads a profile photo via the configured endpoint.
- * Returns a clear missing_api result when the endpoint is not configured.
+ * Uploads a profile photo. Returns a clear `missing_api` result when uploads
+ * are not enabled.
  */
-export async function uploadEmployeeProfilePhoto(input: {
-  employeeId: string
-  file: Blob
-  fileName: string
-}): Promise<ProfilePhotoUploadResult> {
+export async function uploadEmployeeProfilePhoto(
+  input: {
+    employeeId: string
+    file: Blob
+    fileName: string
+  },
+  upload: UploadFileFn,
+): Promise<ProfilePhotoUploadResult> {
   if (!input.employeeId.trim()) {
     return {
       ok: false,
@@ -45,41 +67,30 @@ export async function uploadEmployeeProfilePhoto(input: {
     }
   }
 
-  const endpoint = getEmployeePhotoUploadEndpoint()
-  if (!endpoint) {
+  if (!isEmployeePhotoUploadConfigured()) {
     return {
       ok: false,
       code: 'missing_api',
       message:
-        'Profile photo upload API is not configured (VITE_EMPLOYEE_PHOTO_UPLOAD_URL). Photo was not saved to the server.',
+        'Profile photo upload is not enabled (VITE_EMPLOYEE_PHOTO_UPLOAD_ENABLED). Photo was not saved to the server.',
     }
   }
 
-  const body = new FormData()
-  body.append('employeeId', input.employeeId)
-  body.append('photo', input.file, input.fileName)
+  if (input.file.size > MAX_UPLOAD_BYTES) {
+    return {
+      ok: false,
+      code: 'invalid',
+      message: 'Photo exceeds the 10MB upload limit.',
+    }
+  }
 
   try {
-    const response = await fetch(endpoint, {
-      method: 'POST',
-      body,
-      credentials: 'include',
+    const asset = await upload({
+      file: input.file,
+      fileName: input.fileName,
+      folder: EMPLOYEE_PHOTO_FOLDER,
     })
-
-    if (!response.ok) {
-      return {
-        ok: false,
-        code: 'http',
-        message: `Photo upload failed (${response.status}).`,
-      }
-    }
-
-    const payload = (await response.json().catch(() => null)) as {
-      url?: string
-      fileName?: string
-    } | null
-
-    if (!payload?.url) {
+    if (!asset?.assetUrl) {
       return {
         ok: false,
         code: 'http',
@@ -87,17 +98,23 @@ export async function uploadEmployeeProfilePhoto(input: {
           'Upload response did not include a photo URL. Server save could not be confirmed.',
       }
     }
-
     return {
       ok: true,
-      url: payload.url,
-      fileName: payload.fileName ?? input.fileName,
+      url: asset.assetUrl,
+      fileName: asset.originalName || input.fileName,
     }
-  } catch {
+  } catch (error) {
+    if (isNetworkError(error)) {
+      return {
+        ok: false,
+        code: 'network',
+        message: getApiErrorMessage(error),
+      }
+    }
     return {
       ok: false,
-      code: 'network',
-      message: 'Network error while uploading the profile photo.',
+      code: 'http',
+      message: getApiErrorMessage(error, 'Photo upload failed.'),
     }
   }
 }

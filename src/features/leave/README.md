@@ -16,7 +16,7 @@ Single-company leave: balances, requests, approvals, calendar, accruals, and pol
 - `types/` — Requests, ledger, comp-off, encashment, settings models
 - `utils/` — Day counting, validation, accrual, approval chain pure functions
 - `services/` — Mock store, facade, payroll read API
-- `hooks/` — Viewer demo role, page tabs, settings form, provider state
+- `hooks/` — Page tabs, settings form, provider state
 
 ## Where to change things
 
@@ -34,7 +34,8 @@ Single-company leave: balances, requests, approvals, calendar, accruals, and pol
 - Settings save history → `types/settingsHistory.ts`, `utils/buildSettingsHistoryEntries.ts`, `services/leaveService.ts`
 - Leave rules seeds → `services/companyDefaults.ts` (sample values, confirm with CA); type seeds in `services/defaultLeaveTypes.ts`
 - Connect payroll → `services/leavePayrollApi.ts`
-- Connect real login → `context/LeaveViewerProvider.tsx` (demo role + sidebar leave nav)
+- Viewer identity → `context/LeaveViewerProvider.tsx` + `utils/resolveLeaveViewer.ts`: signed-in users come from Redux `auth.user` (role from the active workspace, `employeeId: null` until `/auth/me` exposes the employee link); `constants/leaveDemoViewers.ts` personas apply only when nobody is signed in
+- Unlinked accounts → `components/shared/LeaveEmployeeLinkNotice.tsx` replaces personal data (My Leave, team approvals, personal calendar)
 - HR Admin Overview → `components/overview/HrOverviewTab.tsx` and section cards under `components/overview/`
   - Section chrome → `OverviewSectionHeader.tsx`, shared card shell `OverviewCard.tsx`
   - Attention section → `OverviewAttentionSection.tsx`, banner `OverviewAttentionBanner.tsx`, also-list `OverviewAttentionAlso.tsx` (request queue lives on Requests tab only)

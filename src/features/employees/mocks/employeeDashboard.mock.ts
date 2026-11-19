@@ -240,14 +240,6 @@ export const payrollSummary: PayrollSummary = {
   ],
 }
 
-export function formatInr(amount: number) {
-  return new Intl.NumberFormat('en-IN', {
-    style: 'currency',
-    currency: 'INR',
-    maximumFractionDigits: 0,
-  }).format(amount)
-}
-
 /** Additive mock metrics for newly requested dashboard widgets. */
 export const workforceExtendedSummary: WorkforceExtendedSummary = {
   newJoinersThisMonth: 12,

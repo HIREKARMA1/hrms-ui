@@ -67,6 +67,17 @@ export async function saveLeaveSettings(settings: LeaveSettings, userName: strin
   store.settings = structuredClone(settings)
 }
 
+/** Whether the monthly accrual for `yearMonth` (YYYY-MM) has already been run. */
+export function hasAccrualRun(yearMonth: string): boolean {
+  return getLeaveStore().accrualRuns.includes(yearMonth)
+}
+
+/** Marks the monthly accrual for `yearMonth` as run (idempotent). */
+export function recordAccrualRun(yearMonth: string): void {
+  const store = getLeaveStore()
+  if (!store.accrualRuns.includes(yearMonth)) store.accrualRuns.push(yearMonth)
+}
+
 export async function resetLeaveData(): Promise<void> {
   await leaveDelay()
   resetLeaveStore()

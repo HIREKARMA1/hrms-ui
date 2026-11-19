@@ -33,6 +33,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { useHolidayPermissions } from '@/features/rbac/hooks/useHolidayPermissions'
 import { departments, holidayRecords } from '../mocks/attendanceMocks'
 import type { HolidayRecord } from '../types/attendance'
 
@@ -66,6 +67,10 @@ function monthKey(year: number, month: number) {
 }
 
 export function HolidayPage() {
+  // Add / edit / delete each need their own backend permission; holidays:read
+  // only allows viewing the list and calendar.
+  const permissions = useHolidayPermissions()
+  const showActions = permissions.canUpdate || permissions.canDelete
   const [holidays, setHolidays] = useState<HolidayRecord[]>(() => [
     ...holidayRecords,
   ])
@@ -229,10 +234,12 @@ export function HolidayPage() {
               ))}
             </SelectContent>
           </Select>
-          <Button type="button" className="gap-2" onClick={openAdd}>
-            <Plus className="h-4 w-4" />
-            Add Holiday
-          </Button>
+          {permissions.canCreate ? (
+            <Button type="button" className="gap-2" onClick={openAdd}>
+              <Plus className="h-4 w-4" />
+              Add Holiday
+            </Button>
+          ) : null}
         </div>
       </div>
 
@@ -331,7 +338,7 @@ export function HolidayPage() {
                   <th className={HOLIDAY_LIST_TH}>Type</th>
                   <th className={HOLIDAY_LIST_TH}>Department</th>
                   <th className={HOLIDAY_LIST_TH}>Mandatory</th>
-                  <th className={HOLIDAY_LIST_TH}>Actions</th>
+                  {showActions ? <th className={HOLIDAY_LIST_TH}>Actions</th> : null}
                 </tr>
               </thead>
               <tbody>
@@ -344,18 +351,22 @@ export function HolidayPage() {
                     <td className={HOLIDAY_LIST_TD_MUTED}>
                       <HolidayMandatoryBadge mandatory={holiday.mandatory} />
                     </td>
-                    <td className={HOLIDAY_LIST_TD_MUTED}>
-                      <HolidayListRowActions
-                        holidayName={holiday.name}
-                        onEdit={() => openEdit(holiday)}
-                        onDelete={() => setDeleteTarget(holiday)}
-                      />
-                    </td>
+                    {showActions ? (
+                      <td className={HOLIDAY_LIST_TD_MUTED}>
+                        <HolidayListRowActions
+                          holidayName={holiday.name}
+                          onEdit={() => openEdit(holiday)}
+                          onDelete={() => setDeleteTarget(holiday)}
+                          showEdit={permissions.canUpdate}
+                          showDelete={permissions.canDelete}
+                        />
+                      </td>
+                    ) : null}
                   </tr>
                 ))}
                 {filteredHolidays.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className={HOLIDAY_LIST_EMPTY_CELL}>
+                    <td colSpan={showActions ? 6 : 5} className={HOLIDAY_LIST_EMPTY_CELL}>
                       No holidays found for {year}.
                     </td>
                   </tr>

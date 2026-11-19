@@ -17,6 +17,8 @@ import {
   LEAD_SOURCES,
   LEAD_STATUSES,
 } from '../constants/leadOptions'
+import { useOptionalFeatureAccess } from '@/features/rbac/hooks/useFeatureAccess'
+
 import { useLeads } from '../hooks/useLeads'
 import type { Lead, LeadInput } from '../types/lead'
 import { emptyLeadInput } from '../utils/leadForm'
@@ -58,6 +60,8 @@ export function LeadFormDialog({
   defaultAssigneeId,
 }: LeadFormDialogProps) {
   const { createLead, updateLead, checkDuplicates } = useLeads()
+  const { canAccess } = useOptionalFeatureAccess()
+  const canAssign = canAccess('leads.assign')
   const [draft, setDraft] = useState<LeadInput>(emptyLeadInput())
   const [dupWarning, setDupWarning] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -116,10 +120,15 @@ export function LeadFormDialog({
     setSaving(true)
     setError(null)
     try {
+      // Without leads:assign the assignee is never sent: creates stay
+      // unassigned and edits keep the existing owner.
+      const payload: LeadInput = canAssign
+        ? draft
+        : { ...draft, assignedEmployeeId: initial?.assignedEmployeeId ?? null }
       const saved =
         mode === 'edit' && initial
-          ? await updateLead(initial.id, draft)
-          : await createLead(draft)
+          ? await updateLead(initial.id, payload)
+          : await createLead(payload)
       onSaved(saved)
       onOpenChange(false)
     } catch (cause) {
@@ -243,21 +252,23 @@ export function LeadFormDialog({
                 ))}
               </SelectField>
             </div>
-            <Field label="Assigned to" id="assignee">
-              <select
-                id="assignee"
-                className={selectClass}
-                value={draft.assignedEmployeeId ?? ''}
-                onChange={(e) => patch('assignedEmployeeId', e.target.value || null)}
-              >
-                <option value="">Unassigned</option>
-                {LEAD_ASSIGNEES.map((item) => (
-                  <option key={item.id} value={item.id}>
-                    {item.name}
-                  </option>
-                ))}
-              </select>
-            </Field>
+            {canAssign ? (
+              <Field label="Assigned to" id="assignee">
+                <select
+                  id="assignee"
+                  className={selectClass}
+                  value={draft.assignedEmployeeId ?? ''}
+                  onChange={(e) => patch('assignedEmployeeId', e.target.value || null)}
+                >
+                  <option value="">Unassigned</option>
+                  {LEAD_ASSIGNEES.map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {item.name}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+            ) : null}
             <Field label="Description" id="description">
               <textarea
                 id="description"

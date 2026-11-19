@@ -25,15 +25,16 @@ export function useFeatureAccess() {
 }
 
 /**
- * Safe outside RoleLayout: grants all features so legacy /employees and
- * /attendance routes keep working unchanged.
+ * Safe outside RoleLayout. Every authenticated route (including legacy
+ * /employees, /attendance, ...) now renders inside an RbacProvider, so without
+ * a context there is no authenticated user and nothing is granted.
  */
 export function useOptionalFeatureAccess() {
   const rbac = useOptionalRbacSession()
 
   const canAccess = useCallback(
     (feature: FeatureAccessKey) => {
-      if (!rbac) return true
+      if (!rbac) return false
       return canAccessFeature(feature, rbac.roleCode, rbac.session.permissions)
     },
     [rbac],

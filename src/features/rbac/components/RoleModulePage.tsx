@@ -11,8 +11,11 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 
-import { Can } from './Can'
+import { getRoleUiConfig } from '../config/roleNavigation'
 import { useRbacSession } from '../hooks/useRbacSession'
+import { getModulePageAccess } from '../utils/navAccess'
+import { AccessDeniedPage } from './AccessDeniedPage'
+import { Can } from './Can'
 import { ToastBanner, useToast } from '@/hooks/useToast'
 
 function titleFromPath(pathname: string, routePrefix: string) {
@@ -32,12 +35,29 @@ function titleFromPath(pathname: string, routePrefix: string) {
 
 export function RoleModulePage() {
   const { pathname } = useLocation()
-  const { roleLabel, routePrefix, session } = useRbacSession()
+  const { roleCode, roleLabel, routePrefix, session, navigation } =
+    useRbacSession()
   const { message, toast } = useToast()
   const title = useMemo(
     () => titleFromPath(pathname, routePrefix),
     [pathname, routePrefix],
   )
+  // Same rule as the sidebar: only destinations visible in this user's
+  // navigation render. A nav destination hidden by permission/feature, or a
+  // URL that is not in the role's navigation at all, is denied.
+  const access = useMemo(
+    () =>
+      getModulePageAccess(
+        getRoleUiConfig(roleCode).navigation,
+        navigation,
+        pathname,
+      ),
+    [navigation, pathname, roleCode],
+  )
+
+  if (access !== 'allowed') {
+    return <AccessDeniedPage featureLabel={title} />
+  }
 
   return (
     <div className="mx-auto flex w-full max-w-[1100px] flex-col gap-6">

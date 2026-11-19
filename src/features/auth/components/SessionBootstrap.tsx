@@ -6,21 +6,15 @@ import type { RootState } from '@/app/store'
 import { useAppSelector } from '@/app/store/hooks'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { getApiErrorMessage } from '@/services/api/errors'
 import { expireSession } from '@/services/api/baseApi'
 
 import { useGetCurrentUserQuery } from '../api/authApi'
 import { useSignOut } from '../hooks/useSignOut'
 import { selectIsAuthenticated } from '../store/authSlice'
-
-function isUnauthorized(error: unknown): boolean {
-  return (
-    typeof error === 'object' &&
-    error !== null &&
-    'status' in error &&
-    error.status === 401
-  )
-}
+import {
+  getSessionCheckErrorMessage,
+  isUnusableSessionError,
+} from '../utils/sessionCheck'
 
 /**
  * Validates a *stored* session once at application start.
@@ -31,8 +25,9 @@ function isUnauthorized(error: unknown): boolean {
  *   state until it settles, so nothing authenticated is shown unvalidated.
  * - Validation is a one-time startup concern: a later login (which already
  *   returns the user) or route changes never trigger it again.
- * - 401 that survives the refresh flow ends the session; network errors, 5xx
- *   and 403 keep the stored credentials and offer retry / sign out.
+ * - 401 that survives the refresh flow, or a token for a different account,
+ *   ends the session; network errors, 5xx, 403, 304 and malformed responses
+ *   keep the stored credentials and offer retry / sign out.
  */
 export function SessionBootstrap({ children }: { children: ReactNode }) {
   const store = useStore<RootState>()
@@ -53,26 +48,23 @@ export function SessionBootstrap({ children }: { children: ReactNode }) {
   // Latch (state adjusted during render, per React docs).
   if (!settled && (isSuccess || !isAuthenticated)) setSettled(true)
 
-  const unauthorized = isError && isUnauthorized(error)
+  const unusable = isError && isUnusableSessionError(error)
   useEffect(() => {
     // Refresh already failed -> Stage 1 cleared the session (then this is a
     // no-op because isAuthenticated is false). A 401 that persists after a
-    // successful refresh also means the session is unusable.
-    if (unauthorized && isAuthenticated) expireSession()
-  }, [unauthorized, isAuthenticated])
+    // successful refresh, or a token for another account, is also unusable.
+    if (unusable && isAuthenticated) expireSession()
+  }, [unusable, isAuthenticated])
 
   const validated = settled || isSuccess
   if (!hadStoredSession || validated || !isAuthenticated) {
     return <>{children}</>
   }
 
-  if (isError && !unauthorized) {
+  if (isError && !unusable) {
     return (
       <SessionCheckError
-        message={getApiErrorMessage(
-          error,
-          'We could not verify your session. Please try again.',
-        )}
+        message={getSessionCheckErrorMessage(error)}
         retrying={isFetching}
         onRetry={() => void refetch()}
       />

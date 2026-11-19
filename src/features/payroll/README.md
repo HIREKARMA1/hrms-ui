@@ -20,7 +20,7 @@ Single-company payroll: Overview run, salary structures, variable pay, full & fi
 ## Navigation (Phase A–B)
 
 - Sidebar children by role → `utils/payrollNavChildren.ts`, `payrollTabsForRole` in `hooks/usePayrollPageTabs.ts`
-- Demo role → shared `LeaveViewerProvider` + `PayrollPageHeader` / `LeaveDemoViewSelect`
+- Viewer identity → shared `LeaveViewerProvider` (Redux auth user when signed in); `PayrollPageHeader` shows `LeaveDemoViewSelect` only for unauthenticated demo viewers
 - Section slugs → `utils/payrollSectionRoutes.ts` (includes `/payroll/my-payslips` for Employee)
 - Active section hook → `hooks/usePayrollRoute.ts` (role-aware redirect off `/payroll` for non-HR)
 

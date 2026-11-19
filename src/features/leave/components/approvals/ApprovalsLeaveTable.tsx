@@ -5,6 +5,7 @@
 import { Card, CardContent } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 
+import { useLeavePermissions } from '../../hooks/useLeavePermissions'
 import type { LeaveRequest } from '../../types/leaveRequest'
 import { formatDate } from '../../utils/formatDate'
 import { LeaveStatusPill } from '../LeaveStatusPill'
@@ -21,9 +22,6 @@ type ApprovalsLeaveTableProps = {
   onApprove: (id: string) => void
   onReject: (id: string) => void
   busyId: string | null
-  /** Hide approve/reject when rows come from GET /leave-approval/pending. */
-  hideApproveReject?: boolean
-  emptyLabel?: string
 }
 
 export function ApprovalsLeaveTable({
@@ -33,14 +31,13 @@ export function ApprovalsLeaveTable({
   onApprove,
   onReject,
   busyId,
-  hideApproveReject = false,
-  emptyLabel = 'No pending leave requests in this queue.',
 }: ApprovalsLeaveTableProps) {
+  const permissions = useLeavePermissions()
   if (rows.length === 0) {
     return (
       <Card>
         <CardContent className="p-0">
-          <LeaveEmptyState message={emptyLabel} />
+          <LeaveEmptyState message="No pending leave requests in this queue." />
         </CardContent>
       </Card>
     )
@@ -75,9 +72,7 @@ export function ApprovalsLeaveTable({
                   }
                 }}
               >
-                <td className={leaveTdClass('left')}>
-                  {row.employeeName ?? employeeName(row.employeeId)}
-                </td>
+                <td className={leaveTdClass('left')}>{employeeName(row.employeeId)}</td>
                 <td className={leaveTdClass('left', 'font-normal')}>
                   <LeaveTypeChip code={row.leaveTypeCode} abbreviated />
                 </td>
@@ -96,7 +91,7 @@ export function ApprovalsLeaveTable({
                 <td className="px-4 py-3 text-right" onClick={(event) => event.stopPropagation()}>
                   <div className="flex flex-wrap items-center justify-end gap-2">
                     <RowLinkButton onClick={() => onView(row)}>View</RowLinkButton>
-                    {!hideApproveReject ? (
+                    {permissions.canApprove ? (
                       <>
                         <ApproveRowButton disabled={busyId === row.id} onClick={() => onApprove(row.id)} />
                         <RejectRowButton disabled={busyId === row.id} onClick={() => onReject(row.id)} />

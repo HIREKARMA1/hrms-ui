@@ -6,27 +6,16 @@
 import { useMemo, useState } from 'react'
 
 import { Button } from '@/components/ui/button'
-import { getApiErrorMessage } from '@/services/api/errors'
 import { CalendarDayDetailDialog } from '../dialogs/CalendarDayDetailDialog'
 import { cn } from '@/lib/utils'
 
-import { useGetHolidaysQuery } from '../../api/holidaysApi'
-import { useGetLeaveCalendarQuery, useGetTeamLeaveCalendarQuery } from '../../api/leaveApi'
 import { useLeave } from '../../hooks/useLeave'
-import { useLeaveEmployeeIdForApi } from '../../hooks/useLeaveEmployeeIdForApi'
-import { useShouldFetchLeaveList } from '../../hooks/useShouldFetchLeaveList'
 import type { LeaveViewer } from '../../types/viewer'
 import { LeaveTabHeader } from '../LeaveTabHeader'
-import { calendarMonthBounds } from '../../utils/calendarMonthBounds'
 import { buildCalendarLeaveByDay, type CalendarLeaveScope } from '../../utils/buildCalendarLeaveByDay'
-import {
-  mapApiSelfLeaveCalendarToLeaveByDay,
-  mapApiTeamLeaveCalendarToLeaveByDay,
-  mergePendingCalendarEntries,
-} from '../../utils/mapApiTeamLeaveCalendar'
-import { mapApiHolidaysToByDay } from '../../utils/mapApiHolidaysToByDay'
 import { teamCalendarMemberIds } from '../../utils/managerTeam'
 import { leaveTodayIso } from '../../utils/leaveToday'
+import { LeaveEmployeeLinkNotice } from '../shared/LeaveEmployeeLinkNotice'
 import { LEAVE_SECONDARY_BUTTON } from '../shared/leaveUi'
 import { CalendarAgendaList } from './CalendarAgendaList'
 import { CalendarLegend } from './CalendarLegend'
@@ -63,7 +52,7 @@ export function CalendarTab({ viewer, initialDepartment, scope = 'org' }: Calend
   const [selectedDay, setSelectedDay] = useState<string | null>(null)
   const matrix = useMemo(() => monthMatrix(cursor.year, cursor.month), [cursor])
 
-  const mockHolidaysByDay = useMemo(() => {
+  const holidaysByDay = useMemo(() => {
     const map = new Map<string, string[]>()
     snapshot?.settings.holidays.forEach((item) => {
       map.set(item.date, [...(map.get(item.date) ?? []), item.name])
@@ -71,106 +60,24 @@ export function CalendarTab({ viewer, initialDepartment, scope = 'org' }: Calend
     return map
   }, [snapshot?.settings.holidays])
 
-  const monthBounds = useMemo(
-    () => calendarMonthBounds(cursor.year, cursor.month),
-    [cursor.month, cursor.year],
-  )
+  const linkedId = viewer.employeeId
+  // "Your" / "your team" views need an employee record; never fall back to org-wide data.
+  const personalUnavailable = scope !== 'org' && !linkedId
 
-  const canFetchLeaves = useShouldFetchLeaveList()
-  const shouldFetchHolidays = canFetchLeaves
-
-  const {
-    data: holidaysData,
-    isError: holidaysIsError,
-    error: holidaysError,
-    isFetching: holidaysFetching,
-  } = useGetHolidaysQuery({ year: cursor.year }, { skip: !shouldFetchHolidays })
-
-  const holidaysByDay = useMemo(() => {
-    if (shouldFetchHolidays && holidaysData && !holidaysIsError) {
-      return mapApiHolidaysToByDay(holidaysData)
-    }
-    return mockHolidaysByDay
-  }, [holidaysData, holidaysIsError, mockHolidaysByDay, shouldFetchHolidays])
-
-  const holidaysErrorMessage =
-    shouldFetchHolidays && holidaysIsError
-      ? getApiErrorMessage(holidaysError, 'Unable to load holidays. Showing demo calendar.')
-      : null
-
-  const shouldFetchSelfCalendar = scope === 'self' && canFetchLeaves
-  const shouldFetchTeamCalendar = scope === 'team' && canFetchLeaves
-  const viewerApiEmployeeId = useLeaveEmployeeIdForApi(snapshot, viewer.employeeId)
-
-  const {
-    data: selfCalendarData,
-    isError: selfCalendarIsError,
-    error: selfCalendarError,
-    isFetching: selfCalendarFetching,
-  } = useGetLeaveCalendarQuery(monthBounds, { skip: !shouldFetchSelfCalendar })
-
-  const {
-    data: teamCalendarData,
-    isError: teamCalendarIsError,
-    error: teamCalendarError,
-    isFetching: teamCalendarFetching,
-  } = useGetTeamLeaveCalendarQuery(monthBounds, { skip: !shouldFetchTeamCalendar })
-
-  const mockLeaveByDay = useMemo(() => {
-    if (!snapshot) return new Map<string, { code: string; label: string }[]>()
+  const leaveByDay = useMemo(() => {
+    if (!snapshot || (scope !== 'org' && !linkedId)) return new Map<string, { code: string; label: string }[]>()
     return buildCalendarLeaveByDay(snapshot, {
       scope,
-      employeeId: viewer.employeeId,
+      // Org scope only uses this to label the viewer's own entries.
+      employeeId: linkedId ?? '',
       viewerRole: viewer.role,
       department: initialDepartment,
     })
-  }, [initialDepartment, scope, snapshot, viewer.employeeId, viewer.role])
-
-  const leaveByDay = useMemo(() => {
-    if (shouldFetchSelfCalendar && selfCalendarData && !selfCalendarIsError) {
-      const apiMap = mapApiSelfLeaveCalendarToLeaveByDay(selfCalendarData)
-      return mergePendingCalendarEntries(apiMap, mockLeaveByDay)
-    }
-    if (shouldFetchTeamCalendar && teamCalendarData && !teamCalendarIsError) {
-      const apiMap = mapApiTeamLeaveCalendarToLeaveByDay(
-        teamCalendarData,
-        viewer.employeeId,
-        viewerApiEmployeeId,
-      )
-      return mergePendingCalendarEntries(apiMap, mockLeaveByDay)
-    }
-    return mockLeaveByDay
-  }, [
-    mockLeaveByDay,
-    selfCalendarData,
-    selfCalendarIsError,
-    shouldFetchSelfCalendar,
-    shouldFetchTeamCalendar,
-    teamCalendarData,
-    teamCalendarIsError,
-    viewer.employeeId,
-    viewerApiEmployeeId,
-  ])
-
-  const selfCalendarErrorMessage =
-    shouldFetchSelfCalendar && selfCalendarIsError
-      ? getApiErrorMessage(
-          selfCalendarError,
-          'Unable to load your calendar. Showing demo data.',
-        )
-      : null
-
-  const teamCalendarErrorMessage =
-    shouldFetchTeamCalendar && teamCalendarIsError
-      ? getApiErrorMessage(
-          teamCalendarError,
-          'Unable to load team calendar. Showing demo data.',
-        )
-      : null
+  }, [initialDepartment, scope, snapshot, linkedId, viewer.role])
 
   const teamMemberIds = useMemo(
-    () => (scope === 'team' && snapshot ? teamCalendarMemberIds(snapshot, viewer.employeeId) : undefined),
-    [scope, snapshot, viewer.employeeId],
+    () => (scope === 'team' && snapshot && linkedId ? teamCalendarMemberIds(snapshot, linkedId) : undefined),
+    [scope, snapshot, linkedId],
   )
 
   if (!snapshot) return null
@@ -184,57 +91,24 @@ export function CalendarTab({ viewer, initialDepartment, scope = 'org' }: Calend
         title="Calendar"
         subtitle={
           scope === 'self'
-            ? shouldFetchSelfCalendar && selfCalendarData && !selfCalendarIsError
-              ? 'Approved leave from the server; pending requests from demo data until approvals sync.'
-              : 'Your approved and pending leave alongside company holidays and weekly offs.'
+            ? 'Your approved and pending leave alongside company holidays and weekly offs.'
             : scope === 'team'
-              ? shouldFetchTeamCalendar && teamCalendarData && !teamCalendarIsError
-                ? 'Approved team leave from the server; pending requests from demo data until approvals sync.'
-                : 'Your team’s approved and pending leave with company holidays and weekly offs.'
+              ? 'Your team’s approved and pending leave with company holidays and weekly offs.'
               : initialDepartment
               ? `Filtered to ${initialDepartment}. Holidays, weekly offs, and team leave.`
               : 'Holidays, weekly offs, and team leave at a glance.'
         }
       />
-      {selfCalendarErrorMessage ? (
-        <p
-          className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-900"
-          role="alert"
-        >
-          {selfCalendarErrorMessage}
-        </p>
-      ) : null}
-      {teamCalendarErrorMessage ? (
-        <p
-          className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-900"
-          role="alert"
-        >
-          {teamCalendarErrorMessage}
-        </p>
-      ) : null}
-      {selfCalendarFetching && shouldFetchSelfCalendar ? (
-        <p className="text-xs text-hrms-text-muted">Loading your calendar…</p>
-      ) : null}
-      {teamCalendarFetching && shouldFetchTeamCalendar ? (
-        <p className="text-xs text-hrms-text-muted">Loading team calendar…</p>
-      ) : null}
-      {holidaysErrorMessage ? (
-        <p
-          className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-900"
-          role="alert"
-        >
-          {holidaysErrorMessage}
-        </p>
-      ) : null}
-      {holidaysFetching && shouldFetchHolidays ? (
-        <p className="text-xs text-hrms-text-muted">Loading holidays…</p>
-      ) : null}
-      <CalendarTabStats
-        snapshot={snapshot}
-        monthPrefix={monthPrefix}
-        employeeId={scope === 'self' ? viewer.employeeId : undefined}
-        teamMemberIds={teamMemberIds}
-      />
+      {personalUnavailable ? (
+        <LeaveEmployeeLinkNotice what={scope === 'team' ? "your team's leave" : 'your leave'} />
+      ) : (
+        <CalendarTabStats
+          snapshot={snapshot}
+          monthPrefix={monthPrefix}
+          employeeId={scope === 'self' ? (linkedId ?? undefined) : undefined}
+          teamMemberIds={teamMemberIds}
+        />
+      )}
       <div className="flex flex-wrap items-center gap-2">
         <Button type="button" variant="outline" className={cn(LEAVE_SECONDARY_BUTTON)} onClick={() => setCursor((value) => ({ ...value, month: value.month - 1 }))}>Previous</Button>
         <Button type="button" variant="outline" className={cn(LEAVE_SECONDARY_BUTTON)} onClick={() => setCursor({ year: Number(base.slice(0, 4)), month: Number(base.slice(5, 7)) - 1 })}>Today</Button>

@@ -28,6 +28,7 @@ import {
 import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
+import { useUploadFileMutation } from '@/services/api/uploadsApi'
 
 import {
   isEmployeePhotoUploadConfigured,
@@ -83,6 +84,7 @@ export function EmployeeProfilePhotoEditor({
   onPhotoChange,
 }: EmployeeProfilePhotoEditorProps) {
   const fileInputId = useId()
+  const [triggerPhotoUpload] = useUploadFileMutation()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
@@ -195,11 +197,10 @@ export function EmployeeProfilePhotoEditor({
     setSaving(true)
     setStatusMessage(null)
     try {
-      const result = await uploadEmployeeProfilePhoto({
-        employeeId,
-        file: blob,
-        fileName,
-      })
+      const result = await uploadEmployeeProfilePhoto(
+        { employeeId, file: blob, fileName },
+        (request) => triggerPhotoUpload(request).unwrap(),
+      )
 
       if (result.ok) {
         onPhotoChange({ name: result.fileName, url: result.url })
@@ -389,8 +390,8 @@ export function EmployeeProfilePhotoEditor({
           </p>
           {!isEmployeePhotoUploadConfigured() ? (
             <p className="text-xs text-amber-700">
-              Upload API pending: set VITE_EMPLOYEE_PHOTO_UPLOAD_URL to enable
-              server saves.
+              Server upload is off: set VITE_EMPLOYEE_PHOTO_UPLOAD_ENABLED=true to
+              enable server saves.
             </p>
           ) : null}
         </div>

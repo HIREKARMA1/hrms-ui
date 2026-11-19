@@ -1,5 +1,6 @@
 export type EmploymentStatus =
   | 'Active'
+  | 'On Leave'
   | 'Inactive'
   | 'Probation'
   | 'Notice Period'
