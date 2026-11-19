@@ -11,6 +11,7 @@ export const API_TAGS = [
   'Attendance',
   'Holiday',
   'Lead',
+  'Dashboard',
 ] as const
 
 export type ApiTag = (typeof API_TAGS)[number]

@@ -13,6 +13,7 @@ import {
 } from 'recharts'
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { DashboardStats } from '@/features/dashboard/components/DashboardStats'
 import { adminDashboardMock } from '@/features/rbac/mocks/rbacMocks'
 
 const CHART_TOOLTIP = {
@@ -34,16 +35,7 @@ export function AdminDashboardPage() {
         </p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {adminDashboardMock.stats.map((stat) => (
-          <Card key={stat.id} className="border-border-soft shadow-sm">
-            <CardContent className="p-5">
-              <p className="text-sm font-medium text-text-secondary">{stat.label}</p>
-              <p className="mt-2 text-3xl font-bold tracking-tight text-navy">{stat.value}</p>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+      <DashboardStats />
 
       <div className="grid gap-4 xl:grid-cols-2">
         <Card className="border-border-soft shadow-sm">

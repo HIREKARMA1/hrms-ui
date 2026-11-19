@@ -121,7 +121,7 @@ function App() {
                 feature="dashboard.hr"
                 featureLabel="HR Dashboard"
               >
-                <DashboardPage />
+                <DashboardPage showWorkforceSummary />
               </RequireAccess>
             }
           />
