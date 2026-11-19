@@ -22,6 +22,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
 
+import { useSignOut } from '@/features/auth/hooks/useSignOut'
 import { useOptionalRbacSession } from '@/features/rbac/hooks/useRbacSession'
 
 import { useLayout } from './LayoutContext'
@@ -30,6 +31,7 @@ import { Sidebar } from './Sidebar'
 export function Header() {
   const { mobileOpen, setMobileOpen } = useLayout()
   const rbac = useOptionalRbacSession()
+  const { signOut, isSigningOut } = useSignOut()
   const displayName = rbac?.session.displayName ?? 'Rohith Goud'
   const roleLabel = rbac?.roleLabel ?? 'HR Manager'
   const initials = displayName
@@ -117,7 +119,12 @@ export function Header() {
                 Settings
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>
+              <DropdownMenuItem
+                disabled={isSigningOut}
+                onSelect={() => {
+                  void signOut()
+                }}
+              >
                 <LogOut className="mr-2 h-4 w-4" />
                 Sign out
               </DropdownMenuItem>

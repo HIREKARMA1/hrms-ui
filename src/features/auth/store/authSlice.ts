@@ -58,6 +58,19 @@ const authSlice = createSlice({
         state.rememberMe = meta.arg.originalArgs.rememberMe === true
       },
     )
+
+    // Sync the latest backend user from GET /auth/me. Only the user object is
+    // written; tokens and rememberMe are untouched. A late response can never
+    // restore an ended session (no tokens/user) or overwrite a different
+    // account's session (id mismatch).
+    builder.addMatcher(
+      authApi.endpoints.getCurrentUser.matchFulfilled,
+      (state, { payload }) => {
+        if (!state.accessToken || !state.user) return
+        if (state.user.id !== payload.id) return
+        state.user = payload
+      },
+    )
   },
   selectors: {
     selectCurrentUser: (state) => state.user,
