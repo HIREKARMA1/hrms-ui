@@ -9,12 +9,14 @@ import { formatDate } from '../../utils/formatDate'
 
 type RequestDetailSummaryProps = {
   request: LeaveRequest
-  balanceBefore: number
-  balanceAfter: number
+  balanceBefore: number | null
+  balanceAfter: number | null
 }
 
 export function RequestDetailSummary({ request, balanceBefore, balanceAfter }: RequestDetailSummaryProps) {
   const balanceHint = request.status === 'Pending' ? 'If approved' : 'After booking'
+  const lossOfPay = request.lwpDays ?? 0
+  const paid = Math.max(request.days - lossOfPay, 0)
 
   return (
     <section className="rounded-xl border border-hrms-border bg-hrms-muted-bg/50 p-4">
@@ -23,15 +25,25 @@ export function RequestDetailSummary({ request, balanceBefore, balanceAfter }: R
         <Fact label="Leave dates" value={`${formatDate(request.fromDate)} – ${formatDate(request.toDate)}`} />
         <Fact label="Duration" value={`${request.days} day${request.days === 1 ? '' : 's'}`} />
         <Fact label="Applied on" value={formatDate(request.appliedOn)} />
-        <Fact label="Balance impact">
-          <p className="text-sm text-hrms-navy">
-            <span className="tabular-nums">{balanceBefore}</span>
-            <span className="text-hrms-text-muted"> → </span>
-            <span className="tabular-nums font-semibold">{balanceAfter}</span>
-            <span className="text-hrms-text-muted"> days</span>
-          </p>
-          <p className="mt-0.5 text-xs text-hrms-text-secondary">{balanceHint}</p>
-        </Fact>
+        {balanceBefore !== null && balanceAfter !== null ? (
+          <Fact label="Balance impact">
+            <p className="text-sm text-hrms-navy">
+              <span className="tabular-nums">{balanceBefore}</span>
+              <span className="text-hrms-text-muted"> → </span>
+              <span className="tabular-nums font-semibold">{balanceAfter}</span>
+              <span className="text-hrms-text-muted"> days</span>
+            </p>
+            <p className="mt-0.5 text-xs text-hrms-text-secondary">{balanceHint}</p>
+          </Fact>
+        ) : (
+          <Fact label="Paid / loss of pay">
+            <p className="text-sm tabular-nums text-hrms-navy">
+              {paid} paid
+              <span className="text-hrms-text-muted"> · </span>
+              {lossOfPay} loss of pay
+            </p>
+          </Fact>
+        )}
         <Fact label="Reason" value={request.reason} className="sm:col-span-2" multiline />
         {request.attachmentName ? (
           <Fact label="Attachment" value={request.attachmentName} className="sm:col-span-2" />

@@ -7,7 +7,7 @@ import { CalendarPlus, UserRound } from 'lucide-react'
 import type { LeaveEmployee } from '../../types/employee'
 import type { LeaveSettings } from '../../types/leaveSettings'
 import type { LedgerEntry } from '../../types/ledger'
-import type { LeaveRequest } from '../../types/leaveRequest'
+import type { HalfDayPortion, LeaveRequest } from '../../types/leaveRequest'
 import {
   LeaveDialogBody,
   LeaveDialogCloseButton,
@@ -32,14 +32,10 @@ type ApplyLeaveDialogProps = {
   employees: LeaveEmployee[]
   saving?: boolean
   submitterName?: string
-  onSubmit: (input: {
-    leaveTypeCode: string
-    fromDate: string
-    toDate: string
-    reason: string
-    attachmentName?: string
-    convertExtraToLwp?: boolean
-  }) => void
+  /** Server balances (code → available days, null while unknown). Omit to use the demo ledger. */
+  serverBalances?: Record<string, number> | null
+  /** Resolve `false` to keep the dialog open with its input (e.g. the server rejected the request). */
+  onSubmit: (input: ApplyLeaveSubmitInput) => ApplyLeaveSubmitOutcome
   hrEmployeePicker?: {
     options: LeaveEmployee[]
     value: string
@@ -47,11 +43,23 @@ type ApplyLeaveDialogProps = {
   }
 }
 
+export type ApplyLeaveSubmitInput = {
+  leaveTypeCode: string
+  fromDate: string
+  toDate: string
+  reason: string
+  attachmentName?: string
+  convertExtraToLwp?: boolean
+  portion?: HalfDayPortion
+}
+
+export type ApplyLeaveSubmitOutcome = void | boolean | Promise<void | boolean>
+
 export function ApplyLeaveDialog(props: ApplyLeaveDialogProps) {
-  const { open, onOpenChange, employee, settings, ledger, existing, employees, saving, onSubmit, hrEmployeePicker, submitterName } =
+  const { open, onOpenChange, employee, settings, ledger, existing, employees, saving, onSubmit, hrEmployeePicker, submitterName, serverBalances } =
     props
   const onBehalf = Boolean(hrEmployeePicker)
-  const state = useApplyLeaveDialogState(employee, settings, ledger, existing, employees)
+  const state = useApplyLeaveDialogState(employee, settings, ledger, existing, employees, serverBalances)
 
   const handleOpenChange = (next: boolean) => {
     if (!next) state.reset()
@@ -96,10 +104,8 @@ export function ApplyLeaveDialog(props: ApplyLeaveDialogProps) {
                 </div>
               ) : null}
               <ApplyLeaveFormColumn
-                employee={employee}
                 settings={settings}
-                ledger={ledger}
-                existing={existing}
+                balanceFor={state.balanceFor}
                 policy={state.policy}
                 preview={state.preview}
                 leaveTypeCode={state.leaveTypeCode}
@@ -108,6 +114,9 @@ export function ApplyLeaveDialog(props: ApplyLeaveDialogProps) {
                 setFromDate={state.setFromDate}
                 toDate={state.toDate}
                 setToDate={state.setToDate}
+                portion={state.portion}
+                setPortion={state.setPortion}
+                halfDayAvailable={state.halfDayAvailable}
                 reason={state.reason}
                 setReason={state.setReason}
                 attachmentName={state.attachmentName}
@@ -149,8 +158,9 @@ export function ApplyLeaveDialog(props: ApplyLeaveDialogProps) {
               primaryLabel={onBehalf ? 'Submit on behalf' : 'Submit request'}
               loading={saving}
               primaryDisabled={!state.preview || state.preview.errors.length > 0 || !state.reason.trim()}
-              onPrimary={() => {
-                onSubmit(state.submitPayload)
+              onPrimary={async () => {
+                const outcome = await onSubmit(state.submitPayload)
+                if (outcome === false) return
                 state.reset()
                 onOpenChange(false)
               }}

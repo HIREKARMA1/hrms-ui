@@ -81,7 +81,7 @@ export function ApprovalsTab({ viewer }: ApprovalsTabProps) {
       {viewer.employeeId ? (
         <ApprovalsManagerOverview snapshot={snapshot} managerId={viewer.employeeId} />
       ) : (
-        <LeaveEmployeeLinkNotice what="your direct reports and their approval queue" />
+        <LeaveEmployeeLinkNotice />
       )}
       <LeaveSegmentedControl options={segments} value={segment} onChange={setSegment} ariaLabel="Approval queues" />
       {segment === 'leave' ? (

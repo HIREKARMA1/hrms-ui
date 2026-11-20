@@ -27,8 +27,9 @@ type RequestDetailDialogProps = {
   open: boolean
   request: LeaveRequest | null
   employeeName?: string
-  balanceBefore: number
-  balanceAfter: number
+  /** Null when no ledger balance is known; the summary then shows the paid / loss-of-pay split. */
+  balanceBefore: number | null
+  balanceAfter: number | null
   onOpenChange: (open: boolean) => void
   canApprove?: boolean
   canReject?: boolean

@@ -24,6 +24,7 @@ export function useLeavePermissions() {
       canApproveEncashment: canAccess('leave.encashments.approve'),
       canRejectEncashment: canAccess('leave.encashments.reject'),
       canAdjustBalance: canAccess('leave.balances.adjust'),
+      canViewPolicyDefaults: canAccess('leave.balances'),
       canUpdateLeaveTypes: canAccess('leave.types.update'),
     }),
     [canAccess],

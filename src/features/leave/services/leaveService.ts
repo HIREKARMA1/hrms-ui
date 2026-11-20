@@ -22,6 +22,7 @@ import {
   rejectRequest,
 } from './requestActions'
 import { createDefaultLeaveSettings } from './companyDefaults'
+import type { LeaveApiMeta } from './leaveApiSnapshot'
 
 export type LeaveSnapshot = {
   employees: LeaveEmployee[]
@@ -35,6 +36,8 @@ export type LeaveSnapshot = {
   accrualRuns: string[]
   yearEndRuns: string[]
   settingsHistory: SettingsHistoryEntry[]
+  /** Present when the snapshot was built from the server for a signed-in user. */
+  api?: LeaveApiMeta
 }
 
 export async function fetchLeaveSnapshot(): Promise<LeaveSnapshot> {

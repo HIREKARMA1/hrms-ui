@@ -54,6 +54,8 @@ import { OverviewRecentActivity } from './OverviewRecentActivity'
 
 import { OverviewHeaderActions } from './OverviewHeaderActions'
 
+import { LeaveServerNotice } from '../shared/LeaveServerNotice'
+
 import { SuperAdminScopeBanner } from '../superAdmin/SuperAdminScopeBanner'
 
 
@@ -103,6 +105,15 @@ export function HrOverviewTab({ onNavigate }: { onNavigate: HrOverviewNavigate }
       />
 
       <p className="-mt-4 text-xs font-medium text-hrms-text-muted">{formatOverviewTodayLabel()}</p>
+
+      {snapshot?.api ? (
+        <LeaveServerNotice>
+          {snapshot.api.access.requests
+            ? `Figures use the ${snapshot.requests.length} most recent of ${snapshot.api.requestTotal} leave requests loaded from the server.`
+            : 'You do not have permission to view leave requests across the organisation, so these figures are empty.'}{' '}
+          Holidays and balance ledgers are not available from the server yet.
+        </LeaveServerNotice>
+      ) : null}
 
       <OverviewAttentionSection snapshot={snapshot} onNavigate={onNavigate} loading={loading} error={error} onRetry={onRetry} />
 

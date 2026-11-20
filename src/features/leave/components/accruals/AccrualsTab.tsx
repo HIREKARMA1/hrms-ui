@@ -22,8 +22,15 @@ import { leaveTodayIso } from '../../utils/leaveToday'
 import { LeaveConfirmDialog } from '../shared/LeaveConfirmDialog'
 import { LEAVE_FIELD_LABEL, LEAVE_FILTER_SELECT, LEAVE_SECONDARY_BUTTON } from '../shared/leaveUi'
 import { AccrualsTabStats } from './AccrualsTabStats'
+import { ApiAccrualsTab } from './ApiAccrualsTab'
 
 export function AccrualsTab({ openAccrualConfirm = false }: { openAccrualConfirm?: boolean }) {
+  const { snapshot } = useLeave()
+  if (snapshot?.api) return <ApiAccrualsTab openAccrualConfirm={openAccrualConfirm} />
+  return <DemoAccrualsTab openAccrualConfirm={openAccrualConfirm} />
+}
+
+function DemoAccrualsTab({ openAccrualConfirm }: { openAccrualConfirm: boolean }) {
   const { snapshot, reload } = useLeave()
   const { showToast } = useLeaveToast()
   const permissions = useLeavePermissions()

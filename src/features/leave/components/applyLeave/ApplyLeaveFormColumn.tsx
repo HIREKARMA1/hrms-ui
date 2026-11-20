@@ -8,11 +8,8 @@ import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
 import { LEAVE_TYPE_LABELS } from '../../constants/leaveTypeCodes'
-import type { LeaveEmployee } from '../../types/employee'
 import type { LeaveSettings, LeaveTypePolicy } from '../../types/leaveSettings'
-import type { LedgerEntry } from '../../types/ledger'
-import type { LeaveRequest } from '../../types/leaveRequest'
-import { ledgerBalanceForType, pendingDaysForType } from '../../utils/calculateBalance'
+import type { HalfDayPortion } from '../../types/leaveRequest'
 import type { LeaveValidationResult } from '../../utils/validateLeaveRequest'
 import { leaveTodayIso } from '../../utils/leaveToday'
 import { LeaveDialogField } from '../shared/LeaveDialogField'
@@ -20,10 +17,9 @@ import { LEAVE_DIALOG_INPUT, LEAVE_DIALOG_SELECT, LEAVE_DIALOG_TEXTAREA } from '
 import { ApplyLeaveSectionTitle } from './ApplyLeaveSectionTitle'
 
 type ApplyLeaveFormColumnProps = {
-  employee: LeaveEmployee
   settings: LeaveSettings
-  ledger: LedgerEntry[]
-  existing: LeaveRequest[]
+  /** Available days for a type code, or null when unknown. */
+  balanceFor: (code: string) => number | null
   policy: LeaveTypePolicy | undefined
   preview: LeaveValidationResult | null
   leaveTypeCode: string
@@ -32,6 +28,9 @@ type ApplyLeaveFormColumnProps = {
   setFromDate: (v: string) => void
   toDate: string
   setToDate: (v: string) => void
+  portion: HalfDayPortion
+  setPortion: (v: HalfDayPortion) => void
+  halfDayAvailable: boolean
   reason: string
   setReason: (v: string) => void
   attachmentName: string
@@ -65,12 +64,11 @@ export function ApplyLeaveFormColumn(props: ApplyLeaveFormColumnProps) {
             onChange={(e) => props.setLeaveTypeCode(e.target.value)}
           >
             {enabled.map((item) => {
-              const bal =
-                ledgerBalanceForType(props.ledger, props.employee.id, item.code) -
-                pendingDaysForType(props.existing, props.employee.id, item.code)
+              const bal = props.balanceFor(item.code)
               return (
                 <option key={item.code} value={item.code}>
-                  {LEAVE_TYPE_LABELS[item.code as keyof typeof LEAVE_TYPE_LABELS] ?? item.label} ({bal}d)
+                  {LEAVE_TYPE_LABELS[item.code as keyof typeof LEAVE_TYPE_LABELS] ?? item.label}
+                  {bal === null ? '' : ` (${bal}d)`}
                 </option>
               )
             })}
@@ -104,6 +102,20 @@ export function ApplyLeaveFormColumn(props: ApplyLeaveFormColumnProps) {
             />
           </LeaveDialogField>
         </div>
+        {props.halfDayAvailable ? (
+          <LeaveDialogField label="Duration" htmlFor="leave-portion">
+            <select
+              id="leave-portion"
+              className={LEAVE_DIALOG_SELECT}
+              value={props.portion}
+              onChange={(e) => props.setPortion(e.target.value as HalfDayPortion)}
+            >
+              <option value="full">Full day</option>
+              <option value="first_half">First half</option>
+              <option value="second_half">Second half</option>
+            </select>
+          </LeaveDialogField>
+        ) : null}
         {props.fromDate && props.toDate && !props.onBehalf ? (
           <p className="text-center text-xs tabular-nums text-hrms-text-secondary">{props.preview?.daysCounted ?? 0} day(s)</p>
         ) : null}

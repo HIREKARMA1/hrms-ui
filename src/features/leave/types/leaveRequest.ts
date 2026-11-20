@@ -57,5 +57,7 @@ export type LeaveRequest = {
   expectedDeliveryDate?: string
   compOffLotIds?: string[]
   convertedToLwp?: boolean
+  /** Server requests on a multi-level approval workflow (only the assigned approver can act). */
+  multiLevelWorkflow?: boolean
   steps: LeaveStep[]
 }

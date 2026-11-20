@@ -1,5 +1,13 @@
 /** Routes that are reachable without a session (see `App.tsx`). */
-export const PUBLIC_PATHS = ['/', '/forgot-password', '/contact-administrator']
+export const PUBLIC_PATHS = [
+  '/',
+  '/forgot-password',
+  '/reset-password',
+  '/contact-administrator',
+]
+
+/** Reset screen the emailed link opens (`/reset-password?token=...`). */
+export const RESET_PASSWORD_PATH = '/reset-password'
 
 /** Login screen route (the `/` route renders `LoginPage`). */
 export const LOGIN_PATH = '/'

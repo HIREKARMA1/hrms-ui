@@ -21,6 +21,7 @@ type ApprovalsEncashmentTableProps = {
   onApprove: (id: string) => void
   onReject: (id: string) => void
   busyId: string | null
+  emptyMessage?: string
 }
 
 export function ApprovalsEncashmentTable({
@@ -29,13 +30,14 @@ export function ApprovalsEncashmentTable({
   onApprove,
   onReject,
   busyId,
+  emptyMessage = 'No encashment requests from your team.',
 }: ApprovalsEncashmentTableProps) {
   const permissions = useLeavePermissions()
   if (rows.length === 0) {
     return (
       <Card>
         <CardContent className="p-0">
-          <LeaveEmptyState message="No encashment requests from your team." />
+          <LeaveEmptyState message={emptyMessage} />
         </CardContent>
       </Card>
     )

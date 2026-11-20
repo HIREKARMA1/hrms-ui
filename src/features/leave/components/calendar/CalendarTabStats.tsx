@@ -16,6 +16,8 @@ type CalendarTabStatsProps = {
   employeeId?: string
   /** When set, counts leave for manager + direct reports. */
   teamMemberIds?: readonly string[]
+  /** Server calendar spans; when set they replace snapshot requests for approved and on-leave counts. */
+  approvedSpans?: readonly { startDate: string; endDate: string }[]
 }
 
 function overlapsMonth(fromDate: string, toDate: string, monthPrefix: string): boolean {
@@ -23,7 +25,7 @@ function overlapsMonth(fromDate: string, toDate: string, monthPrefix: string): b
   return fromDate <= monthEnd && toDate >= `${monthPrefix}-01`
 }
 
-export function CalendarTabStats({ snapshot, monthPrefix, employeeId, teamMemberIds }: CalendarTabStatsProps) {
+export function CalendarTabStats({ snapshot, monthPrefix, employeeId, teamMemberIds, approvedSpans }: CalendarTabStatsProps) {
   const self = Boolean(employeeId)
   const team = Boolean(teamMemberIds?.length)
   const stats = useMemo(() => {
@@ -44,8 +46,19 @@ export function CalendarTabStats({ snapshot, monthPrefix, employeeId, teamMember
         item.fromDate <= today &&
         item.toDate >= today,
     ).length
+    if (approvedSpans) {
+      return {
+        holidays,
+        approved: approvedSpans.length,
+        pending,
+        // Spans only cover the shown month.
+        onLeaveToday: today.startsWith(monthPrefix)
+          ? approvedSpans.filter((item) => item.startDate <= today && item.endDate >= today).length
+          : onLeaveToday,
+      }
+    }
     return { holidays, approved, pending, onLeaveToday }
-  }, [employeeId, snapshot, monthPrefix, teamMemberIds])
+  }, [approvedSpans, employeeId, snapshot, monthPrefix, teamMemberIds])
 
   return (
     <LeaveStatGrid

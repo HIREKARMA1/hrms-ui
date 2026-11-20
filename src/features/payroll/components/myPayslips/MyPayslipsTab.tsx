@@ -28,7 +28,7 @@ export function MyPayslipsTab() {
         <MyPayslipView employee={employee} payrollMonth={payrollMonth} />
       ) : !viewer.employeeId ? (
         <div className="mx-auto max-w-3xl">
-          <LeaveEmployeeLinkNotice what="your payslips" />
+          <LeaveEmployeeLinkNotice />
         </div>
       ) : (
         <div className="mx-auto max-w-3xl">

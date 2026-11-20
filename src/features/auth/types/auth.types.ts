@@ -27,6 +27,20 @@ export interface LogoutRequest {
   refreshToken: string
 }
 
+/** Body of POST /auth/forgot-password (the server trims and lower-cases `email`). */
+export interface ForgotPasswordRequest {
+  email: string
+}
+
+/**
+ * Body of POST /auth/reset-password. `token` is the raw one-time token from
+ * the emailed link; `newPassword` is 8 to 128 characters (server rule).
+ */
+export interface ResetPasswordRequest {
+  token: string
+  newPassword: string
+}
+
 /** `data` payload of POST /auth/login. */
 export interface LoginResponseData {
   accessToken: string

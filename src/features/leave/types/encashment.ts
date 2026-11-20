@@ -7,6 +7,7 @@ export type EncashmentStatus =
   | 'Pending approval'
   | 'Approved'
   | 'Rejected'
+  | 'Cancelled'
   | 'Pending payout'
   | 'Paid via payroll'
 
@@ -18,4 +19,7 @@ export type EncashmentRequest = {
   appliedOn: string
   status: EncashmentStatus
   approvedOn?: string
+  /** Server snapshot of days × policy rate. */
+  amount?: number
+  currency?: string
 }

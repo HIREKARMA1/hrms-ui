@@ -15,6 +15,7 @@ import { WeeklyOffPage } from '@/features/attendance/pages/WeeklyOffPage'
 import { RequireAuth } from '@/features/auth/components/RequireAuth'
 import { ForgotPasswordPage } from '@/features/auth/pages/ForgotPasswordPage'
 import { LoginPage } from '@/features/auth/pages/LoginPage'
+import { ResetPasswordPage } from '@/features/auth/pages/ResetPasswordPage'
 import { ContactAdministratorPage } from '@/features/support/pages/ContactAdministratorPage'
 import { DashboardPage } from '@/features/dashboard/pages/DashboardPage'
 import { EmployeeDashboardPage } from '@/features/employee/pages/EmployeeDashboardPage'
@@ -40,6 +41,7 @@ function App() {
       <Routes>
         <Route path="/" element={<LoginPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route
           path="/contact-administrator"
           element={<ContactAdministratorPage />}

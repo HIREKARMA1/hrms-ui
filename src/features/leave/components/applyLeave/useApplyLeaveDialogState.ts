@@ -7,56 +7,97 @@ import { useCallback, useMemo, useState } from 'react'
 import type { LeaveEmployee } from '../../types/employee'
 import type { LeaveSettings } from '../../types/leaveSettings'
 import type { LedgerEntry } from '../../types/ledger'
-import type { LeaveRequest } from '../../types/leaveRequest'
+import type { HalfDayPortion, LeaveRequest } from '../../types/leaveRequest'
 import { ledgerBalanceForType, pendingDaysForType } from '../../utils/calculateBalance'
 import { getApprovalChain } from '../../utils/getApprovalChain'
 import { validateLeaveRequest } from '../../utils/validateLeaveRequest'
 
+const PREFERRED_TYPE = 'CL'
+
+function defaultTypeCode(settings: LeaveSettings): string {
+  const enabled = settings.leaveTypes.filter((item) => item.enabled)
+  return enabled.some((item) => item.code === PREFERRED_TYPE) ? PREFERRED_TYPE : (enabled[0]?.code ?? '')
+}
+
+/**
+ * `serverBalances` switches balances to the server: a code → available days
+ * map, or null while unknown. Undefined keeps the demo ledger.
+ */
 export function useApplyLeaveDialogState(
   employee: LeaveEmployee,
   settings: LeaveSettings,
   ledger: LedgerEntry[],
   existing: LeaveRequest[],
   employees: LeaveEmployee[],
+  serverBalances?: Record<string, number> | null,
 ) {
-  const [leaveTypeCode, setLeaveTypeCode] = useState('CL')
+  const [selectedCode, setLeaveTypeCode] = useState(() => defaultTypeCode(settings))
   const [fromDate, setFromDate] = useState('')
   const [toDate, setToDate] = useState('')
+  const [portion, setPortion] = useState<HalfDayPortion>('full')
   const [reason, setReason] = useState('')
   const [attachmentName, setAttachmentName] = useState('')
   const [convertLwp, setConvertLwp] = useState(false)
   const [touched, setTouched] = useState<Record<string, boolean>>({})
 
   const reset = useCallback(() => {
-    setLeaveTypeCode('CL')
+    setLeaveTypeCode(defaultTypeCode(settings))
     setFromDate('')
     setToDate('')
+    setPortion('full')
     setReason('')
     setAttachmentName('')
     setConvertLwp(false)
     setTouched({})
-  }, [])
+  }, [settings])
 
+  const serverMode = serverBalances !== undefined
+  const leaveTypeCode = settings.leaveTypes.some((item) => item.enabled && item.code === selectedCode)
+    ? selectedCode
+    : defaultTypeCode(settings)
   const byId = useMemo(() => Object.fromEntries(employees.map((item) => [item.id, item])), [employees])
   const policy = settings.leaveTypes.find((item) => item.code === leaveTypeCode)
+  const halfDayAvailable = Boolean(fromDate && fromDate === toDate && policy?.halfDayAllowed)
+  const effectivePortion: HalfDayPortion = halfDayAvailable ? portion : 'full'
+  const serverBalance = useMemo(
+    () => (serverMode ? { availableByType: serverBalances ?? null } : undefined),
+    [serverBalances, serverMode],
+  )
   const preview = useMemo(
     () =>
       fromDate && toDate && policy
         ? validateLeaveRequest(
-            { employeeId: employee.id, leaveTypeCode, fromDate, toDate, reason, attachmentName, convertExtraToLwp: convertLwp },
+            {
+              employeeId: employee.id,
+              leaveTypeCode,
+              fromDate,
+              toDate,
+              reason,
+              attachmentName,
+              portion: effectivePortion,
+              convertExtraToLwp: convertLwp,
+            },
             settings,
             employee,
             ledger,
             existing,
             employees,
+            serverBalance,
           )
         : null,
-    [attachmentName, convertLwp, employee, employees, existing, fromDate, leaveTypeCode, ledger, policy, reason, settings, toDate],
+    [attachmentName, convertLwp, effectivePortion, employee, employees, existing, fromDate, leaveTypeCode, ledger, policy, reason, serverBalance, settings, toDate],
   )
   const chain = policy && preview ? getApprovalChain(policy, employee, byId, preview.daysCounted) : []
-  const balanceBefore =
-    ledgerBalanceForType(ledger, employee.id, leaveTypeCode) - pendingDaysForType(existing, employee.id, leaveTypeCode)
-  const balanceAfter = balanceBefore - (preview?.daysCounted ?? 0)
+
+  const balanceFor = useCallback(
+    (code: string): number | null => {
+      if (serverMode) return serverBalances ? (serverBalances[code] ?? 0) : null
+      return ledgerBalanceForType(ledger, employee.id, code) - pendingDaysForType(existing, employee.id, code)
+    },
+    [employee.id, existing, ledger, serverBalances, serverMode],
+  )
+  const balanceBefore = balanceFor(leaveTypeCode)
+  const balanceAfter = balanceBefore === null ? null : balanceBefore - (preview?.daysCounted ?? 0)
 
   return {
     policy,
@@ -64,6 +105,7 @@ export function useApplyLeaveDialogState(
     chain,
     balanceBefore,
     balanceAfter,
+    balanceFor,
     hasDates: Boolean(fromDate && toDate),
     leaveTypeCode,
     setLeaveTypeCode,
@@ -71,6 +113,9 @@ export function useApplyLeaveDialogState(
     setFromDate,
     toDate,
     setToDate,
+    portion: effectivePortion,
+    setPortion,
+    halfDayAvailable,
     reason,
     setReason,
     attachmentName,
@@ -79,7 +124,15 @@ export function useApplyLeaveDialogState(
     setConvertLwp,
     touched,
     setTouched,
-    submitPayload: { leaveTypeCode, fromDate, toDate, reason, attachmentName, convertExtraToLwp: convertLwp },
+    submitPayload: {
+      leaveTypeCode,
+      fromDate,
+      toDate,
+      reason,
+      attachmentName,
+      convertExtraToLwp: convertLwp,
+      portion: effectivePortion,
+    },
     reset,
   }
 }

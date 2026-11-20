@@ -16,6 +16,7 @@ import { useLoginMutation } from '../api/authApi'
 import { clearCredentials } from '../store/authSlice'
 import { normalizeAuthUser } from '../utils/authUser'
 import { getLandingRouteForUserRole } from '../utils/landingRoute'
+import { hasPasswordResetState, PASSWORD_RESET_DONE_MESSAGE } from '../utils/passwordReset'
 import { getSafeReturnPath } from '../utils/returnPath'
 import { PasswordInput } from './PasswordInput'
 
@@ -36,7 +37,10 @@ export function LoginForm() {
   const [rememberMe, setRememberMe] = useState(false)
   const [errors, setErrors] = useState<FormErrors>({})
   const [formError, setFormError] = useState<string | null>(null)
-  const [toastMessage, setToastMessage] = useState<string | null>(null)
+  // Set by the reset-password screen after a successful reset (no auto sign-in).
+  const [toastMessage, setToastMessage] = useState<string | null>(() =>
+    hasPasswordResetState(location.state) ? PASSWORD_RESET_DONE_MESSAGE : null,
+  )
 
   useEffect(() => {
     if (!toastMessage) return

@@ -5,6 +5,9 @@
  * `features/<name>/api/<name>Api.ts` via `baseApi.injectEndpoints({ ... })`
  * and exports the generated hooks (e.g. `useGetXQuery`, `useCreateXMutation`).
  * Unwrap the server envelope with `transformResponse: unwrapData`.
+ *
+ * Requests never use the browser HTTP cache (`cache: 'no-store'` below);
+ * RTK Query's in-memory cache and tag invalidation handle reuse.
  */
 import {
   createApi,
@@ -22,8 +25,17 @@ import type { LoginResponseData } from '@/features/auth/types/auth.types'
 import { API_TAGS } from './apiTags'
 import type { ApiResponse } from './types'
 
+/**
+ * Every request bypasses the browser HTTP cache: authenticated responses are
+ * never stored on disk or revalidated by the browser into a 304, and the cache
+ * key (URL only) cannot hand one account's data to another. This is a fetch
+ * cache mode, not a `Cache-Control` request header, so it adds no CORS
+ * preflight header. RTK Query's in-memory cache is unaffected. A request may
+ * still override it via its own `cache` option.
+ */
 const rawBaseQuery = fetchBaseQuery({
   baseUrl: env.apiBaseUrl,
+  cache: 'no-store',
   prepareHeaders: (headers, { getState }) => {
     const token = (getState() as RootState).auth.accessToken
     if (token) {
@@ -59,8 +71,17 @@ export function expireSession(): void {
 }
 
 const REFRESH_URL = '/auth/refresh'
-/** Endpoints whose 401 is a real answer (bad credentials / dead refresh token), never a reason to refresh. */
-const NO_REAUTH_URLS = ['/auth/login', REFRESH_URL, '/auth/logout']
+/**
+ * Endpoints whose 401 is a real answer (bad credentials / dead refresh token /
+ * invalid reset token), never a reason to refresh.
+ */
+const NO_REAUTH_URLS = [
+  '/auth/login',
+  REFRESH_URL,
+  '/auth/logout',
+  '/auth/forgot-password',
+  '/auth/reset-password',
+]
 
 /**
  * True while a sign-out is in progress. Blocks token refresh so a late 401
@@ -82,6 +103,28 @@ type RefreshOutcome =
 
 function getRequestUrl(args: string | FetchArgs): string {
   return typeof args === 'string' ? args : args.url
+}
+
+/** `error` code of the CUSTOM_ERROR returned for a successful GET without a body. */
+export const EMPTY_RESPONSE_ERROR = 'EMPTY_RESPONSE'
+
+function isGetRequest(args: string | FetchArgs): boolean {
+  return typeof args === 'string' || !args.method || args.method.toUpperCase() === 'GET'
+}
+
+/**
+ * Every API GET answers with a JSON body, so a 2xx GET with an empty body is
+ * an error, never data an endpoint could unwrap. Non-2xx statuses (304
+ * included) already fail `fetchBaseQuery`'s 2xx `validateStatus`. Empty
+ * bodies on other methods (e.g. 204 from DELETE) pass through.
+ */
+function rejectEmptyGet(
+  args: string | FetchArgs,
+  result: Awaited<ReturnType<typeof baseQueryWithRefresh>>,
+): Awaited<ReturnType<typeof baseQueryWithRefresh>> {
+  if (result.error || !isGetRequest(args)) return result
+  if (result.data !== null && result.data !== undefined) return result
+  return { error: { status: 'CUSTOM_ERROR', error: EMPTY_RESPONSE_ERROR }, meta: result.meta }
 }
 
 /**
@@ -149,7 +192,7 @@ function refreshSession(
  * original request exactly once. If refresh fails the session is cleared and
  * the original 401 is returned to every waiting request.
  */
-const baseQueryWithReauth: BaseQueryFn<
+const baseQueryWithRefresh: BaseQueryFn<
   string | FetchArgs,
   unknown,
   FetchBaseQueryError
@@ -184,6 +227,13 @@ const baseQueryWithReauth: BaseQueryFn<
   // Single retry; its outcome (even another 401) is returned as-is.
   return rawBaseQuery(args, api, extraOptions)
 }
+
+const baseQueryWithReauth: BaseQueryFn<
+  string | FetchArgs,
+  unknown,
+  FetchBaseQueryError
+> = async (args, api, extraOptions) =>
+  rejectEmptyGet(args, await baseQueryWithRefresh(args, api, extraOptions))
 
 export const baseApi = createApi({
   reducerPath: 'api',
