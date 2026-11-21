@@ -76,6 +76,7 @@ export function monthCategoryCounts(
   const prefix = monthPrefix(month)
   const counts: Record<OfficeCalendarScheduleCategory, number> = {
     holiday: 0,
+    weeklyOff: 0,
     event: 0,
     meeting: 0,
     training: 0,
@@ -86,6 +87,25 @@ export function monthCategoryCounts(
   for (const event of events) {
     if (!event.startDate.startsWith(prefix)) continue
     counts[eventTypeToScheduleCategory(event.type)] += 1
+  }
+  return counts
+}
+
+export function scheduleCategoryCounts(
+  month: Date,
+  items: OfficeCalendarScheduleItem[],
+): Record<OfficeCalendarScheduleCategory, number> {
+  const prefix = monthPrefix(month)
+  const counts: Record<OfficeCalendarScheduleCategory, number> = {
+    holiday: 0,
+    weeklyOff: 0,
+    event: 0,
+    meeting: 0,
+    training: 0,
+  }
+  for (const item of items) {
+    if (!item.dateKey.startsWith(prefix)) continue
+    counts[item.category] += 1
   }
   return counts
 }
@@ -105,7 +125,7 @@ export function upcomingAfterDate(
 }
 
 export function formatScheduleTime(item: OfficeCalendarScheduleItem): string {
-  if (item.allDay || item.category === 'holiday') return 'All day'
+  if (item.allDay || item.category === 'holiday' || item.category === 'weeklyOff') return 'All day'
   if (!item.startTime) return '—'
   return item.endTime ? `${item.startTime}–${item.endTime}` : item.startTime
 }

@@ -16,6 +16,7 @@ export function useHolidayPermissions() {
       canCreate: canAccess('holidays.create'),
       canUpdate: canAccess('holidays.update'),
       canDelete: canAccess('holidays.delete'),
+      canNotify: canAccess('holidays.notify'),
     }),
     [canAccess],
   )

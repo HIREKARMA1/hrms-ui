@@ -21,6 +21,7 @@ import { appendLedger } from '../../services/requestActions'
 import { leaveTodayIso } from '../../utils/leaveToday'
 import { LeaveConfirmDialog } from '../shared/LeaveConfirmDialog'
 import { LEAVE_FIELD_LABEL, LEAVE_FILTER_SELECT, LEAVE_SECONDARY_BUTTON } from '../shared/leaveUi'
+import { AccrualPoliciesLiveTable } from './AccrualPoliciesLiveTable'
 import { AccrualsTabStats } from './AccrualsTabStats'
 import { ApiAccrualsTab } from './ApiAccrualsTab'
 
@@ -86,6 +87,7 @@ function DemoAccrualsTab({ openAccrualConfirm }: { openAccrualConfirm: boolean }
         yearEndLines={yearEndPreview.length}
         accrualMonth={yearMonth}
       />
+      <AccrualPoliciesLiveTable />
       <Card>
         <CardHeader className="border-b border-hrms-border pb-3">
           <CardTitle className="text-base font-semibold text-hrms-navy">Monthly accrual</CardTitle>
@@ -99,6 +101,8 @@ function DemoAccrualsTab({ openAccrualConfirm }: { openAccrualConfirm: boolean }
           {permissions.canRunAccrual ? <Button type="button" onClick={() => setConfirmAccrual(true)}>Run accrual</Button> : null}
         </CardContent>
       </Card>
+      <CarryForwardPoliciesLiveTable />
+      <EncashmentPoliciesLiveTable />
       <Card>
         <CardHeader className="border-b border-hrms-border pb-3">
           <CardTitle className="text-base font-semibold text-hrms-navy">Year-end preview</CardTitle>

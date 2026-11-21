@@ -2,10 +2,16 @@
  * Category colors for Office Calendar schedule tab (grid, agenda, upcoming).
  */
 
-export type OfficeCalendarScheduleCategory = 'holiday' | 'event' | 'meeting' | 'training'
+export type OfficeCalendarScheduleCategory =
+  | 'holiday'
+  | 'weeklyOff'
+  | 'event'
+  | 'meeting'
+  | 'training'
 
 export const OFFICE_CALENDAR_SCHEDULE_CATEGORIES: OfficeCalendarScheduleCategory[] = [
   'holiday',
+  'weeklyOff',
   'event',
   'meeting',
   'training',
@@ -22,6 +28,14 @@ export const OFFICE_CALENDAR_SCHEDULE_CATEGORY_STYLES: Record<
     bar: 'border-l-[3px] border-l-amber-500',
     dateChip: 'bg-amber-50 text-amber-900',
     dot: 'bg-amber-500',
+  },
+  weeklyOff: {
+    chipActive: 'border-slate-500 bg-slate-100 text-slate-900',
+    chipDot: 'bg-slate-500',
+    pill: 'border-l-slate-500 bg-slate-100 text-slate-800',
+    bar: 'border-l-[3px] border-l-slate-500',
+    dateChip: 'bg-slate-100 text-slate-800',
+    dot: 'bg-slate-500',
   },
   event: {
     chipActive: 'border-blue-500 bg-blue-100 text-blue-900',

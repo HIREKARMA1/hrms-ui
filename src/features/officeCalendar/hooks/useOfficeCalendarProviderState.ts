@@ -1,88 +1,91 @@
-import { useCallback, useEffect, useState } from 'react'
+/**
+ * Composes Office Calendar context state from demo, holidays, and events branches.
+ */
+import { useCallback, useMemo } from 'react'
 
-import {
-  deleteOfficeEvent,
-  deleteOfficeHoliday,
-  fetchOfficeEvents,
-  fetchOfficeHolidays,
-  upsertOfficeEvent,
-  upsertOfficeHoliday,
-} from '../services/officeCalendarService'
-import type {
-  OfficeCalendarEvent,
-  OfficeCalendarEventInput,
-  OfficeHoliday,
-  OfficeHolidayInput,
-} from '../types/officeCalendar'
+import { useAppSelector } from '@/app/store/hooks'
+import { selectCurrentUser } from '@/features/auth/store/authSlice'
+
 import type { OfficeCalendarContextValue } from '../context/officeCalendarContext'
+import { resolveOfficeCalendarProviderError } from './officeCalendarProviderError'
+import { useOfficeCalendarDemoData } from './useOfficeCalendarDemoData'
+import { useOfficeCalendarEventBranch } from './useOfficeCalendarEventBranch'
+import { useOfficeCalendarHolidayBranch } from './useOfficeCalendarHolidayBranch'
+import { useShouldFetchCalendarEvents } from './useShouldFetchCalendarEvents'
+import { useShouldFetchHolidays } from './useShouldFetchHolidays'
 
 export function useOfficeCalendarProviderState(): OfficeCalendarContextValue {
-  const [events, setEvents] = useState<OfficeCalendarEvent[]>([])
-  const [holidays, setHolidays] = useState<OfficeHoliday[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const authUser = useAppSelector(selectCurrentUser)
+  const shouldFetchHolidays = useShouldFetchHolidays()
+  const shouldFetchCalendarEvents = useShouldFetchCalendarEvents()
 
-  const load = useCallback(() => {
-    setLoading(true)
-    setError(null)
-    Promise.all([fetchOfficeEvents(), fetchOfficeHolidays()])
-      .then(([nextEvents, nextHolidays]) => {
-        setEvents(nextEvents)
-        setHolidays(nextHolidays)
-        setLoading(false)
-      })
-      .catch((cause: Error) => {
-        setError(cause.message)
-        setLoading(false)
-      })
-  }, [])
+  const demo = useOfficeCalendarDemoData(shouldFetchCalendarEvents, shouldFetchHolidays)
+  const holidaysBranch = useOfficeCalendarHolidayBranch(shouldFetchHolidays, {
+    demoHolidays: demo.demoHolidays,
+    setDemoHolidays: demo.setDemoHolidays,
+  })
+  const eventsBranch = useOfficeCalendarEventBranch(shouldFetchCalendarEvents, authUser?.employeeId, {
+    demoEvents: demo.demoEvents,
+    setDemoEvents: demo.setDemoEvents,
+  })
 
-  useEffect(() => {
-    const handle = window.setTimeout(() => load(), 0)
-    return () => window.clearTimeout(handle)
-  }, [load])
+  const loading =
+    (shouldFetchCalendarEvents ? eventsBranch.eventsLoading : demo.demoEventsLoading) ||
+    (shouldFetchHolidays ? holidaysBranch.holidaysLoading : demo.demoHolidaysLoading)
 
-  const saveHoliday = useCallback(async (input: OfficeHolidayInput, id?: string) => {
-    const saved = await upsertOfficeHoliday(input, id)
-    setHolidays((current) => {
-      if (id) {
-        return current.map((item) => (item.id === id ? saved : item))
-      }
-      return [...current, saved]
-    })
-    return saved
-  }, [])
+  const error = useMemo(
+    () =>
+      resolveOfficeCalendarProviderError({
+        shouldFetchCalendarEvents,
+        shouldFetchHolidays,
+        eventsIsError: eventsBranch.eventsIsError,
+        eventsError: eventsBranch.eventsError,
+        demoEventsError: demo.demoEventsError,
+        holidaysIsError: holidaysBranch.holidaysIsError,
+        holidaysError: holidaysBranch.holidaysError,
+        demoHolidaysError: demo.demoHolidaysError,
+      }),
+    [
+      demo.demoEventsError,
+      demo.demoHolidaysError,
+      eventsBranch.eventsError,
+      eventsBranch.eventsIsError,
+      holidaysBranch.holidaysError,
+      holidaysBranch.holidaysIsError,
+      shouldFetchCalendarEvents,
+      shouldFetchHolidays,
+    ],
+  )
 
-  const removeHoliday = useCallback(async (id: string) => {
-    await deleteOfficeHoliday(id)
-    setHolidays((current) => current.filter((item) => item.id !== id))
-  }, [])
-
-  const saveEvent = useCallback(async (input: OfficeCalendarEventInput, id?: string) => {
-    const saved = await upsertOfficeEvent(input, id)
-    setEvents((current) => {
-      if (id) {
-        return current.map((item) => (item.id === id ? saved : item))
-      }
-      return [...current, saved]
-    })
-    return saved
-  }, [])
-
-  const removeEvent = useCallback(async (id: string) => {
-    await deleteOfficeEvent(id)
-    setEvents((current) => current.filter((item) => item.id !== id))
-  }, [])
+  const reload = useCallback(() => {
+    if (shouldFetchCalendarEvents) {
+      void eventsBranch.refetchEvents()
+      if (eventsBranch.eventSearchText.length >= 1) void eventsBranch.refetchSearch()
+    } else demo.loadDemoEvents()
+    if (shouldFetchHolidays) void holidaysBranch.refetchHolidays()
+    else demo.loadDemoHolidays()
+  }, [demo, eventsBranch, holidaysBranch, shouldFetchCalendarEvents, shouldFetchHolidays])
 
   return {
-    events,
-    holidays,
+    events: eventsBranch.events,
+    holidays: holidaysBranch.holidays,
+    holidayYear: holidaysBranch.holidayYear,
+    setHolidayYear: holidaysBranch.setHolidayYear,
+    holidaysSource: holidaysBranch.holidaysSource,
+    holidaysFetching: holidaysBranch.holidaysFetching,
+    eventYear: eventsBranch.eventYear,
+    setEventYear: eventsBranch.setEventYear,
+    eventsSource: eventsBranch.eventsSource,
+    eventsFetching: eventsBranch.eventsFetching,
+    eventSearchQuery: eventsBranch.eventSearchQuery,
+    setEventSearchQuery: eventsBranch.setEventSearchQuery,
+    eventSearchFetching: eventsBranch.eventSearchFetching,
     loading,
     error,
-    reload: load,
-    saveHoliday,
-    removeHoliday,
-    saveEvent,
-    removeEvent,
+    reload,
+    saveHoliday: holidaysBranch.saveHoliday,
+    removeHoliday: holidaysBranch.removeHoliday,
+    saveEvent: eventsBranch.saveEvent,
+    removeEvent: eventsBranch.removeEvent,
   }
 }

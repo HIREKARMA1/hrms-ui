@@ -1,6 +1,8 @@
 import type { Dispatch, SetStateAction } from 'react'
 
 import type { OfficeHolidayInput, OfficeHolidayType } from '../../types/officeCalendar'
+import { OFFICE_HOLIDAY_NOTIFY_INELIGIBLE_HINT } from '@/features/leave/utils/holidayNotifyEligibility'
+
 import { OFFICE_HOLIDAY_TYPES } from '../../utils/officeHolidayForm'
 
 const fieldClass = 'mt-1 h-10 w-full rounded-xl border border-hrms-border px-3 text-hrms-navy'
@@ -47,6 +49,9 @@ export function OfficeHolidayFormFields({ draft, setDraft }: OfficeHolidayFormFi
             </option>
           ))}
         </select>
+        {draft.type === 'Optional' ? (
+          <p className="mt-1 text-xs text-hrms-text-secondary">{OFFICE_HOLIDAY_NOTIFY_INELIGIBLE_HINT}</p>
+        ) : null}
       </label>
       <label className="text-sm text-hrms-text-secondary sm:col-span-2">
         Description

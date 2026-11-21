@@ -16,6 +16,7 @@ import { useOfficeCalendar } from '../hooks/useOfficeCalendar'
 import { useOfficeCalendarEventDialogs } from '../hooks/useOfficeCalendarEventDialogs'
 import { useOfficeCalendarRoute } from '../hooks/useOfficeCalendarRoute'
 import { useOfficeCalendarScope } from '../hooks/useOfficeCalendarScope'
+import { useCalendarEventPermissions } from '@/features/rbac/hooks/useCalendarEventPermissions'
 import { isOfficeCalendarHolidayTab } from '../utils/officeCalendarTabFeatures'
 import { visibleEventsForRole } from '../utils/visibleCalendarForRole'
 
@@ -23,8 +24,29 @@ function OfficeCalendarPanels() {
   const session = useRbacSession()
   const role = (session.roleCode ?? 'HR_ADMIN') as UserRole
   const { activeTab, goToTab } = useOfficeCalendarRoute(role)
-  const { loading, error, reload, events, holidays, saveHoliday, removeHoliday } = useOfficeCalendar()
+  const {
+    loading,
+    error,
+    reload,
+    events,
+    holidays,
+    saveHoliday,
+    removeHoliday,
+    eventsSource,
+    holidaysSource,
+    setEventYear,
+    eventSearchQuery,
+    setEventSearchQuery,
+    eventSearchFetching,
+  } = useOfficeCalendar()
   const scope = useOfficeCalendarScope(role)
+  const calendarEventPerms = useCalendarEventPermissions()
+  const canCreateEvents =
+    scope.canManageEvents && (eventsSource === 'demo' || calendarEventPerms.canCreate)
+  const canEditEvents =
+    scope.canManageEvents && (eventsSource === 'demo' || calendarEventPerms.canUpdate)
+  const canDeleteEvents =
+    scope.canManageEvents && (eventsSource === 'demo' || calendarEventPerms.canDelete)
   const visibleEvents = useMemo(() => visibleEventsForRole(events, role), [events, role])
   const dialogs = useOfficeCalendarEventDialogs(visibleEvents)
   const { canAccess } = useFeatureAccess()
@@ -62,12 +84,18 @@ function OfficeCalendarPanels() {
         visibleEvents={visibleEvents}
         canViewOverview={scope.canViewOverview}
         isReadOnlyHolidays={scope.isReadOnlyHolidays}
-        canManageEvents={scope.canManageEvents}
+        canCreateEvents={canCreateEvents}
         goToTab={goToTab}
         onCreateEvent={dialogs.openCreateEvent}
         onOpenEvent={dialogs.setDetailEventId}
         onSaveHoliday={saveHoliday}
         onDeleteHoliday={removeHoliday}
+        eventsSource={eventsSource}
+        holidaysSource={holidaysSource}
+        onVisibleEventYearChange={setEventYear}
+        eventSearchQuery={eventSearchQuery}
+        onEventSearchQueryChange={setEventSearchQuery}
+        eventSearchFetching={eventSearchFetching}
       />
 
       <OfficeCalendarEventDialogHost
@@ -78,7 +106,8 @@ function OfficeCalendarPanels() {
         onDetailOpenChange={(open) => {
           if (!open) dialogs.setDetailEventId(null)
         }}
-        canManageEvents={scope.canManageEvents}
+        canEditEvents={canEditEvents}
+        canDeleteEvents={canDeleteEvents}
         onEditDetail={() => {
           if (dialogs.detailEvent) dialogs.openEditEvent(dialogs.detailEvent)
         }}

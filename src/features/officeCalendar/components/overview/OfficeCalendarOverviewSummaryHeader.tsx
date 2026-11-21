@@ -15,6 +15,7 @@ type OfficeCalendarOverviewSummaryHeaderProps = {
   role: UserRole
   holidayTab: OfficeCalendarPageTabId
   onNavigate: (tab: OfficeCalendarPageTabId) => void
+  canCreateEvents?: boolean
   onScheduleEvent?: () => void
 }
 
@@ -22,6 +23,7 @@ export function OfficeCalendarOverviewSummaryHeader({
   role,
   holidayTab,
   onNavigate,
+  canCreateEvents,
   onScheduleEvent,
 }: OfficeCalendarOverviewSummaryHeaderProps) {
   const showManage = isHrAdminExperience(role)
@@ -48,7 +50,7 @@ export function OfficeCalendarOverviewSummaryHeader({
         <Palmtree className="h-4 w-4" aria-hidden />
         {holidayLabel}
       </Button>
-      {showManage && onScheduleEvent ? (
+      {canCreateEvents && onScheduleEvent ? (
         <Button
           type="button"
           size="sm"
