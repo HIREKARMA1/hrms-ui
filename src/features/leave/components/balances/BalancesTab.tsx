@@ -35,7 +35,6 @@ export function BalancesTab() {
 
 function DemoBalancesTab() {
   const { snapshot } = useLeave()
-  const canFetchLeaves = useShouldFetchLeaveList()
   const [search, setSearch] = useState('')
   const [liveSearch, setLiveSearch] = useState('')
   const [selectedId, setSelectedId] = useState<string | null>(null)
