@@ -11,13 +11,16 @@ import { getApiErrorMessage } from '@/services/api/errors'
 import { useGetLeaveRequestsQuery } from '../api/leaveApi'
 import type { LeaveSnapshot } from '../services/leaveService'
 import { fetchLeaveSnapshot } from '../services/leaveService'
+import { useLeaveApiSnapshot } from './useLeaveApiSnapshot'
+import { useLeaveViewer } from './useLeaveViewer'
 
-export function useLeaveProviderState() {
-  const [loading, setLoading] = useState(true)
+function useDemoLeaveState(enabled: boolean) {
+  const [loading, setLoading] = useState(enabled)
   const [error, setError] = useState<string | null>(null)
   const [snapshot, setSnapshot] = useState<LeaveSnapshot | null>(null)
 
   const reload = useCallback(async () => {
+    if (!enabled) return
     setLoading(true)
     setError(null)
     try {
@@ -32,7 +35,7 @@ export function useLeaveProviderState() {
     if (shouldFetchLeaves) {
       await refetchLeaveList()
     }
-  }, [])
+  }, [enabled])
 
   useEffect(() => {
     if (!enabled) return
@@ -40,7 +43,15 @@ export function useLeaveProviderState() {
       void reload()
     }, 0)
     return () => window.clearTimeout(handle)
-  }, [reload])
+  }, [enabled, reload])
 
   return { loading, error, snapshot, reload }
+}
+
+export function useLeaveProviderState() {
+  const { viewer } = useLeaveViewer()
+  const fromServer = viewer.source === 'authenticated'
+  const demo = useDemoLeaveState(!fromServer)
+  const api = useLeaveApiSnapshot(fromServer, viewer.employeeId)
+  return fromServer ? api : demo
 }
