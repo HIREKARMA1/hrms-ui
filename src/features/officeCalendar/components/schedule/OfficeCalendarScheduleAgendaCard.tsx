@@ -15,7 +15,7 @@ type OfficeCalendarScheduleAgendaCardProps = {
   selectedDateKey: string
   agendaTitle: string
   dayItems: OfficeCalendarScheduleItem[]
-  canManageEvents?: boolean
+  canCreateEvents?: boolean
   onCreateEvent?: () => void
   onOpenEvent?: (id: string) => void
 }
@@ -24,7 +24,7 @@ export function OfficeCalendarScheduleAgendaCard({
   selectedDateKey,
   agendaTitle,
   dayItems,
-  canManageEvents,
+  canCreateEvents,
   onCreateEvent,
   onOpenEvent,
 }: OfficeCalendarScheduleAgendaCardProps) {
@@ -47,7 +47,7 @@ export function OfficeCalendarScheduleAgendaCard({
             <p className="text-xs text-gray-500">Click an event for details</p>
           </div>
         </div>
-        {canManageEvents && onCreateEvent ? (
+        {canCreateEvents && onCreateEvent ? (
           <Button
             type="button"
             size="sm"

@@ -66,7 +66,9 @@ export function OfficeHolidayFormDialog({
                 title={mode === 'create' ? 'Add holiday' : 'Edit holiday'}
                 description={
                   useLiveApi
-                    ? 'Company holidays from the server. Saves still use local demo until POST/PATCH is wired.'
+                    ? useLiveApi && mode === 'create'
+                      ? 'Creates a company holiday via POST /holidays.'
+                      : 'Details load from GET /holidays/{id}. Saves via PATCH /holidays/{id}.'
                     : 'Office calendar holidays (mock). Not synced with Attendance yet.'
                 }
               />
@@ -95,16 +97,7 @@ export function OfficeHolidayFormDialog({
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                 Cancel
               </Button>
-              <Button
-                type="submit"
-                disabled={saving || (useLiveApi && mode === 'edit')}
-                className="bg-hrms-primary text-white"
-                title={
-                  useLiveApi && mode === 'edit'
-                    ? 'Server holiday edit will be enabled after PATCH /holidays is wired.'
-                    : undefined
-                }
-              >
+              <Button type="submit" disabled={saving} className="bg-hrms-primary text-white">
                 {saving ? 'Saving…' : mode === 'create' ? 'Add holiday' : 'Save changes'}
               </Button>
             </PayrollDialogFooter>

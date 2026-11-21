@@ -11,6 +11,11 @@ import {
   HOLIDAY_LIST_TH,
 } from '@/components/shared/holidayList/holidayListTableUi'
 
+import {
+  isOfficeHolidayTypeNotifiable,
+  OFFICE_HOLIDAY_NOTIFY_INELIGIBLE_HINT,
+} from '@/features/leave/utils/holidayNotifyEligibility'
+
 import type { OfficeHoliday } from '../../types/officeCalendar'
 import { formatOfficeDate } from '../../utils/formatOfficeCalendarDate'
 
@@ -20,8 +25,11 @@ type OfficeCalendarHolidayTableProps = {
   /** Per-action permission (default allowed); combined with `readOnly`. */
   canEdit?: boolean
   canDelete?: boolean
+  canNotify?: boolean
   onEdit: (item: OfficeHoliday) => void
   onDelete: (id: string) => void
+  onNotify?: (item: OfficeHoliday) => void
+  isNotifyLoading?: (holidayId: string) => boolean
   emptyLabel?: string
 }
 
@@ -30,11 +38,14 @@ export function OfficeCalendarHolidayTable({
   readOnly,
   canEdit = true,
   canDelete = true,
+  canNotify = false,
   onEdit,
   onDelete,
+  onNotify,
+  isNotifyLoading,
   emptyLabel = 'No holidays match your filters.',
 }: OfficeCalendarHolidayTableProps) {
-  const showActions = !readOnly && (canEdit || canDelete)
+  const showActions = !readOnly && (canEdit || canDelete || canNotify)
   const colSpan = showActions ? 5 : 4
 
   return (
@@ -73,6 +84,11 @@ export function OfficeCalendarHolidayTable({
                       onDelete={() => onDelete(item.id)}
                       showEdit={canEdit}
                       showDelete={canDelete}
+                      showNotify={canNotify && isOfficeHolidayTypeNotifiable(item.type)}
+                      showNotifyBlocked={canNotify && !isOfficeHolidayTypeNotifiable(item.type)}
+                      notifyBlockedTitle={OFFICE_HOLIDAY_NOTIFY_INELIGIBLE_HINT}
+                      onNotify={onNotify ? () => onNotify(item) : undefined}
+                      notifyLoading={isNotifyLoading?.(item.id) ?? false}
                     />
                   </td>
                 ) : null}

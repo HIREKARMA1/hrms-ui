@@ -2,6 +2,7 @@ import { useCallback, useMemo, useState, type ReactNode } from 'react'
 
 import { OfficeCalendarConfirmDialog } from '../components/OfficeCalendarConfirmDialog'
 import {
+  OFFICE_CALENDAR_CONFIRM_DEFAULTS,
   OfficeCalendarConfirmContext,
   type OfficeCalendarConfirmRequest,
 } from './officeCalendarConfirmContext'
@@ -33,6 +34,9 @@ export function OfficeCalendarConfirmProvider({ children }: { children: ReactNod
         open={Boolean(pending)}
         title={pending?.title ?? ''}
         description={pending?.description ?? ''}
+        confirmLabel={pending?.confirmLabel ?? OFFICE_CALENDAR_CONFIRM_DEFAULTS.confirmLabel}
+        variant={pending?.variant ?? OFFICE_CALENDAR_CONFIRM_DEFAULTS.variant}
+        footnote={pending?.footnote}
         onOpenChange={(open) => {
           if (!open) close(false)
         }}

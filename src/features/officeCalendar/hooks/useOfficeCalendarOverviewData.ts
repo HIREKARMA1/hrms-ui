@@ -3,7 +3,16 @@ import { useMemo } from 'react'
 import type { OfficeCalendarEvent, OfficeHoliday } from '../types/officeCalendar'
 import { toDateKey } from '../utils/formatOfficeCalendarDate'
 
-export function useOfficeCalendarOverviewData(holidays: OfficeHoliday[], events: OfficeCalendarEvent[]) {
+type OverviewEventOverrides = {
+  todayEvents?: OfficeCalendarEvent[]
+  upcomingEvents?: OfficeCalendarEvent[]
+}
+
+export function useOfficeCalendarOverviewData(
+  holidays: OfficeHoliday[],
+  events: OfficeCalendarEvent[],
+  overrides?: OverviewEventOverrides,
+) {
   const todayKey = useMemo(() => toDateKey(new Date()), [])
 
   const todayHolidays = useMemo(
@@ -11,25 +20,23 @@ export function useOfficeCalendarOverviewData(holidays: OfficeHoliday[], events:
     [holidays, todayKey],
   )
 
-  const todayEvents = useMemo(
-    () =>
-      events.filter((item) => {
-        if (item.startDate === todayKey || item.endDate === todayKey) return true
-        return item.startDate <= todayKey && item.endDate >= todayKey
-      }),
-    [events, todayKey],
-  )
+  const todayEvents = useMemo(() => {
+    if (overrides?.todayEvents) return overrides.todayEvents
+    return events.filter((item) => {
+      if (item.startDate === todayKey || item.endDate === todayKey) return true
+      return item.startDate <= todayKey && item.endDate >= todayKey
+    })
+  }, [events, overrides?.todayEvents, todayKey])
 
-  const upcomingEvents = useMemo(
-    () =>
-      [...events]
-        .filter((item) => item.startDate >= todayKey)
-        .sort((a, b) =>
-          `${a.startDate}${a.startTime ?? ''}`.localeCompare(`${b.startDate}${b.startTime ?? ''}`),
-        )
-        .slice(0, 6),
-    [events, todayKey],
-  )
+  const upcomingEvents = useMemo(() => {
+    if (overrides?.upcomingEvents) return overrides.upcomingEvents
+    return [...events]
+      .filter((item) => item.startDate >= todayKey)
+      .sort((a, b) =>
+        `${a.startDate}${a.startTime ?? ''}`.localeCompare(`${b.startDate}${b.startTime ?? ''}`),
+      )
+      .slice(0, 6)
+  }, [events, overrides?.upcomingEvents, todayKey])
 
   const upcomingHolidays = useMemo(
     () =>
@@ -46,10 +53,10 @@ export function useOfficeCalendarOverviewData(holidays: OfficeHoliday[], events:
     return toDateKey(end)
   }, [])
 
-  const thisWeekCount = useMemo(
-    () => events.filter((item) => item.startDate >= todayKey && item.startDate <= weekEnd).length,
-    [events, todayKey, weekEnd],
-  )
+  const thisWeekCount = useMemo(() => {
+    const source = overrides?.upcomingEvents ?? events
+    return source.filter((item) => item.startDate >= todayKey && item.startDate <= weekEnd).length
+  }, [events, overrides?.upcomingEvents, todayKey, weekEnd])
 
   return {
     todayKey,

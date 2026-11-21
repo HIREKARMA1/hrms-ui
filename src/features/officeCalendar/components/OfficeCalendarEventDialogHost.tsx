@@ -9,7 +9,8 @@ type OfficeCalendarEventDialogHostProps = {
   detailEvent: OfficeCalendarEvent | null
   detailOpen: boolean
   onDetailOpenChange: (open: boolean) => void
-  canManageEvents: boolean
+  canEditEvents: boolean
+  canDeleteEvents: boolean
   onEditDetail: () => void
   onDetailDeleted: () => void
 }
@@ -20,7 +21,8 @@ export function OfficeCalendarEventDialogHost({
   detailEvent,
   detailOpen,
   onDetailOpenChange,
-  canManageEvents,
+  canEditEvents,
+  canDeleteEvents,
   onEditDetail,
   onDetailDeleted,
 }: OfficeCalendarEventDialogHostProps) {
@@ -37,7 +39,8 @@ export function OfficeCalendarEventDialogHost({
         event={detailEvent}
         open={detailOpen}
         onOpenChange={onDetailOpenChange}
-        canManage={canManageEvents}
+        canEdit={canEditEvents}
+        canDelete={canDeleteEvents}
         onEdit={onEditDetail}
         onDeleted={onDetailDeleted}
       />

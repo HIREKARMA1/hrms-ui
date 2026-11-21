@@ -10,6 +10,8 @@ export const API_TAGS = [
   'Leave',
   'Attendance',
   'Holiday',
+  'CalendarEvent',
+  'WeeklyOff',
   'Lead',
   'Dashboard',
 ] as const

@@ -60,6 +60,18 @@ export const FEATURE_PERMISSION_MAP: Partial<
   // GET /holidays
   'attendance.holidays': 'holidays:read',
   'calendar.holidays': 'holidays:read',
+  // GET /calendar/events
+  'calendar.events': 'calendar:read',
+  // POST /calendar/events
+  'calendar.create': 'calendar:create',
+  // PATCH /calendar/events/:id
+  'calendar.update': 'calendar:update',
+  // DELETE /calendar/events/:id
+  'calendar.delete': 'calendar:delete',
+  // GET /calendar/weekly-offs, GET …/dates
+  'calendar.weeklyOff': 'calendar:read',
+  // POST /calendar/weekly-offs
+  'calendar.weeklyOff.configure': 'calendar:configure',
   // GET /leads
   'leads.overview': 'leads:read',
   'leads.my': 'leads:read',
@@ -75,6 +87,8 @@ export const FEATURE_PERMISSION_MAP: Partial<
   'holidays.create': 'holidays:create',
   'holidays.update': 'holidays:update',
   'holidays.delete': 'holidays:delete',
+  'holidays.import': 'holidays:create',
+  'holidays.notify': 'holidays:notify',
   // Leave module. Views: GET /leaves, /leaves/:id, /leaves/calendar,
   // /leaves/balance/:employeeId, /leaves/history/:employeeId
   'leave.overview': 'leaves:read',
@@ -110,7 +124,7 @@ export const FEATURE_PERMISSION_MAP: Partial<
 /**
  * INTERIM FALLBACK - only for features with no backend permission code
  * (attendance except holidays, recruitment, documents, dashboards, audit,
- * system settings, employee analytics widgets, calendar events, lead team /
+ * system settings, employee analytics widgets, calendar event writes, lead team /
  * manage views). Approved as a temporary policy until the backend defines
  * codes for these modules. Always evaluated for a role the user really holds
  * (never one derived from the URL alone). Entries for mapped features are

@@ -10,6 +10,8 @@ export type ApiHolidayItem = {
   date?: string
   holidayDate?: string
   type?: string
+  /** Some responses use `category` instead of `type`. */
+  category?: string
   holidayType?: string
   state?: string
   departmentId?: string | null

@@ -83,7 +83,7 @@ export function useOfficeHolidayFormDialog({
       showToast(mode === 'edit' ? 'Holiday updated.' : 'Holiday added.')
       onOpenChange(false)
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Could not save holiday.')
+      setError(getApiErrorMessage(cause, 'Could not save holiday.'))
     } finally {
       setSaving(false)
     }

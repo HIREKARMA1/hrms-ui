@@ -1,15 +1,7 @@
-import type { OfficeHoliday, OfficeHolidayType } from '@/features/officeCalendar/types/officeCalendar'
-import { OFFICE_HOLIDAY_TYPES } from '@/features/officeCalendar/utils/officeHolidayForm'
+import type { OfficeHoliday } from '@/features/officeCalendar/types/officeCalendar'
 
 import type { ApiHolidayItem } from '../types/api/holidaysList.types'
-
-function mapHolidayType(raw?: string): OfficeHolidayType {
-  if (!raw) return 'Company'
-  const match = OFFICE_HOLIDAY_TYPES.find(
-    (type) => type.toLowerCase() === raw.toLowerCase(),
-  )
-  return match ?? 'Company'
-}
+import { mapApiHolidayTypeToOffice } from './holidayTypeApiMap'
 
 /** Maps GET /holidays list or GET /holidays/{id} DTO → office calendar holiday. */
 export function mapApiHolidayToOfficeHoliday(item: ApiHolidayItem): OfficeHoliday {
@@ -18,7 +10,7 @@ export function mapApiHolidayToOfficeHoliday(item: ApiHolidayItem): OfficeHolida
     id: item.id,
     name: (item.name ?? item.title ?? 'Holiday').trim(),
     date,
-    type: mapHolidayType(item.type ?? item.holidayType),
+    type: mapApiHolidayTypeToOffice(item.type ?? item.holidayType ?? item.category),
     state: item.state,
     departmentId: item.departmentId ?? null,
     branchId: item.branchId ?? null,
