@@ -4,11 +4,8 @@
  * store is only used on unauthenticated demo routes.
  */
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 
-import { getApiErrorMessage } from '@/services/api/errors'
-
-import { useGetLeaveRequestsQuery } from '../api/leaveApi'
 import type { LeaveSnapshot } from '../services/leaveService'
 import { fetchLeaveSnapshot } from '../services/leaveService'
 import { useLeaveApiSnapshot } from './useLeaveApiSnapshot'
@@ -24,16 +21,12 @@ function useDemoLeaveState(enabled: boolean) {
     setLoading(true)
     setError(null)
     try {
-      const data = await fetchLeaveSnapshot()
-      setMockBase(data)
+      setSnapshot(await fetchLeaveSnapshot())
     } catch {
-      setMockError('Could not load leave data.')
-      setMockBase(null)
+      setError('Could not load leave data.')
+      setSnapshot(null)
     } finally {
-      setMockLoading(false)
-    }
-    if (shouldFetchLeaves) {
-      await refetchLeaveList()
+      setLoading(false)
     }
   }, [enabled])
 

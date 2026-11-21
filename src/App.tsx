@@ -13,6 +13,7 @@ import { OvertimePage } from '@/features/attendance/pages/OvertimePage'
 import { RegularizationPage } from '@/features/attendance/pages/RegularizationPage'
 import { WeeklyOffPage } from '@/features/attendance/pages/WeeklyOffPage'
 import { RequireAuth } from '@/features/auth/components/RequireAuth'
+import { ChangePasswordPage } from '@/features/auth/pages/ChangePasswordPage'
 import { ForgotPasswordPage } from '@/features/auth/pages/ForgotPasswordPage'
 import { LoginPage } from '@/features/auth/pages/LoginPage'
 import { ResetPasswordPage } from '@/features/auth/pages/ResetPasswordPage'
@@ -52,6 +53,7 @@ function App() {
         {/* Legacy shared routes: MainLayout in the user's own role workspace. */}
         <Route element={<RoleLayout />}>
           <Route path="/dashboard" element={<UserLandingRedirect />} />
+          <Route path="/account/change-password" element={<ChangePasswordPage />} />
           <Route
             path="/employees"
             element={

@@ -6,6 +6,7 @@ export const API_TAGS = [
   'Auth',
   'User',
   'Role',
+  'Permission',
   'Employee',
   'Leave',
   'Attendance',

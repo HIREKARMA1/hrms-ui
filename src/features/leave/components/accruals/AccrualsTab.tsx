@@ -24,6 +24,8 @@ import { LEAVE_FIELD_LABEL, LEAVE_FILTER_SELECT, LEAVE_SECONDARY_BUTTON } from '
 import { AccrualPoliciesLiveTable } from './AccrualPoliciesLiveTable'
 import { AccrualsTabStats } from './AccrualsTabStats'
 import { ApiAccrualsTab } from './ApiAccrualsTab'
+import { CarryForwardPoliciesLiveTable } from './CarryForwardPoliciesLiveTable'
+import { EncashmentPoliciesLiveTable } from './EncashmentPoliciesLiveTable'
 
 export function AccrualsTab({ openAccrualConfirm = false }: { openAccrualConfirm?: boolean }) {
   const { snapshot } = useLeave()

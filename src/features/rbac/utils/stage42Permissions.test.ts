@@ -67,8 +67,15 @@ const SEEDED_CODES = new Set([
   'leaves:create_on_behalf',
   'leaves:read',
   'permissions:read',
+  'roles:create',
+  'roles:delete',
   'roles:read',
+  'roles:update',
+  'users:assign_roles',
+  'users:create',
+  'users:deactivate',
   'users:read',
+  'users:update',
 ])
 
 const ALL_ROLES: BackendRoleCode[] = ['SUPER_ADMIN', 'HR_ADMIN', 'MANAGER', 'EMPLOYEE']
