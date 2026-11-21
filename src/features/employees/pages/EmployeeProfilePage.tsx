@@ -18,10 +18,13 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 import {
+  buildDeviceLinkUpdatePayload,
   buildUpdatePayload,
+  deviceLinkFromServer,
   SERVER_EMPLOYMENT_STATUSES,
   toFormState,
   UPDATE_UNSUPPORTED_FIELDS,
+  type EmployeeDeviceLinkFormState,
   type EmployeeRecord,
   type UnsupportedChange,
 } from '../api/employeeMappers'
@@ -32,6 +35,8 @@ import {
   useUpdateEmployeeMutation,
 } from '../api/employeesApi'
 import type { DeviceSyncOutcome } from '../api/employeeApi.types'
+import { EmployeeBiometricAttendanceCard } from '../components/EmployeeBiometricAttendanceCard'
+import { EmployeeBiometricLinkEditor } from '../components/EmployeeBiometricLinkEditor'
 import { EmployeeNotice, UnsupportedFieldsNotice } from '../components/EmployeeNotice'
 import { EmployeeProfileForm } from '../components/EmployeeProfileForm'
 import { employeeDirectoryMock } from '../mocks/employeeDirectory.mock'
@@ -157,7 +162,12 @@ function ServerProfileEditor({
   const [activity, setActivity] = useState<EmployeeActivityItem[]>([])
   const [updateEmployee, updateState] = useUpdateEmployeeMutation()
   const [syncDevice, syncState] = useSyncEmployeeDeviceMutation()
-  const { profile, server } = record
+  const { profile } = record
+  const [serverView, setServerView] = useState(record.server)
+  const [deviceLink, setDeviceLink] = useState<EmployeeDeviceLinkFormState>(() =>
+    deviceLinkFromServer(record.server),
+  )
+  const [deviceSaveState, setDeviceSaveState] = useState(false)
 
   const save = async () => {
     if (!canEdit) return
@@ -178,7 +188,12 @@ function ServerProfileEditor({
     }
     setNotice(null)
     try {
-      const { deviceSync } = await updateEmployee({ id: server.id, body: result.body }).unwrap()
+      const { deviceSync, record: updated } = await updateEmployee({
+        id: serverView.id,
+        body: result.body,
+      }).unwrap()
+      setServerView(updated.server)
+      setDeviceLink(deviceLinkFromServer(updated.server))
       setActivity((prev) => [sessionActivity('Profile saved', 'You (this session)'), ...prev])
       setNotice({
         tone: deviceSync?.status === 'failed' ? 'warning' : 'success',
@@ -189,10 +204,44 @@ function ServerProfileEditor({
     }
   }
 
+  const saveDeviceLink = async () => {
+    if (!canEdit) return
+    const result = buildDeviceLinkUpdatePayload(deviceLink, serverView)
+    if (result.errors.length > 0) {
+      setNotice({ tone: 'error', text: 'Could not save biometric link:', details: result.errors })
+      return
+    }
+    if (Object.keys(result.body).length === 0) {
+      setNotice({ tone: 'success', text: 'No changes to the biometric link.' })
+      return
+    }
+    setNotice(null)
+    setDeviceSaveState(true)
+    try {
+      const { record: updated, deviceSync } = await updateEmployee({
+        id: serverView.id,
+        body: result.body,
+      }).unwrap()
+      setServerView(updated.server)
+      setDeviceLink(deviceLinkFromServer(updated.server))
+      setActivity((prev) => [sessionActivity('Biometric link saved', 'You (this session)'), ...prev])
+      setNotice({
+        tone: deviceSync?.status === 'failed' ? 'warning' : 'success',
+        text: `Biometric link saved.${deviceSyncText(deviceSync)}`,
+      })
+    } catch (error) {
+      setNotice({ tone: 'error', text: getEmployeeErrorMessage(error, 'Could not save biometric link.') })
+    } finally {
+      setDeviceSaveState(false)
+    }
+  }
+
   const sync = async () => {
     setNotice(null)
     try {
-      const { deviceSync } = await syncDevice({ id: server.id, mode: 'push' }).unwrap()
+      const { deviceSync, record: updated } = await syncDevice({ id: serverView.id, mode: 'push' }).unwrap()
+      setServerView(updated.server)
+      setDeviceLink(deviceLinkFromServer(updated.server))
       setActivity((prev) => [sessionActivity('Synced to biometric device', 'You (this session)'), ...prev])
       setNotice({
         tone: deviceSync?.status === 'failed' ? 'warning' : 'success',
@@ -236,7 +285,7 @@ function ServerProfileEditor({
       <Tabs defaultValue="details">
         <TabsList>
           <TabsTrigger value="details">Profile details</TabsTrigger>
-          <TabsTrigger value="documents">Documents ({server.documents.length})</TabsTrigger>
+          <TabsTrigger value="documents">Documents ({serverView.documents.length})</TabsTrigger>
           <TabsTrigger value="device">Biometric device</TabsTrigger>
           <TabsTrigger value="activity">Activity history</TabsTrigger>
         </TabsList>
@@ -296,11 +345,11 @@ function ServerProfileEditor({
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {server.documents.length === 0 ? (
+              {serverView.documents.length === 0 ? (
                 <p className="text-sm text-text-secondary">No documents were uploaded.</p>
               ) : (
                 <ul className="space-y-2">
-                  {server.documents.map((doc) => (
+                  {serverView.documents.map((doc) => (
                     <li
                       key={doc.id}
                       className="flex items-center justify-between gap-3 rounded-xl border border-border-soft px-4 py-3 text-sm"
@@ -325,43 +374,57 @@ function ServerProfileEditor({
             </CardContent>
           </Card>
         </TabsContent>
-        <TabsContent value="device" className="mt-4">
+        <TabsContent value="device" className="mt-4 space-y-4">
           <Card className="border-border-soft shadow-sm">
             <CardHeader>
               <CardTitle>Biometric device</CardTitle>
               <CardDescription>TimeWatch attendance device link for this employee.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4 text-sm">
-              <dl className="grid gap-3 sm:grid-cols-2">
-                <div>
-                  <dt className="text-xs text-text-secondary">Device ID</dt>
-                  <dd className="font-medium text-navy">{server.deviceId ?? 'Not linked'}</dd>
-                </div>
-                <div>
-                  <dt className="text-xs text-text-secondary">Device user ID</dt>
-                  <dd className="font-medium text-navy">{server.deviceUserId ?? '—'}</dd>
-                </div>
+              {canEdit ? (
+                <EmployeeBiometricLinkEditor
+                  value={deviceLink}
+                  onChange={setDeviceLink}
+                  disabled={deviceSaveState || updateState.isLoading}
+                  saving={deviceSaveState}
+                  onSave={() => void saveDeviceLink()}
+                />
+              ) : (
+                <dl className="grid gap-3 sm:grid-cols-2">
+                  <div>
+                    <dt className="text-xs text-text-secondary">Device ID</dt>
+                    <dd className="font-medium text-navy">{serverView.deviceId ?? 'Not linked'}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs text-text-secondary">Device user ID</dt>
+                    <dd className="font-medium text-navy">{serverView.deviceUserId ?? '—'}</dd>
+                  </div>
+                </dl>
+              )}
+              <dl className="grid gap-3 sm:grid-cols-2 border-t border-border-soft pt-4">
                 <div>
                   <dt className="text-xs text-text-secondary">Sync status</dt>
-                  <dd className="font-medium text-navy">{server.deviceSyncStatus}</dd>
+                  <dd className="font-medium text-navy">{serverView.deviceSyncStatus}</dd>
                 </div>
                 <div>
                   <dt className="text-xs text-text-secondary">Last synced</dt>
                   <dd className="font-medium text-navy">
-                    {server.deviceSyncedAt ? new Date(server.deviceSyncedAt).toLocaleString() : '—'}
+                    {serverView.deviceSyncedAt
+                      ? new Date(serverView.deviceSyncedAt).toLocaleString()
+                      : '—'}
                   </dd>
                 </div>
               </dl>
-              {server.deviceSyncError ? (
-                <EmployeeNotice tone="warning">Last error: {server.deviceSyncError}</EmployeeNotice>
+              {serverView.deviceSyncError ? (
+                <EmployeeNotice tone="warning">Last error: {serverView.deviceSyncError}</EmployeeNotice>
               ) : null}
               <Feature name="employee.syncDevice">
                 <Button
                   type="button"
                   variant="outline"
                   className="gap-2"
-                  disabled={!server.deviceId || syncState.isLoading}
-                  title={server.deviceId ? undefined : 'Link a device ID first'}
+                  disabled={!serverView.deviceId || syncState.isLoading}
+                  title={serverView.deviceId ? undefined : 'Save a device ID first'}
                   onClick={() => void sync()}
                 >
                   <RefreshCw className="h-4 w-4" />
@@ -370,6 +433,9 @@ function ServerProfileEditor({
               </Feature>
             </CardContent>
           </Card>
+          <Feature name="attendance.biometric.attendanceRead">
+            <EmployeeBiometricAttendanceCard employeeId={serverView.id} />
+          </Feature>
         </TabsContent>
         <TabsContent value="activity" className="mt-4">
           <Card className="border-border-soft shadow-sm">

@@ -503,6 +503,66 @@ export function buildUpdatePayload(
   return { body, errors, unsupported }
 }
 
+export type EmployeeDeviceLinkFormState = {
+  deviceId: string
+  deviceUserId: string
+}
+
+type EmployeeDeviceLinkOriginal = Pick<EmployeeRecord['server'], 'deviceId' | 'deviceUserId'>
+
+export function deviceLinkFromServer(server: EmployeeDeviceLinkOriginal): EmployeeDeviceLinkFormState {
+  return {
+    deviceId: server.deviceId ?? '',
+    deviceUserId: server.deviceUserId ?? '',
+  }
+}
+
+export type DeviceLinkUpdateResult = {
+  body: Pick<UpdateEmployeeBody, 'deviceId' | 'deviceUserId'>
+  errors: string[]
+}
+
+/** PATCH /employees/:id — device link only (HR profile biometric tab). */
+export function buildDeviceLinkUpdatePayload(
+  form: EmployeeDeviceLinkFormState,
+  original: EmployeeDeviceLinkOriginal,
+): DeviceLinkUpdateResult {
+  const errors: string[] = []
+  const body: DeviceLinkUpdateResult['body'] = {}
+  const trim = (value: string) => value.trim()
+  const nextDeviceId = trim(form.deviceId)
+  const nextDeviceUserId = trim(form.deviceUserId)
+  const prevDeviceId = original.deviceId ?? ''
+  const prevDeviceUserId = original.deviceUserId ?? ''
+
+  const deviceIdChanged = nextDeviceId !== prevDeviceId
+  const deviceUserIdChanged = nextDeviceUserId !== prevDeviceUserId
+
+  if (!deviceIdChanged && !deviceUserIdChanged) {
+    return { body, errors }
+  }
+
+  const effectiveDeviceId = deviceIdChanged ? nextDeviceId : prevDeviceId
+  if (!effectiveDeviceId && (deviceIdChanged || deviceUserIdChanged)) {
+    errors.push('Biometric device ID is required when linking.')
+    return { body, errors }
+  }
+
+  if (deviceIdChanged) {
+    if (!nextDeviceId) {
+      errors.push('Biometric device ID cannot be cleared from the profile.')
+    } else {
+      body.deviceId = nextDeviceId
+    }
+  }
+
+  if (deviceUserIdChanged) {
+    body.deviceUserId = nextDeviceUserId || null
+  }
+
+  return { body, errors }
+}
+
 export function toFormState(profile: EmployeeProfile): EmployeeProfileFormState {
   const { id: _id, activityHistory: _history, ...rest } = profile
   void _id

@@ -161,6 +161,9 @@ export interface UpdateEmployeeBody {
   dateOfJoining?: string
   permanentAddress?: AddressInput
   currentAddress?: AddressInput
+  /** TimeWatch device code (PATCH when linking an existing employee). */
+  deviceId?: string
+  deviceUserId?: string | null
 }
 
 /** `data` of GET /dashboard/summary (enveloped). */
