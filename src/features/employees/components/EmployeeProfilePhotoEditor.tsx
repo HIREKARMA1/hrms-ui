@@ -193,7 +193,7 @@ export function EmployeeProfilePhotoEditor({
     setCapturedDataUrl(canvas.toDataURL('image/jpeg', 0.92))
   }
 
-  const persistPhoto = async (blob: Blob, fileName: string, previewUrl: string) => {
+  const persistPhoto = async (blob: Blob, fileName: string) => {
     setSaving(true)
     setStatusMessage(null)
     try {
@@ -208,13 +208,7 @@ export function EmployeeProfilePhotoEditor({
         return true
       }
 
-      if (result.code === 'missing_api') {
-        // Keep local preview ready for integration; do not claim server save.
-        onPhotoChange({ name: fileName, url: previewUrl })
-        setStatusMessage(result.message)
-        return true
-      }
-
+      // Local blob/data URLs cannot be stored as employee photoUrl — fail clearly.
       setStatusMessage(result.message)
       return false
     } finally {
@@ -226,7 +220,7 @@ export function EmployeeProfilePhotoEditor({
     if (!capturedDataUrl) return
     const blob = dataUrlToBlob(capturedDataUrl)
     const fileName = `capture-${employeeId || 'employee'}-${Date.now()}.jpg`
-    const ok = await persistPhoto(blob, fileName, capturedDataUrl)
+    const ok = await persistPhoto(blob, fileName)
     if (ok) closeCapture(false)
   }
 
@@ -277,7 +271,7 @@ export function EmployeeProfilePhotoEditor({
 
   const saveUpload = async () => {
     if (!uploadFile || !uploadPreview) return
-    const ok = await persistPhoto(uploadFile, uploadFile.name, uploadPreview)
+    const ok = await persistPhoto(uploadFile, uploadFile.name)
     if (ok) closeUpload(false)
   }
 
@@ -388,12 +382,16 @@ export function EmployeeProfilePhotoEditor({
               ? `Current: ${pictureName}`
               : 'No photo selected — avatar initials are shown.'}
           </p>
-          {!isEmployeePhotoUploadConfigured() ? (
-            <p className="text-xs text-amber-700">
-              Server upload is off: set VITE_EMPLOYEE_PHOTO_UPLOAD_ENABLED=true to
-              enable server saves.
+          {isEmployeePhotoUploadConfigured() ? (
+            <p className="text-xs text-text-secondary">
+              Photos are uploaded to the shared folder <code>employees/photos</code>.
             </p>
-          ) : null}
+          ) : (
+            <p className="text-xs text-amber-700">
+              Server upload is off: set VITE_EMPLOYEE_PHOTO_UPLOAD_ENABLED=true in
+              .env and restart the Vite dev server.
+            </p>
+          )}
         </div>
       </div>
 

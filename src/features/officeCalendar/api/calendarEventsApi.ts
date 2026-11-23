@@ -56,9 +56,9 @@ export const calendarEventsApi = baseApi.injectEndpoints({
       }),
       transformResponse: (response: ApiResponse<unknown>) =>
         mapApiCalendarEventToOfficeEvent(normalizeCalendarEventDetail(unwrapData(response))),
-      invalidatesTags: [
+      invalidatesTags: (_result, _error, arg) => [
         ...CALENDAR_EVENT_READ_INVALIDATIONS,
-        (_result, _error, arg) => [{ type: 'CalendarEvent', id: `LIST-${listYearFromIso(arg.startAt)}` }],
+        { type: 'CalendarEvent', id: `LIST-${listYearFromIso(arg.startAt)}` },
       ],
     }),
     updateCalendarEvent: build.mutation<
@@ -72,12 +72,10 @@ export const calendarEventsApi = baseApi.injectEndpoints({
       }),
       transformResponse: (response: ApiResponse<unknown>) =>
         mapApiCalendarEventToOfficeEvent(normalizeCalendarEventDetail(unwrapData(response))),
-      invalidatesTags: [
+      invalidatesTags: (_result, _error, arg) => [
         ...CALENDAR_EVENT_READ_INVALIDATIONS,
-        (_result, _error, arg) => [
-          { type: 'CalendarEvent', id: arg.id },
-          { type: 'CalendarEvent', id: `LIST-${listYearFromIso(arg.body.startAt)}` },
-        ],
+        { type: 'CalendarEvent', id: arg.id },
+        { type: 'CalendarEvent', id: `LIST-${listYearFromIso(arg.body.startAt)}` },
       ],
     }),
     deleteCalendarEvent: build.mutation<null, { id: string; listYear: number }>({
@@ -89,12 +87,10 @@ export const calendarEventsApi = baseApi.injectEndpoints({
         unwrapData(response)
         return null
       },
-      invalidatesTags: [
+      invalidatesTags: (_result, _error, arg) => [
         ...CALENDAR_EVENT_READ_INVALIDATIONS,
-        (_result, _error, arg) => [
-          { type: 'CalendarEvent', id: arg.id },
-          { type: 'CalendarEvent', id: `LIST-${arg.listYear}` },
-        ],
+        { type: 'CalendarEvent', id: arg.id },
+        { type: 'CalendarEvent', id: `LIST-${arg.listYear}` },
       ],
     }),
   }),

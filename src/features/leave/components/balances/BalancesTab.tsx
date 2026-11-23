@@ -36,9 +36,7 @@ export function BalancesTab() {
 function DemoBalancesTab() {
   const { snapshot } = useLeave()
   const [search, setSearch] = useState('')
-  const [liveSearch, setLiveSearch] = useState('')
   const [selectedId, setSelectedId] = useState<string | null>(null)
-  const [liveSelectedId, setLiveSelectedId] = useState<string | null>(null)
 
   const allRows = useMemo(
     () => activeEmployees(snapshot?.employees ?? []).filter((item) => !item.id.startsWith('EMP-HR')),
@@ -70,14 +68,6 @@ function DemoBalancesTab() {
           { label: 'EL pending encashment', value: String(snapshot.encashments.filter((item) => item.status === 'Pending payout').length), icon: Wallet, tone: 'primary' },
         ]}
       />
-      {canFetchLeaves ? (
-        <BalancesHrOverviewLiveSection
-          search={liveSearch}
-          onSearchChange={setLiveSearch}
-          selectedEmployeeId={liveSelectedId}
-          onSelectEmployeeId={setLiveSelectedId}
-        />
-      ) : null}
       <LeaveTableFilters
         searchId="balances-search"
         searchPlaceholder="Search employees"

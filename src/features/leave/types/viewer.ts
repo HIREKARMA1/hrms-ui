@@ -12,8 +12,7 @@ export type LeaveViewer = {
   role: LeaveViewerRole
   /**
    * Employee record used for self-service lookups (my requests, balances,
-   * team, payslip). Null for signed-in users: GET /auth/me does not return
-   * the linked employee, so none is assumed.
+   * team, payslip). Null when the signed-in auth user has no linked employee.
    */
   employeeId: string | null
   /** Recorded as the actor on approvals / cancellations: the auth user id, or the demo employee id. */
@@ -23,7 +22,7 @@ export type LeaveViewer = {
   source: 'authenticated' | 'demo'
 }
 
-/** A viewer whose employee record is known (demo personas only, today). */
+/** A viewer whose employee record is known (demo persona or linked auth user). */
 export type LinkedLeaveViewer = LeaveViewer & { employeeId: string }
 
 export function isLinkedLeaveViewer(viewer: LeaveViewer): viewer is LinkedLeaveViewer {

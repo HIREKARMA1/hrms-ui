@@ -10,7 +10,7 @@ import type { LeaveViewer } from '../types/viewer'
  *
  * - Signed in: identity is the Redux auth user, never a demo persona. The
  *   workspace role only decides which UI is shown (least privilege if there is
- *   none). No employee record is assumed because /auth/me does not return one.
+ *   none). `employeeId` comes from auth when the server linked the login user.
  * - Not signed in: the selected demo persona.
  */
 export function resolveLeaveViewer(input: {
@@ -22,7 +22,7 @@ export function resolveLeaveViewer(input: {
   if (user) {
     return {
       role: workspaceRole ?? 'EMPLOYEE',
-      employeeId: null,
+      employeeId: user.employeeId?.trim() || null,
       actorId: user.id,
       displayName: getUserDisplayName(user),
       email: user.email || null,

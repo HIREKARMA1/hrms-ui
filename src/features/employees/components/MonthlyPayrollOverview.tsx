@@ -38,7 +38,7 @@ export function MonthlyPayrollOverview() {
         <div>
           <CardTitle>Monthly Payroll Overview</CardTitle>
           <CardDescription>
-            Sample payroll totals and month-wise comparison
+            Hardcoded preview until payroll integration
           </CardDescription>
         </div>
         <Select value={period} onValueChange={setPeriod}>

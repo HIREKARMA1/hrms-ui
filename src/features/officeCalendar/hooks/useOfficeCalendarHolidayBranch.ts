@@ -12,6 +12,7 @@ import {
 import { mapApiHolidaysListToOfficeHolidays } from '@/features/leave/utils/mapApiHolidayToOfficeHoliday'
 import { mapOfficeHolidayInputToCreateRequest } from '@/features/leave/utils/mapOfficeHolidayInputToCreateRequest'
 
+import type { OfficeHolidayListSource } from '../context/officeCalendarContext'
 import {
   deleteOfficeHoliday,
   upsertOfficeHoliday,
@@ -41,7 +42,7 @@ export function useOfficeCalendarHolidayBranch(
     refetch: refetchHolidays,
   } = useGetHolidaysQuery({ year: holidayYear }, { skip: !shouldFetchHolidays })
 
-  const holidaysSource = shouldFetchHolidays ? 'api' : 'demo'
+  const holidaysSource: OfficeHolidayListSource = shouldFetchHolidays ? 'api' : 'demo'
 
   const holidays = useMemo(() => {
     if (shouldFetchHolidays) {

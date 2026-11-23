@@ -39,12 +39,14 @@ const SEEDED_CODES = new Set([
   'employees:update',
   'holidays:create',
   'holidays:delete',
+  'holidays:notify',
   'holidays:read',
   'holidays:update',
   'calendar:read',
   'calendar:create',
   'calendar:update',
   'calendar:delete',
+  'calendar:configure',
   'leads:analytics',
   'leads:assign',
   'leads:create',
@@ -69,6 +71,12 @@ const SEEDED_CODES = new Set([
   'permissions:read',
   'roles:read',
   'users:read',
+  'users:create',
+  'biometric:manage_devices',
+  'biometric:sync',
+  'biometric:read_attendance',
+  'biometric:read_all_attendance',
+  'attendance:regularize',
 ])
 
 const ALL_ROLES: BackendRoleCode[] = ['SUPER_ADMIN', 'HR_ADMIN', 'MANAGER', 'EMPLOYEE']
@@ -120,6 +128,14 @@ describe('FEATURE_PERMISSION_MAP', () => {
     expect(FEATURE_PERMISSION_MAP['calendar.delete']).toBe('calendar:delete')
     expect(FEATURE_PERMISSION_MAP['calendar.weeklyOff']).toBe('calendar:read')
     expect(FEATURE_PERMISSION_MAP['calendar.weeklyOff.configure']).toBe('calendar:configure')
+    expect(FEATURE_PERMISSION_MAP['attendance.biometric.devices']).toBe('biometric:manage_devices')
+    expect(FEATURE_PERMISSION_MAP['attendance.biometric.configure']).toBe('biometric:manage_devices')
+    expect(FEATURE_PERMISSION_MAP['attendance.biometric.sync']).toBe('biometric:sync')
+    expect(FEATURE_PERMISSION_MAP['attendance.biometric.attendanceRead']).toBe(
+      'biometric:read_attendance',
+    )
+    expect(FEATURE_PERMISSION_MAP['attendance.reports']).toBe('biometric:read_attendance')
+    expect(FEATURE_PERMISSION_MAP['attendance.regularization']).toBe('attendance:regularize')
   })
 })
 

@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button'
 import { getApiErrorMessage } from '@/services/api/errors'
 
 import { useGetLeaveApprovalHistoryQuery } from '../../api/leaveApprovalApi'
-import { useGetLeaveByIdQuery } from '../../api/leaveApi'
+import { useGetLeaveQuery } from '../../api/leaveApi'
 import { useShouldFetchLeaveList } from '../../hooks/useShouldFetchLeaveList'
 import type { LeaveRequest } from '../../types/leaveRequest'
 import { formatDate } from '../../utils/formatDate'
@@ -70,7 +70,7 @@ export function RequestDetailDialog({
     isError: detailIsError,
     error: detailError,
     isFetching: detailFetching,
-  } = useGetLeaveByIdQuery(requestId, { skip: !shouldFetchDetail })
+  } = useGetLeaveQuery(requestId, { skip: !shouldFetchDetail })
   const {
     data: liveHistorySteps,
     isError: historyIsError,

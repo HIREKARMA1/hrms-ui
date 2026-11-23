@@ -12,6 +12,7 @@ import {
 
 import { EMPLOYEE_DOCUMENT_FIELDS, type BackendUserRole } from '../api/employeeApi.types'
 import { isHttpUrl, type EmployeeCreateExtras } from '../api/employeeMappers'
+import { BiometricDeviceSelect } from './BiometricDeviceSelect'
 
 const ROLE_OPTIONS: Array<{ value: BackendUserRole; label: string }> = [
   { value: 'EMPLOYEE', label: 'Employee' },
@@ -22,10 +23,21 @@ const ROLE_OPTIONS: Array<{ value: BackendUserRole; label: string }> = [
 
 const DOCUMENT_ACCEPT = '.pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/jpeg,image/png,image/webp'
 
-function Field({ label, children }: { label: string; children: ReactNode }) {
+function Field({
+  label,
+  required = false,
+  children,
+}: {
+  label: string
+  required?: boolean
+  children: ReactNode
+}) {
   return (
     <div className="space-y-2">
-      <Label>{label}</Label>
+      <Label>
+        {label}
+        {required ? <span className="text-rose-600"> *</span> : null}
+      </Label>
       {children}
     </div>
   )
@@ -59,12 +71,12 @@ export function EmployeeServerDetailsSection({
         <div>
           <h3 className="text-sm font-semibold text-navy">Login, KYC and device</h3>
           <p className="text-xs text-text-secondary">
-            Required by the server. Aadhaar, PAN and bank details are stored securely and are not
-            shown on the profile afterwards.
+            Required fields are marked with *. Aadhaar, PAN and bank details are stored securely and
+            are not shown on the profile afterwards.
           </p>
         </div>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <Field label="Login role">
+          <Field label="Login role" required>
             <Select
               value={value.role}
               onValueChange={(v) => set('role', v as BackendUserRole)}
@@ -82,7 +94,7 @@ export function EmployeeServerDetailsSection({
               </SelectContent>
             </Select>
           </Field>
-          <Field label="Aadhaar number">
+          <Field label="Aadhaar number" required>
             <Input
               value={value.aadhaar}
               inputMode="numeric"
@@ -93,7 +105,7 @@ export function EmployeeServerDetailsSection({
               onChange={(e) => set('aadhaar', e.target.value.replace(/\D/g, ''))}
             />
           </Field>
-          <Field label="PAN">
+          <Field label="PAN" required>
             <Input
               value={value.pan}
               maxLength={10}
@@ -103,7 +115,7 @@ export function EmployeeServerDetailsSection({
               onChange={(e) => set('pan', e.target.value.toUpperCase())}
             />
           </Field>
-          <Field label="UAN (optional)">
+          <Field label="UAN">
             <Input
               value={value.uanNumber}
               autoComplete="off"
@@ -111,14 +123,14 @@ export function EmployeeServerDetailsSection({
               onChange={(e) => set('uanNumber', e.target.value)}
             />
           </Field>
-          <Field label="Biometric device ID">
-            <Input
+          <Field label="Biometric device" required>
+            <BiometricDeviceSelect
               value={value.deviceId}
               disabled={disabled}
-              onChange={(e) => set('deviceId', e.target.value)}
+              onChange={(deviceCode) => set('deviceId', deviceCode)}
             />
           </Field>
-          <Field label="Device user ID (optional)">
+          <Field label="Device user ID">
             <Input
               value={value.deviceUserId}
               disabled={disabled}
@@ -126,7 +138,7 @@ export function EmployeeServerDetailsSection({
             />
           </Field>
           {needsPhotoUrl ? (
-            <Field label="Photo URL">
+            <Field label="Photo URL" required>
               <Input
                 type="url"
                 value={value.photoUrl}
@@ -139,7 +151,7 @@ export function EmployeeServerDetailsSection({
         </div>
         {needsPhotoUrl ? (
           <p className="text-xs text-text-secondary">
-            The server needs a hosted photo URL; a locally selected picture is a preview only.
+            Upload a photo above, or paste a hosted photo URL (http/https).
           </p>
         ) : null}
       </section>
@@ -147,14 +159,14 @@ export function EmployeeServerDetailsSection({
       <section className="space-y-4">
         <h3 className="text-sm font-semibold text-navy">Bank details</h3>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <Field label="Account holder name">
+          <Field label="Account holder name" required>
             <Input
               value={value.bankDetail.accountHolderName}
               disabled={disabled}
               onChange={(e) => setBank('accountHolderName', e.target.value)}
             />
           </Field>
-          <Field label="Account number">
+          <Field label="Account number" required>
             <Input
               value={value.bankDetail.accountNumber}
               inputMode="numeric"
@@ -163,7 +175,7 @@ export function EmployeeServerDetailsSection({
               onChange={(e) => setBank('accountNumber', e.target.value)}
             />
           </Field>
-          <Field label="IFSC">
+          <Field label="IFSC" required>
             <Input
               value={value.bankDetail.ifsc}
               maxLength={11}
@@ -172,14 +184,14 @@ export function EmployeeServerDetailsSection({
               onChange={(e) => setBank('ifsc', e.target.value.toUpperCase())}
             />
           </Field>
-          <Field label="Bank name">
+          <Field label="Bank name" required>
             <Input
               value={value.bankDetail.bankName}
               disabled={disabled}
               onChange={(e) => setBank('bankName', e.target.value)}
             />
           </Field>
-          <Field label="Branch (optional)">
+          <Field label="Branch">
             <Input
               value={value.bankDetail.branch}
               disabled={disabled}
@@ -191,9 +203,10 @@ export function EmployeeServerDetailsSection({
 
       <section className="space-y-4">
         <div>
-          <h3 className="text-sm font-semibold text-navy">Documents (optional)</h3>
+          <h3 className="text-sm font-semibold text-navy">Documents</h3>
           <p className="text-xs text-text-secondary">
-            PDF, JPEG, PNG or WebP, up to 10MB each. Documents can only be uploaded at registration.
+            Optional. PDF, JPEG, PNG or WebP, up to 10MB each. Documents can only be uploaded at
+            registration.
           </p>
         </div>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

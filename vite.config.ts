@@ -8,6 +8,8 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 // https://vite.dev/config/
 export default defineConfig({
+  // Expose API_BASE_URL from .env (default Vite prefix is VITE_ only).
+  envPrefix: ['VITE_', 'API_'],
   plugins: [react(), tailwindcss()],
   resolve: {
     alias: {

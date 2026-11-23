@@ -319,6 +319,18 @@ describe('refreshed user rules', () => {
     expect(parseCurrentUserResponse(null)).toBeNull()
     expect(parseCurrentUserResponse('')).toBeNull()
   })
+
+  it('accepts optional employeeId on login and me payloads', () => {
+    expect(parseAuthUserStrict({ ...FRESH_USER, employeeId: 'emp-uuid-1' })).toEqual({
+      ...FRESH_USER,
+      employeeId: 'emp-uuid-1',
+    })
+    expect(parseAuthUserStrict({ ...FRESH_USER, employeeId: '  ' })).toEqual(FRESH_USER)
+    expect(resolveRefreshedUser({ ...STORED_USER, employeeId: 'emp-1' }, FRESH_USER)).toEqual({
+      ...FRESH_USER,
+      employeeId: 'emp-1',
+    })
+  })
 })
 
 describe('login', () => {
