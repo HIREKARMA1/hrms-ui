@@ -1,0 +1,80 @@
+/**
+ * Lead management domain types for CRM lifecycle UI and mock service.
+ */
+
+export type LeadPriority = 'High' | 'Medium' | 'Low'
+
+export type LeadStatus =
+  | 'New'
+  | 'Contacted'
+  | 'Qualified'
+  | 'Proposal'
+  | 'Negotiation'
+  | 'Won'
+  | 'Lost'
+
+export type LeadNote = {
+  id: string
+  text: string
+  authorName: string
+  createdAt: string
+}
+
+export type LeadActivityType =
+  | 'created'
+  | 'updated'
+  | 'status'
+  | 'assignment'
+  | 'note'
+  | 'attachment'
+  | 'comment'
+
+export type LeadActivity = {
+  id: string
+  type: LeadActivityType
+  summary: string
+  createdAt: string
+  createdBy: string
+}
+
+export type LeadAttachment = {
+  id: string
+  fileName: string
+  uploadedAt: string
+  uploadedBy: string
+}
+
+export type Lead = {
+  id: string
+  leadName: string
+  companyName: string
+  contactPerson: string
+  email: string
+  phone: string
+  website: string
+  industry: string
+  companySize: string
+  source: string
+  category: string
+  priority: LeadPriority
+  status: LeadStatus
+  assignedEmployeeId: string | null
+  assignedEmployeeName: string | null
+  description: string
+  requirements: string
+  notes: LeadNote[]
+  activities: LeadActivity[]
+  attachments: LeadAttachment[]
+  createdAt: string
+  updatedAt: string
+}
+
+export type LeadInput = Omit<
+  Lead,
+  'id' | 'notes' | 'activities' | 'attachments' | 'createdAt' | 'updatedAt'
+>
+
+export type LeadDuplicateMatch = {
+  lead: Lead
+  reasons: string[]
+}
