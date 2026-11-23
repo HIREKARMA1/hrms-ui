@@ -1,19 +1,25 @@
-import { Fingerprint, MapPin, Plus, QrCode, RefreshCw, Save, Trash2, Wifi } from 'lucide-react'
+import { MapPin, Plus, QrCode, Save, Trash2, Wifi } from 'lucide-react'
 import { useState } from 'react'
 
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
+import { Feature } from '@/features/rbac/components/Feature'
+import { useBiometricPermissions } from '@/features/biometric/hooks'
 import { useOptionalFeatureAccess } from '@/features/rbac/hooks/useFeatureAccess'
 import { ToastBanner, useToast } from '@/hooks/useToast'
+
+import { AttendanceBiometricSettingsCard } from '../components/biometric/AttendanceBiometricSettingsCard'
+import { BiometricAttendanceByCodeCard } from '../components/biometric/BiometricAttendanceByCodeCard'
+import { BiometricAccessBanner } from '../components/biometric/BiometricAccessBanner'
 
 export function AttendanceSettingsPage() {
   const { message, toast } = useToast()
   const { canAccess } = useOptionalFeatureAccess()
   const canConfigureAdvanced = canAccess('attendance.settings.advanced')
+  const biometricPerms = useBiometricPermissions()
 
   const [gpsEnabled, setGpsEnabled] = useState(true)
   const [officeLocation, setOfficeLocation] = useState('Tower A, Hitech City, Hyderabad')
@@ -22,9 +28,6 @@ export function AttendanceSettingsPage() {
   const [ipRestrictionEnabled, setIpRestrictionEnabled] = useState(true)
   const [ipList, setIpList] = useState(['192.168.10.1', '203.0.113.42'])
   const [newIp, setNewIp] = useState('')
-
-  const [biometricDevice, setBiometricDevice] = useState('ZKTeco MB360')
-  const [lastSync, setLastSync] = useState('12 Nov 2026, 09:15 AM')
 
   const [faceRecognitionEnabled, setFaceRecognitionEnabled] = useState(false)
   const [faceStatus] = useState('Camera module not configured (UI preview).')
@@ -50,18 +53,6 @@ export function AttendanceSettingsPage() {
     setIpList((prev) => prev.filter((item) => item !== ip))
   }
 
-  const handleSync = () => {
-    const now = new Date().toLocaleString('en-IN', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    })
-    setLastSync(now)
-    toast('Biometric sync simulated (UI preview only).')
-  }
-
   const handleGenerateQr = () => {
     toast(`QR code generated — valid for ${qrValidityMinutes} minutes (UI preview).`)
   }
@@ -78,7 +69,8 @@ export function AttendanceSettingsPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-navy">Attendance Settings</h1>
           <p className="mt-1 text-sm text-text-secondary">
-            Configure capture methods and restrictions. All controls are local UI state.
+            TimeWatch biometric uses live APIs. Other capture methods below remain local preview
+            until their backend permissions are mapped.
           </p>
         </div>
         {canConfigureAdvanced ? (
@@ -89,14 +81,22 @@ export function AttendanceSettingsPage() {
         ) : null}
       </div>
 
+      <BiometricAccessBanner />
+      {biometricPerms.canListDevices ? (
+        <AttendanceBiometricSettingsCard toast={toast} />
+      ) : null}
+
+      <Feature name="attendance.biometric.attendanceRead">
+        <BiometricAttendanceByCodeCard />
+      </Feature>
+
       {!canConfigureAdvanced ? (
         <Card className="border-border-soft shadow-sm">
           <CardHeader>
             <CardTitle>Advanced attendance configuration</CardTitle>
             <CardDescription>
-              GPS, IP, biometric, face recognition, QR and geofencing controls are
-              hidden until backend permission mapping is confirmed. This screen is
-              a planned-integration UI only — no device integrations are active.
+              GPS, IP, face recognition, QR and geofencing controls are hidden until backend
+              permission mapping is confirmed. Those sections are UI preview only.
             </CardDescription>
           </CardHeader>
         </Card>
@@ -199,38 +199,7 @@ export function AttendanceSettingsPage() {
 
       <Card className="border-border-soft shadow-sm">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-navy">
-            <Fingerprint className="h-4 w-4 text-brand-500" />
-            C) Biometric Integration
-          </CardTitle>
-          <CardDescription>Device connection status and manual sync.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="biometric-device">Device name</Label>
-            <Input
-              id="biometric-device"
-              value={biometricDevice}
-              onChange={(e) => setBiometricDevice(e.target.value)}
-            />
-          </div>
-          <div className="flex flex-wrap items-center gap-3">
-            <span className="text-sm text-text-secondary">Connection status</span>
-            <Badge variant="success">Connected</Badge>
-          </div>
-          <p className="text-sm text-text-secondary">
-            Last sync: <span className="font-medium text-navy">{lastSync}</span>
-          </p>
-          <Button type="button" variant="outline" className="gap-2" onClick={handleSync}>
-            <RefreshCw className="h-4 w-4" />
-            Sync Now
-          </Button>
-        </CardContent>
-      </Card>
-
-      <Card className="border-border-soft shadow-sm">
-        <CardHeader>
-          <CardTitle className="text-navy">D) Face Recognition</CardTitle>
+          <CardTitle className="text-navy">C) Face Recognition</CardTitle>
           <CardDescription>Toggle facial capture for kiosk attendance.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
@@ -252,7 +221,7 @@ export function AttendanceSettingsPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-navy">
             <QrCode className="h-4 w-4 text-brand-500" />
-            E) QR Code Attendance
+            D) QR Code Attendance
           </CardTitle>
           <CardDescription>Generate time-bound QR codes for mobile check-in.</CardDescription>
         </CardHeader>
@@ -276,7 +245,7 @@ export function AttendanceSettingsPage() {
 
       <Card className="border-border-soft shadow-sm">
         <CardHeader>
-          <CardTitle className="text-navy">F) Geofencing</CardTitle>
+          <CardTitle className="text-navy">E) Geofencing</CardTitle>
           <CardDescription>Additional location boundary for field staff.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">

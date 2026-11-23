@@ -396,13 +396,27 @@ describe('server-mode screens', () => {
     expect(calls).toHaveLength(0)
   })
 
-  it('never resolves an employee id for a signed-in user from /auth/me data', () => {
-    const viewer = resolveLeaveViewer({
+  it('maps employeeId from auth onto the leave viewer when present', () => {
+    const unlinked = resolveLeaveViewer({
       user: { id: 'user-1', email: 'akash@example.test', role: 'EMPLOYEE', roles: ['EMPLOYEE'], permissions: ['leaves:create'], isActive: true },
       workspaceRole: 'EMPLOYEE',
       demoRole: 'HR_ADMIN',
     })
-    expect(viewer).toMatchObject({ employeeId: null, actorId: 'user-1', source: 'authenticated' })
+    expect(unlinked).toMatchObject({ employeeId: null, actorId: 'user-1', source: 'authenticated' })
+    const linked = resolveLeaveViewer({
+      user: {
+        id: 'user-1',
+        email: 'akash@example.test',
+        role: 'EMPLOYEE',
+        roles: ['EMPLOYEE'],
+        permissions: ['leaves:create'],
+        isActive: true,
+        employeeId: 'emp-linked-1',
+      },
+      workspaceRole: 'EMPLOYEE',
+      demoRole: 'HR_ADMIN',
+    })
+    expect(linked).toMatchObject({ employeeId: 'emp-linked-1', actorId: 'user-1', source: 'authenticated' })
   })
 
   it('lists server requests for HR and explains missing list permission', () => {

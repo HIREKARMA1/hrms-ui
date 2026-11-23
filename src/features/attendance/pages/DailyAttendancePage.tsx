@@ -18,6 +18,7 @@ import {
   AttendanceTable,
   type AttendanceFilterState,
 } from '../components'
+import { HrAttendanceLiveReport } from '../components/HrAttendanceLiveReport'
 import { dailyAttendanceRecords } from '../mocks/attendanceMocks'
 import type { DailyAttendanceRecord } from '../types/attendance'
 
@@ -170,9 +171,13 @@ export function DailyAttendancePage() {
           Daily Attendance
         </h1>
         <p className="mt-1 text-sm text-text-secondary">
-          Search, filter, and manage day-wise attendance records for all employees.
+          Live API lookup by employee code or ID. The table below still uses mock daily records.
         </p>
       </div>
+
+      <HrAttendanceLiveReport title="Daily employee attendance (live API)" />
+
+      <h2 className="text-lg font-semibold text-navy">Daily register (mock data)</h2>
 
       <AttendanceFilters
         value={filters}

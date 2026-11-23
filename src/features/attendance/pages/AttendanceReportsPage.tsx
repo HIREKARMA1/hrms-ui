@@ -28,6 +28,7 @@ import {
 import { ToastBanner, useToast } from '@/hooks/useToast'
 import { cn } from '@/lib/utils'
 
+import { HrAttendanceLiveReport } from '../components/HrAttendanceLiveReport'
 import {
   attendanceTrend,
   attendanceStatuses,
@@ -78,7 +79,7 @@ export function AttendanceReportsPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-navy">Attendance Reports</h1>
           <p className="mt-1 text-sm text-text-secondary">
-            Analyze attendance patterns, exports, and department-level insights.
+            Live employee reports from the attendance API. Charts below remain a UI preview.
           </p>
         </div>
         <Button type="button" className="gap-2 self-start" onClick={handleExport}>
@@ -86,6 +87,10 @@ export function AttendanceReportsPage() {
           Export Report
         </Button>
       </div>
+
+      <HrAttendanceLiveReport />
+
+      <h2 className="text-lg font-semibold text-navy">Report previews (mock data)</h2>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {REPORT_TYPES.map((type) => {

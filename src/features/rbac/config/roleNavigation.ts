@@ -462,7 +462,7 @@ const employeeNav: RoleNavItem[] = [
     title: 'My Attendance',
     path: '/employee/attendance',
     iconName: 'ClipboardList',
-    feature: 'attendance.reports',
+    feature: 'attendance.my',
   },
   {
     title: 'Check In / Check Out',
@@ -480,7 +480,7 @@ const employeeNav: RoleNavItem[] = [
     title: 'Attendance Regularization',
     path: '/employee/attendance/regularization',
     iconName: 'ClipboardList',
-    feature: 'attendance.regularization',
+    feature: 'attendance.regularization.my',
   },
   {
     title: 'Leave Management',

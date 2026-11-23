@@ -17,6 +17,7 @@ import { getQueryViewState, isNotFoundError } from '../utils/queryViewState'
 import type { BackendEmployee, BackendEmployeeWithSync } from './employeeApi.types'
 import {
   buildCreateFormData,
+  buildDeviceLinkUpdatePayload,
   buildUpdatePayload,
   CREATE_UNSUPPORTED_FIELDS,
   emptyCreateExtras,
@@ -381,6 +382,26 @@ describe('update payload (PATCH /employees/:id)', () => {
       pincode: '411001',
       country: 'India',
     })
+  })
+
+  it('sends device link fields when changed', () => {
+    const record = mapEmployee(
+      backendEmployee({ deviceId: null, deviceUserId: null }),
+      API_BASE,
+    )
+    const result = buildDeviceLinkUpdatePayload(
+      { deviceId: 'TW-DEV-01', deviceUserId: '42' },
+      record.server,
+    )
+    expect(result.errors).toEqual([])
+    expect(result.body).toEqual({ deviceId: 'TW-DEV-01', deviceUserId: '42' })
+  })
+
+  it('requires device ID when linking user ID only', () => {
+    const record = mapEmployee(backendEmployee({ deviceId: null, deviceUserId: null }), API_BASE)
+    const result = buildDeviceLinkUpdatePayload({ deviceId: '', deviceUserId: '42' }, record.server)
+    expect(result.errors).toContain('Biometric device ID is required when linking.')
+    expect(result.body).toEqual({})
   })
 
   it('validates values and refuses to clear fields the API cannot clear', () => {

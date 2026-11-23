@@ -135,7 +135,7 @@ export function HrRequestsTab({
           ) : null}
           {leaveRows.length === 0 ? <LeaveEmptyState message="No requests match this filter." /> : <HrRequestsTable rows={leaveRows} employees={snapshot.employees} requests={snapshot.requests} onView={setDetail} onApprove={(id) => pickAction(snapshot, id, 'approve', setAction)} onReject={(id) => pickAction(snapshot, id, 'reject', setAction)} onCancel={setCancelTarget} busyId={busyId} />}
         </>
-      ) : null}
+      )}
       <HrApplyOnBehalfDialog
         open={applyOpen}
         onOpenChange={setApplyOpen}

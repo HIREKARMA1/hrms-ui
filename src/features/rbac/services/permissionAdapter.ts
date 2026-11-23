@@ -119,6 +119,18 @@ export const FEATURE_PERMISSION_MAP: Partial<
   'leave.balances.adjust': 'employee_leave_policies:adjust',
   // PATCH /leave-types/:id (editing a leave type's rules / approval chain)
   'leave.types.update': 'leave_types:update',
+  // GET /attendance/biometric/devices, devices/timewatch, connection-test
+  'attendance.biometric.devices': 'biometric:manage_devices',
+  // POST /attendance/biometric/devices, PATCH …/devices/{id}
+  'attendance.biometric.configure': 'biometric:manage_devices',
+  // POST /attendance/biometric/sync
+  'attendance.biometric.sync': 'biometric:sync',
+  // GET /attendance/biometric/employees/.../attendance
+  'attendance.biometric.attendanceRead': 'biometric:read_attendance',
+  // GET /attendance/employees/... and by-code reports
+  'attendance.reports': 'biometric:read_attendance',
+  // POST/GET/DELETE /attendance/.../regularizations
+  'attendance.regularization': 'attendance:regularize',
 }
 
 /**
@@ -164,6 +176,10 @@ const ROLE_FEATURE_MATRIX: Record<BackendRoleCode, FeatureAccessKey[]> = {
     'attendance.reports',
     'attendance.settings',
     'attendance.settings.advanced',
+    'attendance.biometric.devices',
+    'attendance.biometric.configure',
+    'attendance.biometric.sync',
+    'attendance.biometric.attendanceRead',
     'module.users',
     'module.roles',
     'module.permissions',
@@ -215,6 +231,10 @@ const ROLE_FEATURE_MATRIX: Record<BackendRoleCode, FeatureAccessKey[]> = {
     'attendance.holidays',
     'attendance.reports',
     'attendance.settings',
+    'attendance.biometric.devices',
+    'attendance.biometric.configure',
+    'attendance.biometric.sync',
+    'attendance.biometric.attendanceRead',
     'module.users',
     'leads.overview',
     'leads.manage',
@@ -276,9 +296,9 @@ const ROLE_FEATURE_MATRIX: Record<BackendRoleCode, FeatureAccessKey[]> = {
   ],
   EMPLOYEE: [
     'attendance.checkIn',
+    'attendance.my',
     'attendance.corrections',
-    'attendance.regularization',
-    'attendance.reports',
+    'attendance.regularization.my',
     'attendance.holidays',
     'leads.my',
     'calendar.view',
