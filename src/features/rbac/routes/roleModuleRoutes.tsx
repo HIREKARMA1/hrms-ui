@@ -28,7 +28,7 @@ import { createOfficeCalendarModuleRoutes } from './calendarModuleRoutes'
 import { createRecruitmentModuleRoutes } from './recruitmentModuleRoutes'
 import { createSupportModuleRoutes } from './supportModuleRoutes'
 
-type RolePrefix = 'superadmin' | 'admin' | 'hr'
+type RolePrefix = 'superadmin' | 'hradmin' | 'manager'
 
 /**
  * Reuses existing Employee + Attendance + Recruitment pages under each role prefix.
@@ -244,15 +244,15 @@ export function createOrgRoleModuleRoutes(prefix: RolePrefix): ReactElement[] {
         </RequireAccess>
       }
     />,
-    ...(prefix === 'superadmin' || prefix === 'hr'
+    ...(prefix === 'superadmin' || prefix === 'manager'
       ? [createRecruitmentModuleRoutes(prefix)]
       : []),
-    ...(prefix === 'hr' ? [createSupportModuleRoutes()] : []),
+    ...(prefix === 'manager' ? [createSupportModuleRoutes()] : []),
     ...createLeavePayrollRoutes(prefix),
-    ...(prefix === 'admin' || prefix === 'superadmin' || prefix === 'hr'
+    ...(prefix === 'hradmin' || prefix === 'superadmin' || prefix === 'manager'
       ? createLeadsModuleRoutes(prefix)
       : []),
-    ...(prefix === 'admin' || prefix === 'superadmin' || prefix === 'hr'
+    ...(prefix === 'hradmin' || prefix === 'superadmin' || prefix === 'manager'
       ? createOfficeCalendarModuleRoutes(prefix)
       : []),
   ]

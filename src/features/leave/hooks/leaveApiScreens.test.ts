@@ -131,7 +131,7 @@ function render(node: ReactNode, options: { features?: FeatureAccessKey[]; snaps
     createElement(Provider, {
       store,
       children: createElement(RbacContext.Provider, {
-        value: { session, roleCode: 'HR_ADMIN', navigation: [], routePrefix: '/hr', roleLabel: 'HR Admin' },
+        value: { session, roleCode: 'HR_ADMIN', navigation: [], routePrefix: '/hradmin', roleLabel: 'HR Admin' },
         children: withLeave,
       }),
     }),

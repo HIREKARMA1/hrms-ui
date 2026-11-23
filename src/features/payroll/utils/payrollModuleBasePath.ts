@@ -4,8 +4,8 @@
 
 const ORDERED_PREFIXES = [
   '/superadmin/payroll',
-  '/admin/payroll',
-  '/hr/payroll',
+  '/hradmin/payroll',
+  '/manager/payroll',
   '/employee/payslips',
   '/payroll',
 ] as const

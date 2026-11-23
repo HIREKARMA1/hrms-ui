@@ -51,7 +51,7 @@ function collectRoutes(routes: ReactElement[]): RouteGuard[] {
   return out
 }
 
-const ORG_PREFIXES = ['superadmin', 'admin', 'hr'] as const
+const ORG_PREFIXES = ['superadmin', 'hradmin', 'manager'] as const
 
 const ORG_ROUTES: RouteGuard[] = ORG_PREFIXES.flatMap((prefix) => collectRoutes(createOrgRoleModuleRoutes(prefix)))
 const EMPLOYEE_ROUTES: RouteGuard[] = collectRoutes([
@@ -91,7 +91,7 @@ describe('route-level protection coverage', () => {
   })
 
   it('the HR support inbox is now feature-guarded (previously unguarded)', () => {
-    const route = ORG_ROUTES.find((r) => r.path === '/hr/support/admin-requests')
+    const route = ORG_ROUTES.find((r) => r.path === '/manager/support/admin-requests')
     expect(route?.feature).toBe('support.adminRequests')
   })
 
@@ -244,15 +244,15 @@ describe('support admin requests (documented backend gap)', () => {
   })
 
   it('the HR sidebar entry carries the feature so sidebar and direct URL agree', () => {
-    const entry = flattenNav(ROLE_UI_CONFIG.MANAGER.navigation).find((e) => e.path === '/hr/support/admin-requests')
+    const entry = flattenNav(ROLE_UI_CONFIG.MANAGER.navigation).find((e) => e.path === '/manager/support/admin-requests')
     expect(entry?.feature).toBe('support.adminRequests')
     const visible = collectNavPaths(filterNavigation(ROLE_UI_CONFIG.MANAGER.navigation, 'MANAGER', []))
-    expect(visible.has('/hr/support/admin-requests')).toBe(true)
+    expect(visible.has('/manager/support/admin-requests')).toBe(true)
   })
 
   it('a Manager who only holds the Employee role cannot see the entry', () => {
     const visible = collectNavPaths(filterNavigation(ROLE_UI_CONFIG.MANAGER.navigation, 'EMPLOYEE', []))
-    expect(visible.has('/hr/support/admin-requests')).toBe(false)
+    expect(visible.has('/manager/support/admin-requests')).toBe(false)
   })
 })
 
@@ -292,7 +292,7 @@ describe('getModulePageAccess (RoleModulePage direct-URL rule)', () => {
 
   it('a path that belongs to another role workspace is unknown for this role', () => {
     expect(getModulePageAccess(nav, empNav, '/superadmin/users')).toBe('unknown')
-    expect(getModulePageAccess(nav, empNav, '/admin/dashboard')).toBe('unknown')
+    expect(getModulePageAccess(nav, empNav, '/hradmin/dashboard')).toBe('unknown')
   })
 
   it('ignores section labels as destinations', () => {
@@ -326,8 +326,8 @@ describe('sidebar visibility', () => {
   it('employee management entries disappear when employees:read is missing', () => {
     const withPerm = collectNavPaths(filterNavigation(ROLE_UI_CONFIG.HR_ADMIN.navigation, 'HR_ADMIN', ['employees:read']))
     const without = collectNavPaths(filterNavigation(ROLE_UI_CONFIG.HR_ADMIN.navigation, 'HR_ADMIN', []))
-    expect(withPerm.has('/admin/employees/directory')).toBe(true)
-    expect(without.has('/admin/employees/directory')).toBe(false)
+    expect(withPerm.has('/hradmin/employees/directory')).toBe(true)
+    expect(without.has('/hradmin/employees/directory')).toBe(false)
   })
 
   it('the Sidebar no longer falls back to a static role-agnostic menu without an RBAC session', () => {
@@ -344,15 +344,15 @@ describe('sidebar visibility', () => {
 describe('getWorkspaceModulePath (legacy /leads redirect target)', () => {
   it('sends each single-role user to their own workspace, not a hardcoded admin one', () => {
     expect(getWorkspaceModulePath(makeUser('EMPLOYEE', ['EMPLOYEE']), 'leads')).toBe('/employee/leads')
-    expect(getWorkspaceModulePath(makeUser('EMPLOYEE', ['MANAGER']), 'leads')).toBe('/hr/leads')
-    expect(getWorkspaceModulePath(makeUser('EMPLOYEE', ['HR_ADMIN']), 'leads')).toBe('/admin/leads')
+    expect(getWorkspaceModulePath(makeUser('EMPLOYEE', ['MANAGER']), 'leads')).toBe('/manager/leads')
+    expect(getWorkspaceModulePath(makeUser('EMPLOYEE', ['HR_ADMIN']), 'leads')).toBe('/hradmin/leads')
     expect(getWorkspaceModulePath(makeUser('SUPER_ADMIN', ['SUPER_ADMIN']), 'leads')).toBe('/superadmin/leads')
   })
 
   it('multi-role users go to the highest-priority workspace regardless of roles order', () => {
-    expect(getWorkspaceModulePath(makeUser('EMPLOYEE', ['EMPLOYEE', 'MANAGER']), 'leads')).toBe('/hr/leads')
-    expect(getWorkspaceModulePath(makeUser('EMPLOYEE', ['MANAGER', 'HR_ADMIN']), 'leads')).toBe('/admin/leads')
-    expect(getWorkspaceModulePath(makeUser('EMPLOYEE', ['HR_ADMIN', 'MANAGER']), 'leads')).toBe('/admin/leads')
+    expect(getWorkspaceModulePath(makeUser('EMPLOYEE', ['EMPLOYEE', 'MANAGER']), 'leads')).toBe('/manager/leads')
+    expect(getWorkspaceModulePath(makeUser('EMPLOYEE', ['MANAGER', 'HR_ADMIN']), 'leads')).toBe('/hradmin/leads')
+    expect(getWorkspaceModulePath(makeUser('EMPLOYEE', ['HR_ADMIN', 'MANAGER']), 'leads')).toBe('/hradmin/leads')
   })
 
   it('users with no supported role get no target (redirect falls back to login)', () => {

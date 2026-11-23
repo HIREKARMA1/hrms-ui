@@ -83,7 +83,7 @@ export function EmployeeProfilePage({
 function ServerEmployeeProfile({ id }: { id: string }) {
   const navigate = useNavigate()
   const rbac = useOptionalRbacSession()
-  const prefix = rbac?.routePrefix ?? '/hr'
+  const prefix = rbac?.routePrefix ?? '/manager'
   const { data: record, isLoading, isError, error, refetch, isFetching } =
     useGetEmployeeQuery(id, { skip: !id })
 

@@ -35,7 +35,7 @@ type Notice = { tone: 'success' | 'warning' | 'error'; text: string; details?: s
 export function EmployeeRegistrationPage() {
   const navigate = useNavigate()
   const rbac = useOptionalRbacSession()
-  const prefix = rbac?.routePrefix ?? '/hr'
+  const prefix = rbac?.routePrefix ?? '/manager'
   const [form, setForm] = useState<EmployeeProfileFormState>(() => emptyEmployeeForm())
   const [extras, setExtras] = useState<EmployeeCreateExtras>(() => emptyCreateExtras())
   const [notice, setNotice] = useState<Notice | null>(null)

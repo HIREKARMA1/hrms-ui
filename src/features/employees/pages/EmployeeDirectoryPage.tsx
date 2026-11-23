@@ -65,7 +65,7 @@ function statusVariant(status: EmploymentStatus) {
 export function EmployeeDirectoryPage() {
   const navigate = useNavigate()
   const rbac = useOptionalRbacSession()
-  const prefix = rbac?.routePrefix ?? '/hr'
+  const prefix = rbac?.routePrefix ?? '/manager'
   const [search, setSearch] = useState('')
   const [query, setQuery] = useState('')
   const [skip, setSkip] = useState(0)

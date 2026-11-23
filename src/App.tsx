@@ -1,4 +1,4 @@
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 
 import { AdminDashboardPage } from '@/features/admin/pages/AdminDashboardPage'
 import { AttendanceCorrectionsPage } from '@/features/attendance/pages/AttendanceCorrectionsPage'
@@ -35,6 +35,21 @@ import { createEmployeeLeadsModuleRoutes } from '@/features/rbac/routes/leadsMod
 import { createEmployeeLeavePayrollRoutes } from '@/features/rbac/routes/leavePayrollModuleRoutes'
 import { createOrgRoleModuleRoutes } from '@/features/rbac/routes/roleModuleRoutes'
 import { SuperAdminDashboardPage } from '@/features/superadmin/pages/SuperAdminDashboardPage'
+
+/** Redirect legacy workspace prefixes while preserving nested path + query. */
+function LegacyWorkspaceRedirect({
+  fromPrefix,
+  toPrefix,
+}: {
+  fromPrefix: '/admin' | '/hr'
+  toPrefix: '/hradmin' | '/manager'
+}) {
+  const { pathname, search, hash } = useLocation()
+  const rest = pathname.startsWith(fromPrefix)
+    ? pathname.slice(fromPrefix.length)
+    : ''
+  return <Navigate to={`${toPrefix}${rest}${search}${hash}`} replace />
+}
 
 function App() {
   return (
@@ -193,18 +208,18 @@ function App() {
         </Route>
 
         <Route element={<RoleLayout roleCode="HR_ADMIN" />}>
-          <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
+          <Route path="/hradmin/dashboard" element={<AdminDashboardPage />} />
           <Route
-            path="/admin"
-            element={<Navigate to="/admin/dashboard" replace />}
+            path="/hradmin"
+            element={<Navigate to="/hradmin/dashboard" replace />}
           />
-          {createOrgRoleModuleRoutes('admin')}
-          <Route path="/admin/*" element={<RoleModulePage />} />
+          {createOrgRoleModuleRoutes('hradmin')}
+          <Route path="/hradmin/*" element={<RoleModulePage />} />
         </Route>
 
         <Route element={<RoleLayout roleCode="MANAGER" />}>
           <Route
-            path="/hr/dashboard"
+            path="/manager/dashboard"
             element={
               <RequireAccess
                 feature="dashboard.hr"
@@ -214,10 +229,39 @@ function App() {
               </RequireAccess>
             }
           />
-          <Route path="/hr" element={<Navigate to="/hr/dashboard" replace />} />
-          {createOrgRoleModuleRoutes('hr')}
-          <Route path="/hr/*" element={<RoleModulePage />} />
+          <Route
+            path="/manager"
+            element={<Navigate to="/manager/dashboard" replace />}
+          />
+          {createOrgRoleModuleRoutes('manager')}
+          <Route path="/manager/*" element={<RoleModulePage />} />
         </Route>
+
+        {/* Legacy workspace URLs → new prefixes (same role workspaces). */}
+        <Route
+          path="/admin/*"
+          element={
+            <LegacyWorkspaceRedirect fromPrefix="/admin" toPrefix="/hradmin" />
+          }
+        />
+        <Route
+          path="/admin"
+          element={
+            <LegacyWorkspaceRedirect fromPrefix="/admin" toPrefix="/hradmin" />
+          }
+        />
+        <Route
+          path="/hr/*"
+          element={
+            <LegacyWorkspaceRedirect fromPrefix="/hr" toPrefix="/manager" />
+          }
+        />
+        <Route
+          path="/hr"
+          element={
+            <LegacyWorkspaceRedirect fromPrefix="/hr" toPrefix="/manager" />
+          }
+        />
 
         <Route element={<RoleLayout roleCode="EMPLOYEE" />}>
           <Route

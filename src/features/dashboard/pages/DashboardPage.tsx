@@ -11,7 +11,7 @@ import { RecruitmentPipeline } from '../components/RecruitmentPipeline'
 import { UpcomingEvents } from '../components/UpcomingEvents'
 
 type DashboardPageProps = {
-  /** When true, loads org workforce summary from the API (intended for `/hr/dashboard` only). */
+  /** When true, loads org workforce summary from the API (intended for `/manager/dashboard` only). */
   showWorkforceSummary?: boolean
 }
 
