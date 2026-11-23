@@ -5,7 +5,6 @@ import type { LoginRequest, LoginResponseData } from '../types/auth.types'
 
 export const authApi = baseApi.injectEndpoints({
   endpoints: (build) => ({
-    /** POST /auth/login. `rememberMe` is client-only and is not sent. */
     login: build.mutation<LoginResponseData, LoginRequest>({
       query: ({ email, password }) => ({
         url: '/auth/login',
