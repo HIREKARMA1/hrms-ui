@@ -9,7 +9,7 @@ Single-company leave: balances, requests, approvals, calendar, accruals, and pol
 - Server mutations → `hooks/useLeaveApiActions.ts` (apply, approve, reject, cancel, encashment approve/reject, balance adjustment, accrual / carry-forward / expiry runs). Every action resolves to `{ ok, message }`.
 - Server-only screens → `components/balances/ApiBalancesTab.tsx`, `components/accruals/ApiAccrualsTab.tsx`, `components/settings/ApiLeaveSettingsTab.tsx`; calendar data in `hooks/useServerLeaveCalendar.ts`.
 - Not stored by the backend, so empty in server mode (never mocked): balance ledger, comp-off, delegations, holidays, accrual run history, settings history. Notices use `components/shared/LeaveServerNotice.tsx`.
-- Personal features need the caller's employee id, which `/auth/me` does not return yet. Until it does, My Leave, personal / team calendars, manager approvals and multi-level workflow approvals (`/leave-approval/*`) show `LeaveEmployeeLinkNotice`.
+- Personal features need the caller's employee id from auth (`user.employeeId`). When it is missing, My Leave, personal / team calendars, manager approvals and multi-level workflow approvals (`/leave-approval/*`) show `LeaveEmployeeLinkNotice`.
 
 ## Folder structure
 
@@ -44,8 +44,8 @@ Single-company leave: balances, requests, approvals, calendar, accruals, and pol
 - Settings save history → `types/settingsHistory.ts`, `utils/buildSettingsHistoryEntries.ts`, `services/leaveService.ts`
 - Leave rules seeds → `services/companyDefaults.ts` (sample values, confirm with CA); type seeds in `services/defaultLeaveTypes.ts`
 - Connect payroll → `services/leavePayrollApi.ts`
-- Viewer identity → `context/LeaveViewerProvider.tsx` + `utils/resolveLeaveViewer.ts`: signed-in users come from Redux `auth.user` (role from the active workspace, `employeeId: null` until `/auth/me` exposes the employee link); `constants/leaveDemoViewers.ts` personas apply only when nobody is signed in
-- Accounts without a verified employee id (`/auth/me` cannot say whether one is linked) → `components/shared/LeaveEmployeeLinkNotice.tsx` ("We couldn't retrieve your employee record…", never "not linked") replaces personal data (My Leave, team approvals, personal calendar)
+- Viewer identity → `context/LeaveViewerProvider.tsx` + `utils/resolveLeaveViewer.ts`: signed-in users come from Redux `auth.user` (role from the active workspace, `employeeId` when auth exposes it); `constants/leaveDemoViewers.ts` personas apply only when nobody is signed in
+- Accounts without `employeeId` on auth → `components/shared/LeaveEmployeeLinkNotice.tsx` ("We couldn't retrieve your employee record…", never "not linked") replaces personal data (My Leave, team approvals, personal calendar)
 - HR Admin Overview → `components/overview/HrOverviewTab.tsx` and section cards under `components/overview/`
   - Section chrome → `OverviewSectionHeader.tsx`, shared card shell `OverviewCard.tsx`
   - Attention section → `OverviewAttentionSection.tsx`, banner `OverviewAttentionBanner.tsx`, also-list `OverviewAttentionAlso.tsx` (request queue lives on Requests tab only)

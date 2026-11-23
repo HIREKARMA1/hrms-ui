@@ -19,7 +19,7 @@ function readFlag(name: keyof ImportMetaEnv): boolean {
 }
 
 export const env = {
-  apiBaseUrl: requireEnv('VITE_API_BASE_URL').replace(/\/+$/, ''),
+  apiBaseUrl: requireEnv('API_BASE_URL').replace(/\/+$/, ''),
   /** Send employee profile photos to POST /uploads. Off unless explicitly enabled. */
   employeePhotoUploadEnabled: readFlag('VITE_EMPLOYEE_PHOTO_UPLOAD_ENABLED'),
 } as const
