@@ -3,6 +3,7 @@
  */
 import { useCallback, useMemo, useState, type Dispatch, type SetStateAction } from 'react'
 
+import type { OfficeCalendarEventListSource } from '../context/officeCalendarContext'
 import {
   useCreateCalendarEventMutation,
   useDeleteCalendarEventMutation,
@@ -54,7 +55,7 @@ export function useOfficeCalendarEventBranch(
     { skip: !shouldFetchCalendarEvents || eventSearchText.length < 1 },
   )
 
-  const eventsSource = shouldFetchCalendarEvents ? 'api' : 'demo'
+  const eventsSource: OfficeCalendarEventListSource = shouldFetchCalendarEvents ? 'api' : 'demo'
 
   const events = useMemo(() => {
     if (shouldFetchCalendarEvents) {

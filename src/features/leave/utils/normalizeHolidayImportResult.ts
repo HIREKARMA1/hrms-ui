@@ -19,22 +19,23 @@ function summary(raw: Record<string, unknown>): HolidayImportSummary {
 
 function rowIssues(raw: unknown): HolidayImportRowIssue[] {
   if (!Array.isArray(raw)) return []
-  return raw
-    .map((item) => {
-      if (!item || typeof item !== 'object') return null
-      const record = item as Record<string, unknown>
-      const errorsRaw = record.errors ?? record.messages ?? record.error
-      const errors = Array.isArray(errorsRaw)
-        ? errorsRaw.map(String)
-        : typeof errorsRaw === 'string'
-          ? [errorsRaw]
-          : []
-      return {
-        row: Number(record.row ?? record.rowNumber ?? record.excelRow) || undefined,
-        errors: errors.length ? errors : undefined,
-      }
-    })
-    .filter((r): r is HolidayImportRowIssue => r !== null)
+  const rows: HolidayImportRowIssue[] = []
+  for (const item of raw) {
+    if (!item || typeof item !== 'object') continue
+    const record = item as Record<string, unknown>
+    const errorsRaw = record.errors ?? record.messages ?? record.error
+    const errors = Array.isArray(errorsRaw)
+      ? errorsRaw.map(String)
+      : typeof errorsRaw === 'string'
+        ? [errorsRaw]
+        : []
+    const rowNumber = Number(record.row ?? record.rowNumber ?? record.excelRow)
+    const issue: HolidayImportRowIssue = {}
+    if (rowNumber) issue.row = rowNumber
+    if (errors.length) issue.errors = errors
+    rows.push(issue)
+  }
+  return rows
 }
 
 export function normalizeHolidayImportResult(raw: unknown): HolidayImportResult {

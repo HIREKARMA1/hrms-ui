@@ -31,7 +31,6 @@ import { ledgerBalanceForType } from '../../utils/calculateBalance'
 import { HrRequestsTable } from './HrRequestsTable'
 import { HrApplyOnBehalfDialog } from './HrApplyOnBehalfDialog'
 import { HrCancelRequestDialog } from './HrCancelRequestDialog'
-import { HrEncashmentRequestsLiveSection } from './HrEncashmentRequestsLiveSection'
 
 const SEGMENTS = [
   { value: 'action' as const, label: 'Needs my action' },

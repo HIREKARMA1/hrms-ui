@@ -39,14 +39,15 @@ export function normalizeAttendanceReport(raw: unknown): AttendanceReportResult 
   const root = unwrapRecord(raw)
   const nested = unwrapRecord(root.data)
   const body = Object.keys(nested).length ? nested : root
+  const employee = unwrapRecord(body.employee)
   const days = pickItemsArray(body.days ?? body.records ?? body.items ?? raw)
     .map(mapDay)
     .filter((item): item is AttendanceDayRecord => item !== null)
   const singleDay = mapDay(body)
   const mergedDays = days.length ? days : singleDay ? [singleDay] : []
   return {
-    employeeId: coerceOptionalString(body.employeeId ?? body.employee?.id),
-    employeeCode: coerceOptionalString(body.employeeCode ?? body.code ?? body.employee?.employeeCode),
+    employeeId: coerceOptionalString(body.employeeId ?? employee.id),
+    employeeCode: coerceOptionalString(body.employeeCode ?? body.code ?? employee.employeeCode),
     fromDate: coerceOptionalString(body.fromDate),
     toDate: coerceOptionalString(body.toDate),
     date: coerceOptionalString(body.date),

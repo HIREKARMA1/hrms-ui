@@ -78,7 +78,7 @@ export function HrAttendanceLookupControls({
           />
         </div>
       )}
-      <Button type="button" variant="secondary" size="sm" className="gap-1" onClick={onSubmit}>
+      <Button type="button" variant="outline" size="sm" className="gap-1" onClick={onSubmit}>
         <Search className="h-3.5 w-3.5" />
         Load report
       </Button>
