@@ -33,7 +33,7 @@ export function MyRequestsTable({ rows, onView, onCancel, canCancel, onApply }: 
       <Card>
         <CardContent className="p-0">
           <LeaveEmptyState
-            message="No leave requests match your filters."
+            message="No leave requests to show."
             action={
               onApply ? (
                 <Button type="button" size="sm" onClick={onApply}>
