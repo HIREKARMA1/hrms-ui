@@ -1,0 +1,30 @@
+/**
+ * Sample encashment requests in approval and payout stages for HR views.
+ */
+
+import type { EncashmentRequest } from '../types/encashment'
+import { leaveTodayIso } from '../utils/leaveToday'
+import { addDays } from '../utils/leaveDates'
+
+export function buildMockEncashment(): EncashmentRequest[] {
+  const today = leaveTodayIso()
+  return [
+    {
+      id: 'ENC-1',
+      employeeId: 'EMP-1011',
+      leaveTypeCode: 'EL',
+      days: 5,
+      appliedOn: addDays(today, -5),
+      status: 'Pending approval',
+    },
+    {
+      id: 'ENC-2',
+      employeeId: 'EMP-1008',
+      leaveTypeCode: 'EL',
+      days: 3,
+      appliedOn: addDays(today, -2),
+      status: 'Pending approval',
+    },
+  ]
+}
+
