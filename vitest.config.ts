@@ -4,8 +4,9 @@ import { defineConfig } from 'vitest/config'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
-// Unit tests for pure logic (no DOM). Mirrors the `@` alias from vite.config.ts.
+// Unit tests for pure logic (no DOM). Mirrors the `@` alias / envPrefix from vite.config.ts.
 export default defineConfig({
+  envPrefix: ['VITE_', 'API_'],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
@@ -14,5 +15,8 @@ export default defineConfig({
   test: {
     environment: 'node',
     include: ['src/**/*.test.ts'],
+    env: {
+      API_BASE_URL: 'http://localhost:3000/api/v1',
+    },
   },
 })
