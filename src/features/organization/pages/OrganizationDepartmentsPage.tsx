@@ -1,6 +1,8 @@
-import { Pencil, Plus, Trash2 } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { Filter, Pencil, Plus, Search, Trash2, X } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { useLocation } from 'react-router-dom'
 
+import { employeeDirectoryMock } from '@/features/employees/mocks/employeeDirectory.mock'
 import { Feature } from '@/features/rbac/components/Feature'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -36,75 +38,116 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
+import { cn } from '@/lib/utils'
 
 import {
   departmentsMock,
   designationsMock,
-  hierarchyMock,
-  jobRolesMock,
-  teamsMock,
-  transferHistoryMock,
 } from '../mocks/organizationMocks'
 import type {
   DepartmentRecord,
+  DepartmentStatus,
   DesignationRecord,
-  JobRoleRecord,
-  TeamRecord,
 } from '../types/organization.types'
-import { employeeDirectoryMock } from '@/features/employees/mocks/employeeDirectory.mock'
+import {
+  EMPTY_DEPARTMENT_FILTERS,
+  countActiveDepartmentFilters,
+  filterDepartments,
+  type DepartmentFilters,
+} from '../utils/departmentFilters'
 
 type DeptForm = {
   name: string
   description: string
   headName: string
+  status: DepartmentStatus
 }
 
-const emptyDept: DeptForm = { name: '', description: '', headName: '' }
+const emptyDept: DeptForm = {
+  name: '',
+  description: '',
+  headName: '',
+  status: 'Active',
+}
 
 /**
- * Additive Organization & Department Management for existing `/…/departments` routes.
+ * Organization routes:
+ * - `/…/departments` → Department Management (redesigned, no tab bar)
+ * - `/…/designations` → Designations (sidebar entry; no shared tab bar)
  */
 export function OrganizationDepartmentsPage() {
+  const { pathname } = useLocation()
+  const isDesignationsRoute = /\/designations\/?$/.test(pathname)
+
+  if (isDesignationsRoute) {
+    return <DesignationsSection />
+  }
+
+  return <DepartmentsSection />
+}
+
+function DepartmentsSection() {
   const [departments, setDepartments] = useState(() =>
     structuredClone(departmentsMock),
   )
-  const [teams, setTeams] = useState(() => structuredClone(teamsMock))
-  const [designations, setDesignations] = useState(() =>
-    structuredClone(designationsMock),
+  const [search, setSearch] = useState('')
+  const [draftFilters, setDraftFilters] = useState<DepartmentFilters>(
+    EMPTY_DEPARTMENT_FILTERS,
   )
-  const [jobRoles, setJobRoles] = useState(() => structuredClone(jobRolesMock))
+  const [appliedFilters, setAppliedFilters] =
+    useState<DepartmentFilters>(EMPTY_DEPARTMENT_FILTERS)
+  const [filterOpen, setFilterOpen] = useState(false)
+  const filterRef = useRef<HTMLDivElement>(null)
+
   const [deptFormOpen, setDeptFormOpen] = useState(false)
   const [editingDeptId, setEditingDeptId] = useState<string | null>(null)
   const [deptForm, setDeptForm] = useState<DeptForm>(emptyDept)
   const [deleteDept, setDeleteDept] = useState<DepartmentRecord | null>(null)
-  const [teamFormOpen, setTeamFormOpen] = useState(false)
-  const [teamForm, setTeamForm] = useState({
-    name: '',
-    departmentId: departmentsMock[0]?.id ?? '',
-    leaderName: '',
-    members: '',
-  })
-  const [designationFormOpen, setDesignationFormOpen] = useState(false)
-  const [designationForm, setDesignationForm] = useState({
-    title: '',
-    departmentName: 'Engineering',
-    level: 'L3',
-  })
-  const [roleFormOpen, setRoleFormOpen] = useState(false)
-  const [roleForm, setRoleForm] = useState({
-    title: '',
-    designationId: designationsMock[0]?.id ?? '',
-    description: '',
-  })
-  const [selectedDeptId, setSelectedDeptId] = useState(departmentsMock[0]?.id ?? '')
+  const [selectedDeptId, setSelectedDeptId] = useState(
+    departmentsMock[0]?.id ?? '',
+  )
+
+  const headOptions = useMemo(() => {
+    const names = Array.from(
+      new Set(departments.map((d) => d.headName).filter(Boolean)),
+    ).sort((a, b) => a.localeCompare(b))
+    return names
+  }, [departments])
+
+  const filteredDepartments = useMemo(
+    () => filterDepartments(departments, search, appliedFilters),
+    [departments, search, appliedFilters],
+  )
+
+  const activeFilterCount = countActiveDepartmentFilters(appliedFilters)
 
   const deptEmployees = useMemo(() => {
     const dept = departments.find((d) => d.id === selectedDeptId)
     if (!dept) return []
     return employeeDirectoryMock.filter((e) => e.department === dept.name)
   }, [departments, selectedDeptId])
+
+  useEffect(() => {
+    if (!filterOpen) return
+    const onPointerDown = (event: MouseEvent) => {
+      if (
+        filterRef.current &&
+        !filterRef.current.contains(event.target as Node)
+      ) {
+        setFilterOpen(false)
+      }
+    }
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setFilterOpen(false)
+    }
+    document.addEventListener('mousedown', onPointerDown)
+    document.addEventListener('keydown', onKeyDown)
+    return () => {
+      document.removeEventListener('mousedown', onPointerDown)
+      document.removeEventListener('keydown', onKeyDown)
+    }
+  }, [filterOpen])
 
   const openCreateDept = () => {
     setEditingDeptId(null)
@@ -118,6 +161,7 @@ export function OrganizationDepartmentsPage() {
       name: dept.name,
       description: dept.description,
       headName: dept.headName,
+      status: dept.status,
     })
     setDeptFormOpen(true)
   }
@@ -133,439 +177,495 @@ export function OrganizationDepartmentsPage() {
                 name: deptForm.name.trim(),
                 description: deptForm.description.trim(),
                 headName: deptForm.headName.trim(),
+                status: deptForm.status,
               }
             : d,
         ),
       )
     } else {
-      setDepartments((prev) => [
-        {
-          id: `d-${Date.now()}`,
-          name: deptForm.name.trim(),
-          description: deptForm.description.trim(),
-          headName: deptForm.headName.trim(),
-          employeeCount: 0,
-        },
-        ...prev,
-      ])
+      const created: DepartmentRecord = {
+        id: `d-${Date.now()}`,
+        name: deptForm.name.trim(),
+        description: deptForm.description.trim(),
+        headName: deptForm.headName.trim(),
+        employeeCount: 0,
+        status: deptForm.status,
+      }
+      setDepartments((prev) => [created, ...prev])
+      setSelectedDeptId(created.id)
     }
     setDeptFormOpen(false)
   }
 
   const confirmDeleteDept = () => {
     if (!deleteDept) return
-    setDepartments((prev) => prev.filter((d) => d.id !== deleteDept.id))
+    const removedId = deleteDept.id
+    const remaining = departments.filter((d) => d.id !== removedId)
+    setDepartments(remaining)
+    if (selectedDeptId === removedId) {
+      setSelectedDeptId(remaining[0]?.id ?? '')
+    }
     setDeleteDept(null)
   }
 
-  const saveTeam = () => {
-    if (!teamForm.name.trim()) return
-    const dept = departments.find((d) => d.id === teamForm.departmentId)
-    const record: TeamRecord = {
-      id: `t-${Date.now()}`,
-      name: teamForm.name.trim(),
-      departmentId: teamForm.departmentId,
-      departmentName: dept?.name ?? 'Unknown',
-      leaderName: teamForm.leaderName.trim(),
-      memberNames: teamForm.members
-        .split(',')
-        .map((s) => s.trim())
-        .filter(Boolean),
-    }
-    setTeams((prev) => [record, ...prev])
-    setTeamFormOpen(false)
+  const applyFilters = () => {
+    setAppliedFilters(draftFilters)
+    setFilterOpen(false)
   }
 
-  const saveDesignation = () => {
-    if (!designationForm.title.trim()) return
-    const record: DesignationRecord = {
-      id: `des-${Date.now()}`,
-      title: designationForm.title.trim(),
-      departmentName: designationForm.departmentName,
-      level: designationForm.level,
-    }
-    setDesignations((prev) => [record, ...prev])
-    setDesignationFormOpen(false)
-  }
-
-  const saveRole = () => {
-    if (!roleForm.title.trim()) return
-    const record: JobRoleRecord = {
-      id: `jr-${Date.now()}`,
-      title: roleForm.title.trim(),
-      designationId: roleForm.designationId,
-      description: roleForm.description.trim(),
-    }
-    setJobRoles((prev) => [record, ...prev])
-    setRoleFormOpen(false)
+  const clearFilters = () => {
+    setDraftFilters(EMPTY_DEPARTMENT_FILTERS)
+    setAppliedFilters(EMPTY_DEPARTMENT_FILTERS)
+    setFilterOpen(false)
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-6">
-      <div>
-        <div className="mb-2 flex flex-wrap gap-2">
-          <Badge variant="warning">Mock / UI-only</Badge>
-        </div>
-        <h1 className="text-2xl font-bold tracking-tight text-navy">
-          Organization & Departments
+    <div className="mx-auto flex w-full max-w-[1200px] flex-col gap-5">
+      <header className="space-y-1">
+        <h1 className="text-2xl font-semibold tracking-tight text-[#17213A]">
+          Department Management
         </h1>
-        <p className="mt-1 text-sm text-text-secondary">
-          Departments, teams, designations, hierarchy, and transfer history.
+        <p className="text-sm text-[#667085]">
+          Manage departments, department heads, and employee allocations.
         </p>
+      </header>
+
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="relative min-w-0 flex-1">
+          <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-[#98A2B3]" />
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search by department name or department head"
+            className="h-10 rounded-lg border-[#E2E6EF] bg-white pl-9 text-sm shadow-none focus-visible:ring-[#0F766E]/30"
+          />
+        </div>
+
+        <div className="relative flex shrink-0 items-center gap-2" ref={filterRef}>
+          <Button
+            type="button"
+            variant="outline"
+            className={cn(
+              'h-10 gap-2 rounded-lg border-[#E2E6EF] bg-white text-[#17213A] hover:bg-[#F7F8FC]',
+              activeFilterCount > 0 && 'border-[#14B8A6] text-[#0F766E]',
+            )}
+            onClick={() => {
+              setDraftFilters(appliedFilters)
+              setFilterOpen((open) => !open)
+            }}
+          >
+            <Filter className="h-4 w-4" />
+            Filter
+            {activeFilterCount > 0 ? (
+              <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-[#CCFBF1] px-1.5 text-xs font-semibold text-[#0F766E]">
+                {activeFilterCount}
+              </span>
+            ) : null}
+          </Button>
+
+          {filterOpen ? (
+            <div className="absolute top-[calc(100%+0.5rem)] right-0 z-30 w-[min(100vw-2rem,20rem)] rounded-xl border border-[#E2E6EF] bg-white p-4 shadow-lg sm:left-0 sm:right-auto">
+              <div className="mb-3 flex items-center justify-between">
+                <p className="text-sm font-semibold text-[#17213A]">Filters</p>
+                <button
+                  type="button"
+                  className="rounded-md p-1 text-[#98A2B3] hover:bg-[#F7F8FC] hover:text-[#17213A]"
+                  onClick={() => setFilterOpen(false)}
+                  aria-label="Close filters"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              <div className="space-y-3">
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-[#667085]">Department Head</Label>
+                  <Select
+                    value={draftFilters.headName}
+                    onValueChange={(value) =>
+                      setDraftFilters((f) => ({ ...f, headName: value }))
+                    }
+                  >
+                    <SelectTrigger className="h-9 rounded-lg border-[#E2E6EF]">
+                      <SelectValue placeholder="All heads" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="All">All</SelectItem>
+                      {headOptions.map((name) => (
+                        <SelectItem key={name} value={name}>
+                          {name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-[#667085]">
+                    Department Status
+                  </Label>
+                  <Select
+                    value={draftFilters.status}
+                    onValueChange={(value) =>
+                      setDraftFilters((f) => ({
+                        ...f,
+                        status: value as DepartmentFilters['status'],
+                      }))
+                    }
+                  >
+                    <SelectTrigger className="h-9 rounded-lg border-[#E2E6EF]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="All">All</SelectItem>
+                      <SelectItem value="Active">Active</SelectItem>
+                      <SelectItem value="Inactive">Inactive</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-[#667085]">
+                    Employee Count range
+                  </Label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Input
+                      type="number"
+                      min={0}
+                      inputMode="numeric"
+                      placeholder="Min"
+                      value={draftFilters.minEmployees}
+                      onChange={(e) =>
+                        setDraftFilters((f) => ({
+                          ...f,
+                          minEmployees: e.target.value,
+                        }))
+                      }
+                      className="h-9 rounded-lg border-[#E2E6EF]"
+                    />
+                    <Input
+                      type="number"
+                      min={0}
+                      inputMode="numeric"
+                      placeholder="Max"
+                      value={draftFilters.maxEmployees}
+                      onChange={(e) =>
+                        setDraftFilters((f) => ({
+                          ...f,
+                          maxEmployees: e.target.value,
+                        }))
+                      }
+                      className="h-9 rounded-lg border-[#E2E6EF]"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-4 flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-9 flex-1 rounded-lg border-[#E2E6EF]"
+                  onClick={clearFilters}
+                >
+                  Clear Filters
+                </Button>
+                <Button
+                  type="button"
+                  className="h-9 flex-1 rounded-lg bg-[#0F766E] text-white hover:bg-[#0D9488]"
+                  onClick={applyFilters}
+                >
+                  Apply Filters
+                </Button>
+              </div>
+            </div>
+          ) : null}
+
+          <Feature name="employee.organization.edit">
+            <Button
+              type="button"
+              className="h-10 gap-2 rounded-lg bg-[#0F766E] text-white hover:bg-[#0D9488]"
+              onClick={openCreateDept}
+            >
+              <Plus className="h-4 w-4" />
+              Create Department
+            </Button>
+          </Feature>
+        </div>
       </div>
 
-      <Tabs defaultValue="departments">
-        <TabsList className="flex h-auto flex-wrap">
-          <TabsTrigger value="departments">Departments</TabsTrigger>
-          <TabsTrigger value="teams">Teams</TabsTrigger>
-          <TabsTrigger value="designations">Designations</TabsTrigger>
-          <TabsTrigger value="roles">Job Roles</TabsTrigger>
-          <TabsTrigger value="hierarchy">Reporting Hierarchy</TabsTrigger>
-          <TabsTrigger value="org-chart">Org Chart</TabsTrigger>
-          <TabsTrigger value="transfers">Transfer History</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="departments" className="mt-4 space-y-4">
-          <div className="flex justify-end">
-            <Feature name="employee.organization.edit">
-              <Button type="button" className="gap-2" onClick={openCreateDept}>
-                <Plus className="h-4 w-4" />
-                Create Department
-              </Button>
-            </Feature>
-          </div>
-          <div className="overflow-hidden rounded-2xl border border-border-soft bg-white shadow-sm">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Department</TableHead>
-                  <TableHead>Head</TableHead>
-                  <TableHead>Employees</TableHead>
-                  <TableHead>Description</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {departments.map((dept) => (
-                  <TableRow key={dept.id}>
-                    <TableCell className="font-medium text-navy">
-                      <button
-                        type="button"
-                        className="text-left hover:underline"
-                        onClick={() => setSelectedDeptId(dept.id)}
-                      >
-                        {dept.name}
-                      </button>
-                    </TableCell>
-                    <TableCell>{dept.headName}</TableCell>
-                    <TableCell className="tabular-nums">
-                      {dept.employeeCount}
-                    </TableCell>
-                    <TableCell className="max-w-xs text-text-secondary">
-                      {dept.description}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Feature name="employee.organization.edit">
-                        <div className="flex justify-end gap-1">
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => openEditDept(dept)}
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => setDeleteDept(dept)}
-                          >
-                            <Trash2 className="h-4 w-4 text-rose-600" />
-                          </Button>
-                        </div>
-                      </Feature>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-
-          <Card className="border-border-soft shadow-sm">
-            <CardHeader>
-              <CardTitle>Department-wise employee listing</CardTitle>
-              <CardDescription>
-                Employees linked to the selected department (mock directory)
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <Select value={selectedDeptId} onValueChange={setSelectedDeptId}>
-                <SelectTrigger className="max-w-xs">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {departments.map((d) => (
-                    <SelectItem key={d.id} value={d.id}>
-                      {d.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <ul className="space-y-2">
-                {deptEmployees.length === 0 ? (
-                  <li className="text-sm text-text-secondary">
-                    No mock employees in this department.
-                  </li>
-                ) : (
-                  deptEmployees.map((e) => (
-                    <li
-                      key={e.id}
-                      className="rounded-xl border border-border-soft px-3 py-2 text-sm"
-                    >
-                      {e.firstName} {e.lastName} · {e.designation} ·{' '}
-                      {e.employmentStatus}
-                    </li>
-                  ))
-                )}
-              </ul>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="teams" className="mt-4 space-y-4">
-          <div className="flex justify-end">
-            <Feature name="employee.organization.edit">
-              <Button
-                type="button"
-                className="gap-2"
-                onClick={() => {
-                  setTeamForm({
-                    name: '',
-                    departmentId: departments[0]?.id ?? '',
-                    leaderName: '',
-                    members: '',
-                  })
-                  setTeamFormOpen(true)
-                }}
-              >
-                <Plus className="h-4 w-4" />
-                Create Team
-              </Button>
-            </Feature>
-          </div>
-          <div className="grid gap-4 md:grid-cols-2">
-            {teams.map((team) => (
-              <Card key={team.id} className="border-border-soft shadow-sm">
-                <CardHeader>
-                  <CardTitle>{team.name}</CardTitle>
-                  <CardDescription>
-                    {team.departmentName} · Leader: {team.leaderName}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <p className="mb-2 text-xs font-medium text-text-secondary">
-                    Assigned employees
-                  </p>
-                  <div className="flex flex-wrap gap-1">
-                    {team.memberNames.map((m) => (
-                      <Badge key={m} variant="secondary">
-                        {m}
-                      </Badge>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </TabsContent>
-
-        <TabsContent value="designations" className="mt-4 space-y-4">
-          <div className="flex justify-end">
-            <Feature name="employee.organization.edit">
-              <Button
-                type="button"
-                className="gap-2"
-                onClick={() => setDesignationFormOpen(true)}
-              >
-                <Plus className="h-4 w-4" />
-                Add Designation
-              </Button>
-            </Feature>
-          </div>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Title</TableHead>
-                <TableHead>Department</TableHead>
-                <TableHead>Level</TableHead>
+      <div className="overflow-hidden rounded-xl border border-[#E2E6EF] bg-white">
+        <Table>
+          <TableHeader>
+            <TableRow className="border-[#E2E6EF] hover:bg-transparent">
+              <TableHead className="h-11 text-xs font-semibold tracking-wide text-[#667085] uppercase">
+                Department
+              </TableHead>
+              <TableHead className="h-11 text-xs font-semibold tracking-wide text-[#667085] uppercase">
+                Department Head
+              </TableHead>
+              <TableHead className="h-11 text-xs font-semibold tracking-wide text-[#667085] uppercase">
+                Employees
+              </TableHead>
+              <TableHead className="h-11 text-xs font-semibold tracking-wide text-[#667085] uppercase">
+                Description
+              </TableHead>
+              <TableHead className="h-11 text-xs font-semibold tracking-wide text-[#667085] uppercase">
+                Status
+              </TableHead>
+              <TableHead className="h-11 text-right text-xs font-semibold tracking-wide text-[#667085] uppercase">
+                Actions
+              </TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {filteredDepartments.length === 0 ? (
+              <TableRow className="hover:bg-transparent">
+                <TableCell
+                  colSpan={6}
+                  className="h-32 text-center text-sm text-[#667085]"
+                >
+                  No departments match your search or filters.
+                </TableCell>
               </TableRow>
-            </TableHeader>
-            <TableBody>
-              {designations.map((d) => (
-                <TableRow key={d.id}>
-                  <TableCell className="font-medium text-navy">{d.title}</TableCell>
-                  <TableCell>{d.departmentName}</TableCell>
-                  <TableCell>{d.level}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TabsContent>
-
-        <TabsContent value="roles" className="mt-4 space-y-4">
-          <div className="flex justify-end">
-            <Feature name="employee.organization.edit">
-              <Button
-                type="button"
-                className="gap-2"
-                onClick={() => setRoleFormOpen(true)}
-              >
-                <Plus className="h-4 w-4" />
-                Add Job Role
-              </Button>
-            </Feature>
-          </div>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Role</TableHead>
-                <TableHead>Designation</TableHead>
-                <TableHead>Description</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {jobRoles.map((r) => (
-                <TableRow key={r.id}>
-                  <TableCell className="font-medium text-navy">{r.title}</TableCell>
+            ) : (
+              filteredDepartments.map((dept) => (
+                <TableRow
+                  key={dept.id}
+                  className="border-[#E2E6EF] transition-colors hover:bg-[#F7F8FC]"
+                >
                   <TableCell>
-                    {designations.find((d) => d.id === r.designationId)?.title ??
-                      r.designationId}
-                  </TableCell>
-                  <TableCell className="text-text-secondary">
-                    {r.description}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TabsContent>
-
-        <TabsContent value="hierarchy" className="mt-4">
-          <Card className="border-border-soft shadow-sm">
-            <CardHeader>
-              <CardTitle>Reporting hierarchy</CardTitle>
-              <CardDescription>Who reports to whom (mock)</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ul className="space-y-2">
-                {hierarchyMock.map((node) => {
-                  const manager = hierarchyMock.find((h) => h.id === node.reportsTo)
-                  return (
-                    <li
-                      key={node.id}
-                      className="rounded-xl border border-border-soft px-4 py-3 text-sm"
+                    <button
+                      type="button"
+                      className="text-left text-sm font-semibold text-[#17213A] hover:text-[#0F766E]"
+                      onClick={() => setSelectedDeptId(dept.id)}
                     >
-                      <span className="font-medium text-navy">{node.name}</span>
-                      <span className="text-text-secondary"> · {node.role}</span>
-                      <p className="mt-1 text-xs text-text-secondary">
-                        Reports to: {manager ? manager.name : '— (top level)'}
-                      </p>
-                    </li>
-                  )
-                })}
-              </ul>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="org-chart" className="mt-4">
-          <Card className="border-border-soft shadow-sm">
-            <CardHeader>
-              <CardTitle>Organizational chart</CardTitle>
-              <CardDescription>
-                Simplified tree view from reporting hierarchy mock data
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <OrgTree />
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="transfers" className="mt-4">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Employee</TableHead>
-                <TableHead>From</TableHead>
-                <TableHead>To</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead>Approved by</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {transferHistoryMock.map((t) => (
-                <TableRow key={t.id}>
-                  <TableCell className="font-medium text-navy">
-                    {t.employeeName}
+                      {dept.name}
+                    </button>
                   </TableCell>
-                  <TableCell>{t.fromDepartment}</TableCell>
-                  <TableCell>{t.toDepartment}</TableCell>
-                  <TableCell>{t.transferredOn}</TableCell>
-                  <TableCell>{t.approvedBy}</TableCell>
+                  <TableCell className="text-sm text-[#344054]">
+                    {dept.headName || '—'}
+                  </TableCell>
+                  <TableCell>
+                    <span className="inline-flex min-w-8 items-center justify-center rounded-full bg-[#CCFBF1] px-2.5 py-0.5 text-xs font-semibold tabular-nums text-[#0F766E]">
+                      {dept.employeeCount}
+                    </span>
+                  </TableCell>
+                  <TableCell className="max-w-[280px] truncate text-sm text-[#667085]">
+                    {dept.description || '—'}
+                  </TableCell>
+                  <TableCell>
+                    <Badge
+                      variant={dept.status === 'Active' ? 'success' : 'secondary'}
+                      className={cn(
+                        'font-medium',
+                        dept.status === 'Active'
+                          ? 'border-transparent bg-[#CCFBF1] text-[#0F766E]'
+                          : 'border-transparent bg-[#F2F4F7] text-[#667085]',
+                      )}
+                    >
+                      {dept.status}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Feature name="employee.organization.edit">
+                      <div className="flex justify-end gap-1">
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="ghost"
+                          className="h-8 w-8 text-[#667085] hover:bg-[#CCFBF1]/60 hover:text-[#0F766E]"
+                          onClick={() => openEditDept(dept)}
+                          aria-label={`Edit ${dept.name}`}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="ghost"
+                          className="h-8 w-8 text-[#667085] hover:bg-rose-50 hover:text-rose-600"
+                          onClick={() => setDeleteDept(dept)}
+                          aria-label={`Delete ${dept.name}`}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </Feature>
+                  </TableCell>
                 </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </div>
+
+      <Card className="rounded-xl border-[#E2E6EF] bg-white shadow-none">
+        <CardHeader className="gap-3 space-y-0 border-b border-[#E2E6EF] pb-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <CardTitle className="text-base font-semibold text-[#17213A]">
+              Employees by Department
+            </CardTitle>
+            <CardDescription className="text-sm text-[#667085]">
+              Select a department to view linked employees.
+            </CardDescription>
+          </div>
+          <Select
+            value={selectedDeptId || undefined}
+            onValueChange={setSelectedDeptId}
+            disabled={departments.length === 0}
+          >
+            <SelectTrigger className="h-10 w-full rounded-lg border-[#E2E6EF] sm:w-64">
+              <SelectValue placeholder="Select department" />
+            </SelectTrigger>
+            <SelectContent>
+              {departments.map((d) => (
+                <SelectItem key={d.id} value={d.id}>
+                  {d.name}
+                </SelectItem>
               ))}
-            </TableBody>
-          </Table>
-        </TabsContent>
-      </Tabs>
+            </SelectContent>
+          </Select>
+        </CardHeader>
+        <CardContent className="pt-4">
+          {deptEmployees.length === 0 ? (
+            <p className="rounded-lg border border-dashed border-[#E2E6EF] px-4 py-8 text-center text-sm text-[#667085]">
+              No employees found for this department.
+            </p>
+          ) : (
+            <div className="overflow-hidden rounded-lg border border-[#E2E6EF]">
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-[#E2E6EF] hover:bg-transparent">
+                    <TableHead className="h-10 text-xs font-semibold text-[#667085] uppercase">
+                      Employee name
+                    </TableHead>
+                    <TableHead className="h-10 text-xs font-semibold text-[#667085] uppercase">
+                      Designation
+                    </TableHead>
+                    <TableHead className="h-10 text-xs font-semibold text-[#667085] uppercase">
+                      Employment status
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {deptEmployees.map((employee) => (
+                    <TableRow
+                      key={employee.id}
+                      className="border-[#E2E6EF] hover:bg-[#F7F8FC]"
+                    >
+                      <TableCell className="text-sm font-medium text-[#17213A]">
+                        {employee.firstName} {employee.lastName}
+                      </TableCell>
+                      <TableCell className="text-sm text-[#344054]">
+                        {employee.designation}
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={
+                            employee.employmentStatus === 'Active'
+                              ? 'success'
+                              : 'secondary'
+                          }
+                          className={
+                            employee.employmentStatus === 'Active'
+                              ? 'border-transparent bg-[#CCFBF1] text-[#0F766E]'
+                              : undefined
+                          }
+                        >
+                          {employee.employmentStatus}
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       <Dialog open={deptFormOpen} onOpenChange={setDeptFormOpen}>
-        <DialogContent>
+        <DialogContent className="rounded-xl sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>
+            <DialogTitle className="text-[#17213A]">
               {editingDeptId ? 'Edit Department' : 'Create Department'}
             </DialogTitle>
             <DialogDescription>
-              Assign a department head and description. UI session only.
+              Assign a department head, description, and status.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4">
             <div className="space-y-2">
-              <Label>Name</Label>
+              <Label htmlFor="dept-name">Department Name</Label>
               <Input
+                id="dept-name"
                 value={deptForm.name}
                 onChange={(e) =>
                   setDeptForm((f) => ({ ...f, name: e.target.value }))
                 }
+                className="rounded-lg border-[#E2E6EF]"
               />
             </div>
             <div className="space-y-2">
-              <Label>Department Head</Label>
+              <Label htmlFor="dept-head">Department Head</Label>
               <Input
+                id="dept-head"
                 value={deptForm.headName}
                 onChange={(e) =>
                   setDeptForm((f) => ({ ...f, headName: e.target.value }))
                 }
+                className="rounded-lg border-[#E2E6EF]"
               />
             </div>
             <div className="space-y-2">
-              <Label>Description</Label>
+              <Label htmlFor="dept-description">Description</Label>
               <Textarea
+                id="dept-description"
                 rows={3}
                 value={deptForm.description}
                 onChange={(e) =>
                   setDeptForm((f) => ({ ...f, description: e.target.value }))
                 }
+                className="rounded-lg border-[#E2E6EF]"
               />
+            </div>
+            <div className="space-y-2">
+              <Label>Status</Label>
+              <Select
+                value={deptForm.status}
+                onValueChange={(value) =>
+                  setDeptForm((f) => ({
+                    ...f,
+                    status: value as DepartmentStatus,
+                  }))
+                }
+              >
+                <SelectTrigger className="rounded-lg border-[#E2E6EF]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Active">Active</SelectItem>
+                  <SelectItem value="Inactive">Inactive</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setDeptFormOpen(false)}>
+            <Button
+              type="button"
+              variant="outline"
+              className="rounded-lg border-[#E2E6EF]"
+              onClick={() => setDeptFormOpen(false)}
+            >
               Cancel
             </Button>
-            <Button type="button" onClick={saveDept}>
+            <Button
+              type="button"
+              className="rounded-lg bg-[#0F766E] text-white hover:bg-[#0D9488]"
+              onClick={saveDept}
+              disabled={!deptForm.name.trim()}
+            >
               Save
             </Button>
           </DialogFooter>
@@ -576,119 +676,146 @@ export function OrganizationDepartmentsPage() {
         open={Boolean(deleteDept)}
         onOpenChange={(open) => !open && setDeleteDept(null)}
       >
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md rounded-xl">
           <DialogHeader>
-            <DialogTitle>Delete department?</DialogTitle>
+            <DialogTitle className="text-[#17213A]">
+              Delete department?
+            </DialogTitle>
             <DialogDescription>
-              Removes “{deleteDept?.name}” from the local mock list. Requires
+              Removes “{deleteDept?.name}” from the local list. Requires
               organization edit permission.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setDeleteDept(null)}>
+            <Button
+              type="button"
+              variant="outline"
+              className="rounded-lg border-[#E2E6EF]"
+              onClick={() => setDeleteDept(null)}
+            >
               Cancel
             </Button>
-            <Button type="button" onClick={confirmDeleteDept}>
+            <Button
+              type="button"
+              className="rounded-lg bg-rose-600 text-white hover:bg-rose-700"
+              onClick={confirmDeleteDept}
+            >
               Delete
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+    </div>
+  )
+}
 
-      <Dialog open={teamFormOpen} onOpenChange={setTeamFormOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Create Team</DialogTitle>
-            <DialogDescription>
-              Assign a team leader and employees (comma-separated names).
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4">
-            <div className="space-y-2">
-              <Label>Team name</Label>
-              <Input
-                value={teamForm.name}
-                onChange={(e) =>
-                  setTeamForm((f) => ({ ...f, name: e.target.value }))
-                }
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Department</Label>
-              <Select
-                value={teamForm.departmentId}
-                onValueChange={(v) =>
-                  setTeamForm((f) => ({ ...f, departmentId: v }))
-                }
+/** Designations sidebar route — kept without the shared horizontal tab bar. */
+function DesignationsSection() {
+  const [designations, setDesignations] = useState(() =>
+    structuredClone(designationsMock),
+  )
+  const [departments] = useState(() => structuredClone(departmentsMock))
+  const [formOpen, setFormOpen] = useState(false)
+  const [form, setForm] = useState({
+    title: '',
+    departmentName: departmentsMock[0]?.name ?? 'Engineering',
+    level: 'L3',
+  })
+
+  const saveDesignation = () => {
+    if (!form.title.trim()) return
+    const record: DesignationRecord = {
+      id: `des-${Date.now()}`,
+      title: form.title.trim(),
+      departmentName: form.departmentName,
+      level: form.level,
+    }
+    setDesignations((prev) => [record, ...prev])
+    setFormOpen(false)
+  }
+
+  return (
+    <div className="mx-auto flex w-full max-w-[1200px] flex-col gap-5">
+      <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div className="space-y-1">
+          <h1 className="text-2xl font-semibold tracking-tight text-[#17213A]">
+            Designations
+          </h1>
+          <p className="text-sm text-[#667085]">
+            Manage designation titles and levels by department.
+          </p>
+        </div>
+        <Feature name="employee.organization.edit">
+          <Button
+            type="button"
+            className="h-10 gap-2 rounded-lg bg-[#0F766E] text-white hover:bg-[#0D9488]"
+            onClick={() => setFormOpen(true)}
+          >
+            <Plus className="h-4 w-4" />
+            Add Designation
+          </Button>
+        </Feature>
+      </header>
+
+      <div className="overflow-hidden rounded-xl border border-[#E2E6EF] bg-white">
+        <Table>
+          <TableHeader>
+            <TableRow className="border-[#E2E6EF] hover:bg-transparent">
+              <TableHead className="h-11 text-xs font-semibold text-[#667085] uppercase">
+                Title
+              </TableHead>
+              <TableHead className="h-11 text-xs font-semibold text-[#667085] uppercase">
+                Department
+              </TableHead>
+              <TableHead className="h-11 text-xs font-semibold text-[#667085] uppercase">
+                Level
+              </TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {designations.map((item) => (
+              <TableRow
+                key={item.id}
+                className="border-[#E2E6EF] hover:bg-[#F7F8FC]"
               >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {departments.map((d) => (
-                    <SelectItem key={d.id} value={d.id}>
-                      {d.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Team Leader</Label>
-              <Input
-                value={teamForm.leaderName}
-                onChange={(e) =>
-                  setTeamForm((f) => ({ ...f, leaderName: e.target.value }))
-                }
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Employees</Label>
-              <Textarea
-                rows={2}
-                placeholder="Comma-separated names"
-                value={teamForm.members}
-                onChange={(e) =>
-                  setTeamForm((f) => ({ ...f, members: e.target.value }))
-                }
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setTeamFormOpen(false)}>
-              Cancel
-            </Button>
-            <Button type="button" onClick={saveTeam}>
-              Save Team
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+                <TableCell className="font-semibold text-[#17213A]">
+                  {item.title}
+                </TableCell>
+                <TableCell className="text-[#344054]">
+                  {item.departmentName}
+                </TableCell>
+                <TableCell className="text-[#344054]">{item.level}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
 
-      <Dialog open={designationFormOpen} onOpenChange={setDesignationFormOpen}>
-        <DialogContent>
+      <Dialog open={formOpen} onOpenChange={setFormOpen}>
+        <DialogContent className="rounded-xl sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Add Designation</DialogTitle>
+            <DialogTitle className="text-[#17213A]">Add Designation</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4">
             <div className="space-y-2">
               <Label>Title</Label>
               <Input
-                value={designationForm.title}
+                value={form.title}
                 onChange={(e) =>
-                  setDesignationForm((f) => ({ ...f, title: e.target.value }))
+                  setForm((f) => ({ ...f, title: e.target.value }))
                 }
+                className="rounded-lg border-[#E2E6EF]"
               />
             </div>
             <div className="space-y-2">
               <Label>Department</Label>
               <Select
-                value={designationForm.departmentName}
-                onValueChange={(v) =>
-                  setDesignationForm((f) => ({ ...f, departmentName: v }))
+                value={form.departmentName}
+                onValueChange={(value) =>
+                  setForm((f) => ({ ...f, departmentName: value }))
                 }
               >
-                <SelectTrigger>
+                <SelectTrigger className="rounded-lg border-[#E2E6EF]">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -703,10 +830,11 @@ export function OrganizationDepartmentsPage() {
             <div className="space-y-2">
               <Label>Level</Label>
               <Input
-                value={designationForm.level}
+                value={form.level}
                 onChange={(e) =>
-                  setDesignationForm((f) => ({ ...f, level: e.target.value }))
+                  setForm((f) => ({ ...f, level: e.target.value }))
                 }
+                className="rounded-lg border-[#E2E6EF]"
               />
             </div>
           </div>
@@ -714,68 +842,17 @@ export function OrganizationDepartmentsPage() {
             <Button
               type="button"
               variant="outline"
-              onClick={() => setDesignationFormOpen(false)}
+              className="rounded-lg border-[#E2E6EF]"
+              onClick={() => setFormOpen(false)}
             >
               Cancel
             </Button>
-            <Button type="button" onClick={saveDesignation}>
-              Save
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={roleFormOpen} onOpenChange={setRoleFormOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Add Job Role</DialogTitle>
-          </DialogHeader>
-          <div className="grid gap-4">
-            <div className="space-y-2">
-              <Label>Title</Label>
-              <Input
-                value={roleForm.title}
-                onChange={(e) =>
-                  setRoleForm((f) => ({ ...f, title: e.target.value }))
-                }
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Designation</Label>
-              <Select
-                value={roleForm.designationId}
-                onValueChange={(v) =>
-                  setRoleForm((f) => ({ ...f, designationId: v }))
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {designations.map((d) => (
-                    <SelectItem key={d.id} value={d.id}>
-                      {d.title}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Description</Label>
-              <Textarea
-                rows={2}
-                value={roleForm.description}
-                onChange={(e) =>
-                  setRoleForm((f) => ({ ...f, description: e.target.value }))
-                }
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setRoleFormOpen(false)}>
-              Cancel
-            </Button>
-            <Button type="button" onClick={saveRole}>
+            <Button
+              type="button"
+              className="rounded-lg bg-[#0F766E] text-white hover:bg-[#0D9488]"
+              onClick={saveDesignation}
+              disabled={!form.title.trim()}
+            >
               Save
             </Button>
           </DialogFooter>
@@ -783,32 +860,4 @@ export function OrganizationDepartmentsPage() {
       </Dialog>
     </div>
   )
-}
-
-function OrgTree() {
-  const roots = hierarchyMock.filter((n) => n.reportsTo === null)
-
-  const childrenOf = (id: string) =>
-    hierarchyMock.filter((n) => n.reportsTo === id)
-
-  const renderNode = (id: string, depth: number) => {
-    const node = hierarchyMock.find((n) => n.id === id)
-    if (!node) return null
-    return (
-      <li key={node.id} className="space-y-2">
-        <div
-          className="rounded-xl border border-border-soft bg-white px-3 py-2 text-sm shadow-sm"
-          style={{ marginLeft: depth * 16 }}
-        >
-          <p className="font-medium text-navy">{node.name}</p>
-          <p className="text-xs text-text-secondary">{node.role}</p>
-        </div>
-        <ul className="space-y-2">
-          {childrenOf(node.id).map((child) => renderNode(child.id, depth + 1))}
-        </ul>
-      </li>
-    )
-  }
-
-  return <ul className="space-y-3">{roots.map((r) => renderNode(r.id, 0))}</ul>
 }

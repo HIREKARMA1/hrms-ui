@@ -2,12 +2,14 @@ import {
   Bell,
   ChevronDown,
   CircleHelp,
+  KeyRound,
   LogOut,
   Menu,
   Search,
   Settings,
   UserRound,
 } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
@@ -32,6 +34,7 @@ import { useLayout } from './LayoutContext'
 import { Sidebar } from './Sidebar'
 
 export function Header() {
+  const navigate = useNavigate()
   const { mobileOpen, setMobileOpen } = useLayout()
   const rbac = useOptionalRbacSession()
   const { user } = useAuthenticatedUser()
@@ -128,6 +131,14 @@ export function Header() {
               <DropdownMenuItem>
                 <Settings className="mr-2 h-4 w-4" />
                 Settings
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onSelect={() => {
+                  navigate('/account/change-password')
+                }}
+              >
+                <KeyRound className="mr-2 h-4 w-4" />
+                Change password
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem

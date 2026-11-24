@@ -4,7 +4,7 @@ import { Route } from 'react-router-dom'
 import { LeavePage } from '@/features/leave/pages/LeavePage'
 import { PayrollPage } from '@/features/payroll/pages/PayrollPage'
 
-type RolePrefix = 'superadmin' | 'admin' | 'hr'
+type RolePrefix = 'superadmin' | 'hradmin' | 'manager'
 
 /**
  * Leave + payroll pages under each org role prefix (mirrors attendance/recruitment wiring).

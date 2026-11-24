@@ -23,7 +23,7 @@ const TAB_BY_SLUG: Record<string, LeadsPageTabId> = Object.fromEntries(
     .map(([tab, slug]) => [slug, tab as LeadsPageTabId]),
 )
 
-export function leadsPathForTab(tab: LeadsPageTabId, base = '/admin/leads'): string {
+export function leadsPathForTab(tab: LeadsPageTabId, base = '/hradmin/leads'): string {
   const slug = SLUG_BY_TAB[tab]
   return slug ? `${base}/${slug}` : base
 }
@@ -46,7 +46,7 @@ export function leadsTabFromSection(
   return defaultTab
 }
 
-export function leadsNavChildrenForRole(role: UserRole, base = '/admin/leads') {
+export function leadsNavChildrenForRole(role: UserRole, base = '/hradmin/leads') {
   return leadsTabsForRole(role).map((tab) => ({
     title: tab,
     path: leadsPathForTab(tab, base),

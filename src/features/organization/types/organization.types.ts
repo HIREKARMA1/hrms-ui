@@ -1,9 +1,13 @@
+export type DepartmentStatus = 'Active' | 'Inactive'
+
 export type DepartmentRecord = {
   id: string
   name: string
   description: string
   headName: string
   employeeCount: number
+  /** Local UI status — mock/session only (no department API). */
+  status: DepartmentStatus
 }
 
 export type TeamRecord = {

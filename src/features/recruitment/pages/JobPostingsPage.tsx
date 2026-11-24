@@ -1,20 +1,24 @@
-import { Eye, Pencil, Plus, Search, Trash2 } from 'lucide-react'
-import { useMemo, useState } from 'react'
+/**
+ * Job Management — production `/recruitment/jobs` APIs.
+ * Authenticated server mode only; no mock job list fallback.
+ */
+import {
+  Eye,
+  FileText,
+  Pencil,
+  Plus,
+  RefreshCw,
+  Search,
+  Trash2,
+} from 'lucide-react'
+import { useEffect, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 
 import { Feature } from '@/features/rbac/components/Feature'
+import { useOptionalFeatureAccess } from '@/features/rbac/hooks/useFeatureAccess'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import {
   Select,
   SelectContent,
@@ -22,6 +26,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { Skeleton } from '@/components/ui/skeleton'
 import {
   Table,
   TableBody,
@@ -30,614 +35,446 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Textarea } from '@/components/ui/textarea'
+import { getApiErrorMessage } from '@/services/api/errors'
 
-import { JobStatusBadge, RecruitmentPageShell } from '../components'
+import { JOBS_PAGE_SIZE, useGetJobQuery, useListJobsQuery } from '../api/jobsApi'
+import type {
+  BackendJob,
+  JobEmploymentType,
+  JobPostingStatus,
+  JobWorkMode,
+} from '../api/jobsApi.types'
+import { RecruitmentPageShell } from '../components'
+import { ApiJobStatusBadge } from '../components/jobs/ApiJobStatusBadge'
+import {
+  formatEmploymentType,
+  formatExperience,
+  formatPostedDate,
+  formatWorkMode,
+} from '../utils/jobFormat'
+import { DeleteJobDialog } from '../components/jobs/DeleteJobDialog'
+import { JobDescriptionDialog } from '../components/jobs/JobDescriptionDialog'
+import { JobDetailDialog } from '../components/jobs/JobDetailDialog'
+import { JobFormDialog } from '../components/jobs/JobFormDialog'
 import { RECRUITMENT_FILTER_BAR } from '../components/shared/recruitmentUi'
 import { jobHiringDeskPath, recruitmentRoutePrefix } from '../utils/recruitmentRoutes'
-import { departments, locations } from '../mocks/recruitmentMocks'
-import { listJobDescriptions, listJobs } from '../services/recruitmentService'
-import type {
-  EmploymentType,
-  JobPosting,
-  JobStatus,
-  WorkMode,
-} from '../types/recruitment'
 
-type JobFormState = {
-  title: string
-  department: string
-  designation: string
-  location: string
-  employmentType: EmploymentType
-  workMode: WorkMode
-  experienceRequired: string
-  openings: string
-  salaryRange: string
-  description: string
-  requiredSkills: string
-  qualifications: string
-  applicationDeadline: string
-  status: JobStatus
-  jobDescriptionId: string
-}
+const SEARCH_DEBOUNCE_MS = 350
+const ALL = '__all__'
 
-const emptyForm: JobFormState = {
-  title: '',
-  department: 'Engineering',
-  designation: '',
-  location: 'Hyderabad',
-  employmentType: 'Full-time',
-  workMode: 'Hybrid',
-  experienceRequired: '',
-  openings: '1',
-  salaryRange: '',
-  description: '',
-  requiredSkills: '',
-  qualifications: '',
-  applicationDeadline: '',
-  status: 'Draft',
-  jobDescriptionId: 'none',
-}
-
-const employmentTypes: EmploymentType[] = [
-  'Full-time',
-  'Part-time',
-  'Contract',
-  'Internship',
+const EMPLOYMENT_TYPES: JobEmploymentType[] = [
+  'FULL_TIME',
+  'PART_TIME',
+  'CONTRACT',
+  'INTERN',
+  'TEMPORARY',
 ]
-const workModes: WorkMode[] = ['On-site', 'Hybrid', 'Remote']
-const jobStatuses: JobStatus[] = ['Draft', 'Published', 'Closed', 'On Hold']
+const WORK_MODES: JobWorkMode[] = ['ONSITE', 'REMOTE', 'HYBRID']
+const STATUSES: JobPostingStatus[] = ['DRAFT', 'PUBLISHED', 'CLOSED', 'CANCELLED']
+
+type Notice = { tone: 'success' | 'error'; text: string }
 
 export function JobPostingsPage() {
   const routerLocation = useLocation()
   const routePrefix = recruitmentRoutePrefix(routerLocation.pathname)
-  const [jobs, setJobs] = useState(() => listJobs())
-  const [jds] = useState(() => listJobDescriptions())
-  const [search, setSearch] = useState('')
-  const [department, setDepartment] = useState('All')
-  const [location, setLocation] = useState('All')
-  const [employmentType, setEmploymentType] = useState<string>('All')
-  const [formOpen, setFormOpen] = useState(false)
-  const [editingId, setEditingId] = useState<string | null>(null)
-  const [form, setForm] = useState<JobFormState>(emptyForm)
-  const [deleteTarget, setDeleteTarget] = useState<JobPosting | null>(null)
+  const { canAccess } = useOptionalFeatureAccess()
+  const canManage = canAccess('recruitment.manage')
 
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase()
-    return jobs.filter((job) => {
-      if (department !== 'All' && job.department !== department) return false
-      if (location !== 'All' && job.location !== location) return false
-      if (employmentType !== 'All' && job.employmentType !== employmentType)
-        return false
-      if (!q) return true
-      return (
-        job.title.toLowerCase().includes(q) ||
-        job.department.toLowerCase().includes(q) ||
-        job.id.toLowerCase().includes(q)
-      )
-    })
-  }, [jobs, search, department, location, employmentType])
+  const [searchInput, setSearchInput] = useState('')
+  const [search, setSearch] = useState('')
+  const [page, setPage] = useState(1)
+  const [status, setStatus] = useState(ALL)
+  const [employmentType, setEmploymentType] = useState(ALL)
+  const [workMode, setWorkMode] = useState(ALL)
+  const [isActive, setIsActive] = useState(ALL)
+  const [departmentId, setDepartmentId] = useState('')
+
+  const [formOpen, setFormOpen] = useState(false)
+  const [formMode, setFormMode] = useState<'create' | 'edit'>('create')
+  const [editJob, setEditJob] = useState<BackendJob | null>(null)
+  const [detailId, setDetailId] = useState<string | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<BackendJob | null>(null)
+  const [descriptionTarget, setDescriptionTarget] = useState<BackendJob | null>(null)
+  const [notice, setNotice] = useState<Notice | null>(null)
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setSearch(searchInput.trim())
+      setPage(1)
+    }, SEARCH_DEBOUNCE_MS)
+    return () => window.clearTimeout(timer)
+  }, [searchInput])
+
+  const list = useListJobsQuery({
+    page,
+    limit: JOBS_PAGE_SIZE,
+    ...(search ? { search } : {}),
+    ...(status !== ALL ? { status: status as JobPostingStatus } : {}),
+    ...(employmentType !== ALL
+      ? { employmentType: employmentType as JobEmploymentType }
+      : {}),
+    ...(workMode !== ALL ? { workMode: workMode as JobWorkMode } : {}),
+    ...(isActive === 'true' ? { isActive: true } : isActive === 'false' ? { isActive: false } : {}),
+    ...(departmentId.trim() ? { departmentId: departmentId.trim() } : {}),
+    sortBy: 'createdAt',
+    sortOrder: 'desc',
+  })
+
+  // Refresh detail target when opening description from list/detail so we keep latest text.
+  const descriptionRefresh = useGetJobQuery(descriptionTarget?.id ?? '', {
+    skip: !descriptionTarget?.id,
+    refetchOnMountOrArgChange: true,
+  })
+
+  const items = list.data?.items ?? []
+  const pagination = list.data?.pagination
+  const totalPages = pagination?.totalPages ?? 0
 
   const openCreate = () => {
-    setEditingId(null)
-    setForm(emptyForm)
+    setFormMode('create')
+    setEditJob(null)
     setFormOpen(true)
   }
 
-  const openEdit = (job: JobPosting) => {
-    setEditingId(job.id)
-    setForm({
-      title: job.title,
-      department: job.department,
-      designation: job.designation,
-      location: job.location,
-      employmentType: job.employmentType,
-      workMode: job.workMode,
-      experienceRequired: job.experienceRequired,
-      openings: String(job.openings),
-      salaryRange: job.salaryRange,
-      description: job.description,
-      requiredSkills: job.requiredSkills.join(', '),
-      qualifications: job.qualifications,
-      applicationDeadline: job.applicationDeadline,
-      status: job.status,
-      jobDescriptionId: job.jobDescriptionId ?? 'none',
-    })
+  const openEdit = (job: BackendJob) => {
+    setFormMode('edit')
+    setEditJob(job)
+    setDetailId(null)
     setFormOpen(true)
-  }
-
-  const saveJob = () => {
-    if (!form.title.trim()) return
-    const payload: Omit<JobPosting, 'id' | 'applicants' | 'createdAt'> & {
-      applicants?: number
-      createdAt?: string
-    } = {
-      title: form.title.trim(),
-      department: form.department,
-      designation: form.designation.trim(),
-      location: form.location,
-      employmentType: form.employmentType,
-      workMode: form.workMode,
-      experienceRequired: form.experienceRequired.trim(),
-      openings: Number(form.openings) || 1,
-      salaryRange: form.salaryRange.trim(),
-      description: form.description.trim(),
-      requiredSkills: form.requiredSkills
-        .split(',')
-        .map((s) => s.trim())
-        .filter(Boolean),
-      qualifications: form.qualifications.trim(),
-      applicationDeadline: form.applicationDeadline,
-      status: form.status,
-      jobDescriptionId:
-        form.jobDescriptionId === 'none' ? undefined : form.jobDescriptionId,
-    }
-
-    if (editingId) {
-      setJobs((prev) =>
-        prev.map((job) =>
-          job.id === editingId ? { ...job, ...payload } : job,
-        ),
-      )
-    } else {
-      setJobs((prev) => [
-        {
-          ...payload,
-          id: `JOB-${100 + prev.length + 1}`,
-          applicants: 0,
-          createdAt: new Date().toISOString().slice(0, 10),
-        },
-        ...prev,
-      ])
-    }
-    setFormOpen(false)
-  }
-
-  const setStatus = (id: string, status: JobStatus) => {
-    setJobs((prev) =>
-      prev.map((job) => (job.id === id ? { ...job, status } : job)),
-    )
-  }
-
-  const confirmDelete = () => {
-    if (!deleteTarget) return
-    if (deleteTarget.status === 'Published' && deleteTarget.applicants > 0) {
-      setDeleteTarget(null)
-      return
-    }
-    setJobs((prev) => prev.filter((job) => job.id !== deleteTarget.id))
-    setDeleteTarget(null)
   }
 
   return (
     <RecruitmentPageShell
       activeSection="Job Postings"
       trailing={
-        <Feature name="recruitment.manage">
-          <Button type="button" className="gap-2" onClick={openCreate}>
-            <Plus className="h-4 w-4" />
-            Create Job
+        <div className="flex flex-wrap gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => void list.refetch()}
+            disabled={list.isFetching}
+          >
+            <RefreshCw className={`h-4 w-4 ${list.isFetching ? 'animate-spin' : ''}`} />
+            Refresh
           </Button>
-        </Feature>
+          <Feature name="recruitment.manage">
+            <Button type="button" className="gap-2" onClick={openCreate}>
+              <Plus className="h-4 w-4" />
+              Create Job
+            </Button>
+          </Feature>
+        </div>
       }
     >
+      {notice ? (
+        <p
+          role="status"
+          className={
+            notice.tone === 'success'
+              ? 'mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900'
+              : 'mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700'
+          }
+        >
+          {notice.text}
+        </p>
+      ) : null}
+
       <div className={RECRUITMENT_FILTER_BAR}>
         <div className="relative flex-1">
           <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-text-secondary" />
           <Input
             className="pl-9"
-            placeholder="Search jobs..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search title, location, description..."
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
           />
         </div>
-        <Select value={department} onValueChange={setDepartment}>
-          <SelectTrigger className="w-full lg:w-44">
-            <SelectValue placeholder="Department" />
-          </SelectTrigger>
-          <SelectContent>
-            {departments.map((d) => (
-              <SelectItem key={d} value={d}>
-                {d === 'All' ? 'All departments' : d}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select value={location} onValueChange={setLocation}>
+        <Select
+          value={status}
+          onValueChange={(value) => {
+            setStatus(value)
+            setPage(1)
+          }}
+        >
           <SelectTrigger className="w-full lg:w-40">
-            <SelectValue placeholder="Location" />
+            <SelectValue placeholder="Status" />
           </SelectTrigger>
           <SelectContent>
-            {locations.map((loc) => (
-              <SelectItem key={loc} value={loc}>
-                {loc === 'All' ? 'All locations' : loc}
+            <SelectItem value={ALL}>All statuses</SelectItem>
+            {STATUSES.map((item) => (
+              <SelectItem key={item} value={item}>
+                {item}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
-        <Select value={employmentType} onValueChange={setEmploymentType}>
+        <Select
+          value={employmentType}
+          onValueChange={(value) => {
+            setEmploymentType(value)
+            setPage(1)
+          }}
+        >
           <SelectTrigger className="w-full lg:w-44">
             <SelectValue placeholder="Employment type" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="All">All types</SelectItem>
-            {employmentTypes.map((type) => (
+            <SelectItem value={ALL}>All types</SelectItem>
+            {EMPLOYMENT_TYPES.map((type) => (
               <SelectItem key={type} value={type}>
-                {type}
+                {formatEmploymentType(type)}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
+        <Select
+          value={workMode}
+          onValueChange={(value) => {
+            setWorkMode(value)
+            setPage(1)
+          }}
+        >
+          <SelectTrigger className="w-full lg:w-36">
+            <SelectValue placeholder="Work mode" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={ALL}>All modes</SelectItem>
+            {WORK_MODES.map((mode) => (
+              <SelectItem key={mode} value={mode}>
+                {formatWorkMode(mode)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select
+          value={isActive}
+          onValueChange={(value) => {
+            setIsActive(value)
+            setPage(1)
+          }}
+        >
+          <SelectTrigger className="w-full lg:w-36">
+            <SelectValue placeholder="Active" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={ALL}>All activity</SelectItem>
+            <SelectItem value="true">Active</SelectItem>
+            <SelectItem value="false">Inactive</SelectItem>
+          </SelectContent>
+        </Select>
+        <Input
+          className="w-full lg:w-48"
+          placeholder="Department id"
+          value={departmentId}
+          onChange={(e) => {
+            setDepartmentId(e.target.value)
+            setPage(1)
+          }}
+        />
       </div>
 
       <div className="overflow-hidden rounded-2xl border border-border-soft bg-white shadow-sm">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Job</TableHead>
-              <TableHead>Department</TableHead>
-              <TableHead>Location</TableHead>
-              <TableHead>Type</TableHead>
-              <TableHead>Applicants</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filtered.map((job) => (
-              <TableRow key={job.id}>
-                <TableCell>
-                  <p className="font-medium text-navy">{job.title}</p>
-                  <p className="text-xs text-text-secondary">{job.id}</p>
-                </TableCell>
-                <TableCell>{job.department}</TableCell>
-                <TableCell>{job.location}</TableCell>
-                <TableCell>
-                  <Badge variant="secondary">{job.employmentType}</Badge>
-                </TableCell>
-                <TableCell className="tabular-nums">{job.applicants}</TableCell>
-                <TableCell>
-                  <JobStatusBadge status={job.status} />
-                </TableCell>
-                <TableCell className="text-right">
-                  <div className="flex justify-end gap-1">
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="ghost"
-                      title="View applicants & interviews"
-                      asChild
-                    >
-                      <Link to={jobHiringDeskPath(routePrefix, job.id)}>
-                        <Eye className="h-4 w-4" />
-                      </Link>
-                    </Button>
-                    <Feature name="recruitment.manage">
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => openEdit(job)}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      {job.status !== 'Published' ? (
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="outline"
-                          onClick={() => setStatus(job.id, 'Published')}
-                        >
-                          Publish
-                        </Button>
-                      ) : (
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="outline"
-                          onClick={() => setStatus(job.id, 'Closed')}
-                        >
-                          Close
-                        </Button>
-                      )}
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="ghost"
-                        disabled={
-                          job.status === 'Published' && job.applicants > 0
-                        }
-                        title={
-                          job.status === 'Published' && job.applicants > 0
-                            ? 'Close the job before deleting when applicants exist'
-                            : 'Delete job'
-                        }
-                        onClick={() => setDeleteTarget(job)}
-                      >
-                        <Trash2 className="h-4 w-4 text-rose-600" />
-                      </Button>
-                    </Feature>
-                  </div>
-                </TableCell>
+        {list.isLoading ? (
+          <div className="space-y-3 p-4">
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+          </div>
+        ) : list.isError ? (
+          <div className="space-y-3 p-6">
+            <p role="alert" className="text-sm text-red-600">
+              {getApiErrorMessage(list.error, 'Could not load job postings.')}
+            </p>
+            <Button type="button" variant="outline" onClick={() => void list.refetch()}>
+              Retry
+            </Button>
+          </div>
+        ) : items.length === 0 ? (
+          <p className="p-8 text-center text-sm text-slate-500">No job postings match these filters.</p>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Job</TableHead>
+                <TableHead className="hidden md:table-cell">Department</TableHead>
+                <TableHead>Location</TableHead>
+                <TableHead className="hidden lg:table-cell">Type</TableHead>
+                <TableHead className="hidden sm:table-cell">Experience</TableHead>
+                <TableHead className="hidden xl:table-cell">Openings</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="hidden md:table-cell">Posted</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {items.map((job) => (
+                <TableRow key={job.id}>
+                  <TableCell>
+                    <p className="font-medium text-navy">{job.title}</p>
+                    <p className="text-xs text-text-secondary">
+                      {formatWorkMode(job.workMode)}
+                      {!job.isActive ? ' · Inactive' : ''}
+                    </p>
+                  </TableCell>
+                  <TableCell className="hidden md:table-cell">
+                    {job.department?.name ?? job.departmentId ?? '—'}
+                  </TableCell>
+                  <TableCell>{job.location}</TableCell>
+                  <TableCell className="hidden lg:table-cell">
+                    <Badge variant="secondary">{formatEmploymentType(job.employmentType)}</Badge>
+                  </TableCell>
+                  <TableCell className="hidden sm:table-cell">
+                    {formatExperience(job.minExperienceYears, job.maxExperienceYears)}
+                  </TableCell>
+                  <TableCell className="hidden tabular-nums xl:table-cell">{job.openings}</TableCell>
+                  <TableCell>
+                    <ApiJobStatusBadge status={job.status} />
+                  </TableCell>
+                  <TableCell className="hidden md:table-cell">
+                    {formatPostedDate(job.createdAt)}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex justify-end gap-1">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        title="View details"
+                        onClick={() => setDetailId(job.id)}
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        title="Hiring desk"
+                        asChild
+                      >
+                        <Link to={jobHiringDeskPath(routePrefix, job.id)}>
+                          <FileText className="h-4 w-4" />
+                        </Link>
+                      </Button>
+                      <Feature name="recruitment.manage">
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="ghost"
+                          title="Edit"
+                          onClick={() => openEdit(job)}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                      </Feature>
+                      <Feature name="recruitment.manage">
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="ghost"
+                          className="text-red-600 hover:bg-red-50"
+                          title="Deactivate"
+                          onClick={() => setDeleteTarget(job)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </Feature>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
       </div>
 
-      <Dialog open={formOpen} onOpenChange={setFormOpen}>
-        <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>{editingId ? 'Edit Job' : 'Create Job'}</DialogTitle>
-            <DialogDescription>
-              Job details are stored locally until a recruitment API is available.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2 sm:col-span-2">
-              <Label htmlFor="job-title">Job Title</Label>
-              <Input
-                id="job-title"
-                value={form.title}
-                onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Department</Label>
-              <Select
-                value={form.department}
-                onValueChange={(v) => setForm((f) => ({ ...f, department: v }))}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {departments
-                    .filter((d) => d !== 'All')
-                    .map((d) => (
-                      <SelectItem key={d} value={d}>
-                        {d}
-                      </SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="designation">Designation</Label>
-              <Input
-                id="designation"
-                value={form.designation}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, designation: e.target.value }))
-                }
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Location</Label>
-              <Select
-                value={form.location}
-                onValueChange={(v) => setForm((f) => ({ ...f, location: v }))}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {locations
-                    .filter((l) => l !== 'All')
-                    .map((l) => (
-                      <SelectItem key={l} value={l}>
-                        {l}
-                      </SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Employment Type</Label>
-              <Select
-                value={form.employmentType}
-                onValueChange={(v) =>
-                  setForm((f) => ({
-                    ...f,
-                    employmentType: v as EmploymentType,
-                  }))
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {employmentTypes.map((t) => (
-                    <SelectItem key={t} value={t}>
-                      {t}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Work Mode</Label>
-              <Select
-                value={form.workMode}
-                onValueChange={(v) =>
-                  setForm((f) => ({ ...f, workMode: v as WorkMode }))
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {workModes.map((m) => (
-                    <SelectItem key={m} value={m}>
-                      {m}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="experience">Experience Required</Label>
-              <Input
-                id="experience"
-                value={form.experienceRequired}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, experienceRequired: e.target.value }))
-                }
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="openings">Number of Openings</Label>
-              <Input
-                id="openings"
-                type="number"
-                min={1}
-                value={form.openings}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, openings: e.target.value }))
-                }
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="salary">Salary Range</Label>
-              <Input
-                id="salary"
-                value={form.salaryRange}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, salaryRange: e.target.value }))
-                }
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="deadline">Application Deadline</Label>
-              <Input
-                id="deadline"
-                type="date"
-                value={form.applicationDeadline}
-                onChange={(e) =>
-                  setForm((f) => ({
-                    ...f,
-                    applicationDeadline: e.target.value,
-                  }))
-                }
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Job Status</Label>
-              <Select
-                value={form.status}
-                onValueChange={(v) =>
-                  setForm((f) => ({ ...f, status: v as JobStatus }))
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {jobStatuses.map((s) => (
-                    <SelectItem key={s} value={s}>
-                      {s}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Linked Job Description</Label>
-              <Select
-                value={form.jobDescriptionId}
-                onValueChange={(v) =>
-                  setForm((f) => ({ ...f, jobDescriptionId: v }))
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">None</SelectItem>
-                  {jds.map((jd) => (
-                    <SelectItem key={jd.id} value={jd.id}>
-                      {jd.title}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2 sm:col-span-2">
-              <Label htmlFor="skills">Required Skills</Label>
-              <Input
-                id="skills"
-                placeholder="Comma-separated"
-                value={form.requiredSkills}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, requiredSkills: e.target.value }))
-                }
-              />
-            </div>
-            <div className="space-y-2 sm:col-span-2">
-              <Label htmlFor="qualifications">Qualifications</Label>
-              <Input
-                id="qualifications"
-                value={form.qualifications}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, qualifications: e.target.value }))
-                }
-              />
-            </div>
-            <div className="space-y-2 sm:col-span-2">
-              <Label htmlFor="description">Job Description</Label>
-              <Textarea
-                id="description"
-                rows={4}
-                value={form.description}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, description: e.target.value }))
-                }
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setFormOpen(false)}>
-              Cancel
-            </Button>
-            <Button type="button" onClick={saveJob}>
-              Save Job
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog
-        open={Boolean(deleteTarget)}
-        onOpenChange={(open) => !open && setDeleteTarget(null)}
-      >
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Delete job posting?</DialogTitle>
-            <DialogDescription>
-              {deleteTarget
-                ? `This removes “${deleteTarget.title}” from the local mock list only.`
-                : null}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
+      {pagination && totalPages > 0 ? (
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm text-slate-600">
+          <span>
+            Page {pagination.page} of {totalPages} · {pagination.total} jobs
+          </span>
+          <div className="flex gap-2">
             <Button
               type="button"
               variant="outline"
-              onClick={() => setDeleteTarget(null)}
+              size="sm"
+              disabled={page <= 1 || list.isFetching}
+              onClick={() => setPage((prev) => Math.max(1, prev - 1))}
             >
-              Cancel
+              Previous
             </Button>
             <Button
               type="button"
-              className="bg-rose-600 text-white hover:bg-rose-700"
-              onClick={confirmDelete}
+              variant="outline"
+              size="sm"
+              disabled={page >= totalPages || list.isFetching}
+              onClick={() => setPage((prev) => prev + 1)}
             >
-              Delete
+              Next
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </div>
+        </div>
+      ) : null}
+
+      <JobFormDialog
+        open={formOpen}
+        mode={formMode}
+        job={formMode === 'edit' ? editJob : null}
+        onOpenChange={(open) => {
+          setFormOpen(open)
+          if (!open) setEditJob(null)
+        }}
+        onSaved={(job, mode) => {
+          setNotice({
+            tone: 'success',
+            text:
+              mode === 'create'
+                ? `Created job “${job.title}”.`
+                : `Updated job “${job.title}”.`,
+          })
+          if (mode === 'create') setPage(1)
+        }}
+      />
+
+      <JobDetailDialog
+        jobId={detailId}
+        onOpenChange={(open) => {
+          if (!open) setDetailId(null)
+        }}
+        canManage={canManage}
+        onEdit={(jobId) => {
+          const row = items.find((item) => item.id === jobId)
+          if (row) openEdit(row)
+        }}
+        onEditDescription={(jobId) => {
+          const row = items.find((item) => item.id === jobId)
+          if (row) {
+            setDescriptionTarget(row)
+            setDetailId(null)
+          }
+        }}
+      />
+
+      <DeleteJobDialog
+        job={deleteTarget}
+        onOpenChange={(open) => {
+          if (!open) setDeleteTarget(null)
+        }}
+        onDeleted={(job) => {
+          setNotice({ tone: 'success', text: `Deactivated job “${job.title}”.` })
+          setDeleteTarget(null)
+        }}
+      />
+
+      <JobDescriptionDialog
+        job={descriptionRefresh.data ?? descriptionTarget}
+        onOpenChange={(open) => {
+          if (!open) setDescriptionTarget(null)
+        }}
+        onSaved={(job) => {
+          setNotice({ tone: 'success', text: `Updated description for “${job.title}”.` })
+          setDescriptionTarget(null)
+        }}
+      />
     </RecruitmentPageShell>
   )
 }
