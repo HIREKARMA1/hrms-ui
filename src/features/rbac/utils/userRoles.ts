@@ -2,7 +2,11 @@ import type { AuthUser } from '@/features/auth/types/auth.types'
 import { getLandingRouteForUserRole } from '@/features/auth/utils/landingRoute'
 
 import type { BackendRoleCode } from '../types/roles'
-import { ROLE_PRIORITY, getHighestPriorityRole } from './roleRouteMap'
+import {
+  ROLE_PRIORITY,
+  getHighestPriorityRole,
+  normalizeBackendRoleCode,
+} from './roleRouteMap'
 
 export function isBackendRoleCode(value: unknown): value is BackendRoleCode {
   return (
@@ -17,7 +21,11 @@ export function isBackendRoleCode(value: unknown): value is BackendRoleCode {
  * in landing-priority order (never the API array order).
  */
 export function getHeldRoleCodes(user: AuthUser): BackendRoleCode[] {
-  const held = new Set<string>([user.role, ...user.roles])
+  const held = new Set<BackendRoleCode>()
+  for (const raw of [user.role, ...user.roles]) {
+    const code = normalizeBackendRoleCode(raw)
+    if (code) held.add(code)
+  }
   return ROLE_PRIORITY.filter((code) => held.has(code))
 }
 

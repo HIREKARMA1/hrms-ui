@@ -49,7 +49,7 @@ type OfficeCalendarOverviewTabProps = {
 
 
 
-/** Office Calendar Overview tab content (/hr/calendar and role variants). */
+/** Office Calendar Overview tab content (/manager/calendar and role variants). */
 
 export function OfficeCalendarOverviewTab({
 

@@ -43,6 +43,15 @@ export interface ResetPasswordRequest {
   newPassword: string
 }
 
+/**
+ * Body of POST /auth/change-password (Bearer access token required).
+ * `newPassword` is 8 to 128 characters; it must differ from `currentPassword`.
+ */
+export interface ChangePasswordRequest {
+  currentPassword: string
+  newPassword: string
+}
+
 /** `data` payload of POST /auth/login. */
 export interface LoginResponseData {
   accessToken: string

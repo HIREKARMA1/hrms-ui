@@ -15,6 +15,7 @@ export const departmentsMock: DepartmentRecord[] = [
     description: 'Product engineering and platform teams',
     headName: 'Karan Patel',
     employeeCount: 86,
+    status: 'Active',
   },
   {
     id: 'd2',
@@ -22,6 +23,7 @@ export const departmentsMock: DepartmentRecord[] = [
     description: 'People operations and talent',
     headName: 'Meera Iyer',
     employeeCount: 22,
+    status: 'Active',
   },
   {
     id: 'd3',
@@ -29,6 +31,7 @@ export const departmentsMock: DepartmentRecord[] = [
     description: 'Accounting, payroll support and FP&A',
     headName: 'Vikram Singh',
     employeeCount: 24,
+    status: 'Active',
   },
   {
     id: 'd4',
@@ -36,6 +39,7 @@ export const departmentsMock: DepartmentRecord[] = [
     description: 'Product management and design',
     headName: 'Priya Nair',
     employeeCount: 38,
+    status: 'Inactive',
   },
 ]
 
