@@ -19,6 +19,8 @@ import { EmployeeRegistrationPage } from '@/features/employees/pages/EmployeeReg
 import { OrganizationDepartmentsPage } from '@/features/organization/pages/OrganizationDepartmentsPage'
 import { OrganisationOnboardingDetailPage } from '@/features/organisation-onboarding/pages/OrganisationOnboardingDetailPage'
 import { OrganisationOnboardingPage } from '@/features/organisation-onboarding/pages/OrganisationOnboardingPage'
+import { PermissionManagementPage } from '@/features/permissions/pages/PermissionManagementPage'
+import { RoleManagementPage } from '@/features/roles/pages/RoleManagementPage'
 import { PermissionsPage } from '@/features/permissions/pages/PermissionsPage'
 import { RolesPage } from '@/features/roles/pages/RolesPage'
 import { UsersPage } from '@/features/users/pages/UsersPage'
@@ -162,6 +164,7 @@ export function createOrgRoleModuleRoutes(prefix: RolePrefix): ReactElement[] {
         </RequireAccess>
       }
     />,
+<<<<<<< HEAD
     ...(prefix === 'hradmin' || prefix === 'superadmin'
       ? [
           <Route
@@ -173,10 +176,21 @@ export function createOrgRoleModuleRoutes(prefix: RolePrefix): ReactElement[] {
                 featureLabel="Organisation Onboarding"
               >
                 <OrganisationOnboardingPage />
+=======
+    ...(prefix === 'superadmin'
+      ? [
+          <Route
+            key={`${prefix}-roles`}
+            path={`/${prefix}/roles`}
+            element={
+              <RequireAccess feature="module.roles" featureLabel="Role Management">
+                <RoleManagementPage />
+>>>>>>> dev
               </RequireAccess>
             }
           />,
           <Route
+<<<<<<< HEAD
             key={`${prefix}-organisation-onboarding-detail`}
             path={`/${prefix}/organisation-onboarding/:onboardingId`}
             element={
@@ -185,6 +199,16 @@ export function createOrgRoleModuleRoutes(prefix: RolePrefix): ReactElement[] {
                 featureLabel="Organisation Onboarding"
               >
                 <OrganisationOnboardingDetailPage />
+=======
+            key={`${prefix}-permissions`}
+            path={`/${prefix}/permissions`}
+            element={
+              <RequireAccess
+                feature="module.permissions"
+                featureLabel="Permission Management"
+              >
+                <PermissionManagementPage />
+>>>>>>> dev
               </RequireAccess>
             }
           />,
