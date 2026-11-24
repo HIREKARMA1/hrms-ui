@@ -25,6 +25,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { TablePagination } from '@/components/ui/table-pagination'
 import { getApiErrorMessage } from '@/services/api/errors'
 
 import { ROLES_PAGE_SIZE, useListRolesQuery } from '../api/rolesApi'
@@ -189,37 +190,40 @@ export function RolesPage() {
                 <TableHead className="hidden md:table-cell">Description</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="hidden sm:table-cell">Users</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead className="text-center">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {items.map((row) => (
                 <TableRow key={row.id}>
-                  <TableCell className="font-medium text-navy">
+                  <TableCell className="align-middle font-medium text-navy">
                     <div className="flex flex-wrap items-center gap-2">
                       {row.name}
                       {row.isSystem ? <Badge variant="secondary">System</Badge> : null}
                     </div>
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="align-middle">
                     <code className="text-xs text-slate-600">{row.code}</code>
                   </TableCell>
-                  <TableCell className="hidden max-w-[240px] truncate text-slate-600 md:table-cell">
+                  <TableCell className="hidden max-w-[240px] truncate align-middle text-slate-600 md:table-cell">
                     {row.description || '—'}
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="align-middle">
                     <Badge variant={row.isActive ? 'success' : 'secondary'}>
                       {row.isActive ? 'Active' : 'Inactive'}
                     </Badge>
                   </TableCell>
-                  <TableCell className="hidden sm:table-cell">{row.userCount}</TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-1">
+                  <TableCell className="hidden align-middle sm:table-cell">
+                    {row.userCount}
+                  </TableCell>
+                  <TableCell className="text-center align-middle">
+                    <div className="inline-flex items-center justify-center gap-1">
                       <Feature name="roles.update">
                         <Button
                           type="button"
                           size="sm"
                           variant="ghost"
+                          className="h-8 w-8 p-0"
                           aria-label={`Edit ${row.name}`}
                           onClick={() => setEditTarget(row)}
                         >
@@ -231,7 +235,7 @@ export function RolesPage() {
                           type="button"
                           size="sm"
                           variant="ghost"
-                          className="text-red-600 hover:bg-red-50 hover:text-red-700"
+                          className="h-8 w-8 p-0 text-red-600 hover:bg-red-50 hover:text-red-700"
                           aria-label={`Delete ${row.name}`}
                           disabled={row.isSystem || row.userCount > 0}
                           title={
@@ -256,31 +260,14 @@ export function RolesPage() {
       </div>
 
       {pagination && totalPages > 0 ? (
-        <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-slate-600">
-          <span>
-            Page {pagination.page} of {totalPages} · {pagination.total} roles
-          </span>
-          <div className="flex gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={page <= 1 || list.isFetching}
-              onClick={() => setPage((prev) => Math.max(1, prev - 1))}
-            >
-              Previous
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={page >= totalPages || list.isFetching}
-              onClick={() => setPage((prev) => prev + 1)}
-            >
-              Next
-            </Button>
-          </div>
-        </div>
+        <TablePagination
+          page={page}
+          totalPages={totalPages}
+          total={pagination.total}
+          itemLabel="roles"
+          disabled={list.isFetching}
+          onPageChange={setPage}
+        />
       ) : null}
 
       <CreateRoleDialog

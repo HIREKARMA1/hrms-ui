@@ -24,7 +24,14 @@ const PERMISSION = {
   code: 'users:read',
   module: 'users',
   description: 'List and view users',
+  createdAt: '2026-01-01T00:00:00.000Z',
+  updatedAt: '2026-01-02T00:00:00.000Z',
   roleCount: 3,
+  relatedRoles: [
+    { id: 'role-1', code: 'HR_ADMIN', name: 'HR Admin' },
+    { id: 'role-2', code: 'MANAGER', name: 'Manager' },
+    { id: 'role-3', code: 'EMPLOYEE', name: 'Employee' },
+  ],
 }
 
 function envelope<T>(data: T, message = 'ok') {
@@ -114,7 +121,10 @@ describe('normalizePermission', () => {
       code: 'a:b',
       module: 'a',
       description: null,
+      createdAt: '',
+      updatedAt: '',
       roleCount: 2,
+      relatedRoles: [],
     })
   })
 })
@@ -217,6 +227,9 @@ describe('listPermissions', () => {
       module: 'x',
       description: 'desc',
       roleCount: 0,
+      relatedRoles: [],
+      createdAt: '',
+      updatedAt: '',
     })
     expect(page.items[0]).not.toHaveProperty('name')
   })

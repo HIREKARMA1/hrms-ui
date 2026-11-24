@@ -17,6 +17,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { TablePagination } from '@/components/ui/table-pagination'
 import { getApiErrorMessage } from '@/services/api/errors'
 
 import { PERMISSIONS_PAGE_SIZE, useListPermissionsQuery } from '../api/permissionsApi'
@@ -152,31 +153,14 @@ export function PermissionsPage() {
       </div>
 
       {pagination && totalPages > 0 ? (
-        <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-slate-600">
-          <span>
-            Page {pagination.page} of {totalPages} · {pagination.total} permissions
-          </span>
-          <div className="flex gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={page <= 1 || list.isFetching}
-              onClick={() => setPage((prev) => Math.max(1, prev - 1))}
-            >
-              Previous
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={page >= totalPages || list.isFetching}
-              onClick={() => setPage((prev) => prev + 1)}
-            >
-              Next
-            </Button>
-          </div>
-        </div>
+        <TablePagination
+          page={page}
+          totalPages={totalPages}
+          total={pagination.total}
+          itemLabel="permissions"
+          disabled={list.isFetching}
+          onPageChange={setPage}
+        />
       ) : null}
     </div>
   )

@@ -12,6 +12,7 @@ import { baseApi } from '@/services/api/baseApi'
 import type {
   BackendPermission,
   ListPermissionsArgs,
+  PermissionRelatedRole,
   PermissionsPage,
   PermissionsPagination,
 } from './permissionsApi.types'
@@ -78,8 +79,11 @@ export function normalizePermission(raw: unknown): BackendPermission | null {
       : readString(descriptionRaw)
 
   const countBag = asRecord(row._count)
+  const relatedRoles = normalizeRelatedRoles(row.relatedRoles)
   const roleCount = readCount(
-    row.roleCount !== undefined ? row.roleCount : countBag?.roles,
+    row.roleCount !== undefined
+      ? row.roleCount
+      : (countBag?.roles ?? relatedRoles.length),
   )
 
   const createdAt = readString(row.createdAt) ?? ''
@@ -93,7 +97,23 @@ export function normalizePermission(raw: unknown): BackendPermission | null {
     createdAt,
     updatedAt,
     roleCount,
+    relatedRoles,
   }
+}
+
+function normalizeRelatedRoles(raw: unknown): PermissionRelatedRole[] {
+  if (!Array.isArray(raw)) return []
+  const roles: PermissionRelatedRole[] = []
+  for (const entry of raw) {
+    const row = asRecord(entry)
+    if (!row) continue
+    const id = readString(row.id)
+    const code = readString(row.code)
+    const name = readString(row.name)
+    if (!id || !code || !name) continue
+    roles.push({ id, code, name })
+  }
+  return roles
 }
 
 function normalizePagination(raw: unknown, itemCount: number): PermissionsPagination {

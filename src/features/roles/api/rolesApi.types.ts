@@ -82,6 +82,11 @@ export type PermissionResponse = {
   createdAt: string
   updatedAt: string
   roleCount: number
+  relatedRoles?: Array<{
+    id: string
+    code: string
+    name: string
+  }>
 }
 
 export type PermissionsListData = {

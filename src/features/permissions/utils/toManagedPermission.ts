@@ -10,6 +10,7 @@ export function toManagedPermission(
     module: permission.module,
     description: permission.description,
     roleCount: permission.roleCount,
+    relatedRoles: permission.relatedRoles ?? [],
     createdAt:
       typeof permission.createdAt === 'string'
         ? permission.createdAt

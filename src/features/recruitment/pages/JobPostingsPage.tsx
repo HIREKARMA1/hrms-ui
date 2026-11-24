@@ -35,6 +35,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { TablePagination } from '@/components/ui/table-pagination'
 import { getApiErrorMessage } from '@/services/api/errors'
 
 import { JOBS_PAGE_SIZE, useGetJobQuery, useListJobsQuery } from '../api/jobsApi'
@@ -303,42 +304,45 @@ export function JobPostingsPage() {
                 <TableHead className="hidden xl:table-cell">Openings</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="hidden md:table-cell">Posted</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead className="text-center">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {items.map((job) => (
                 <TableRow key={job.id}>
-                  <TableCell>
+                  <TableCell className="align-middle">
                     <p className="font-medium text-navy">{job.title}</p>
                     <p className="text-xs text-text-secondary">
                       {formatWorkMode(job.workMode)}
                       {!job.isActive ? ' · Inactive' : ''}
                     </p>
                   </TableCell>
-                  <TableCell className="hidden md:table-cell">
+                  <TableCell className="hidden align-middle md:table-cell">
                     {job.department?.name ?? job.departmentId ?? '—'}
                   </TableCell>
-                  <TableCell>{job.location}</TableCell>
-                  <TableCell className="hidden lg:table-cell">
+                  <TableCell className="align-middle">{job.location}</TableCell>
+                  <TableCell className="hidden align-middle lg:table-cell">
                     <Badge variant="secondary">{formatEmploymentType(job.employmentType)}</Badge>
                   </TableCell>
-                  <TableCell className="hidden sm:table-cell">
+                  <TableCell className="hidden align-middle sm:table-cell">
                     {formatExperience(job.minExperienceYears, job.maxExperienceYears)}
                   </TableCell>
-                  <TableCell className="hidden tabular-nums xl:table-cell">{job.openings}</TableCell>
-                  <TableCell>
+                  <TableCell className="hidden align-middle tabular-nums xl:table-cell">
+                    {job.openings}
+                  </TableCell>
+                  <TableCell className="align-middle">
                     <ApiJobStatusBadge status={job.status} />
                   </TableCell>
-                  <TableCell className="hidden md:table-cell">
+                  <TableCell className="hidden align-middle md:table-cell">
                     {formatPostedDate(job.createdAt)}
                   </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-1">
+                  <TableCell className="text-center align-middle">
+                    <div className="inline-flex items-center justify-center gap-1">
                       <Button
                         type="button"
                         size="sm"
                         variant="ghost"
+                        className="h-8 w-8 p-0"
                         title="View details"
                         onClick={() => setDetailId(job.id)}
                       >
@@ -348,6 +352,7 @@ export function JobPostingsPage() {
                         type="button"
                         size="sm"
                         variant="ghost"
+                        className="h-8 w-8 p-0"
                         title="Hiring desk"
                         asChild
                       >
@@ -360,6 +365,7 @@ export function JobPostingsPage() {
                           type="button"
                           size="sm"
                           variant="ghost"
+                          className="h-8 w-8 p-0"
                           title="Edit"
                           onClick={() => openEdit(job)}
                         >
@@ -371,7 +377,7 @@ export function JobPostingsPage() {
                           type="button"
                           size="sm"
                           variant="ghost"
-                          className="text-red-600 hover:bg-red-50"
+                          className="h-8 w-8 p-0 text-red-600 hover:bg-red-50"
                           title="Deactivate"
                           onClick={() => setDeleteTarget(job)}
                         >
@@ -388,31 +394,15 @@ export function JobPostingsPage() {
       </div>
 
       {pagination && totalPages > 0 ? (
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm text-slate-600">
-          <span>
-            Page {pagination.page} of {totalPages} · {pagination.total} jobs
-          </span>
-          <div className="flex gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={page <= 1 || list.isFetching}
-              onClick={() => setPage((prev) => Math.max(1, prev - 1))}
-            >
-              Previous
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={page >= totalPages || list.isFetching}
-              onClick={() => setPage((prev) => prev + 1)}
-            >
-              Next
-            </Button>
-          </div>
-        </div>
+        <TablePagination
+          className="mt-4"
+          page={page}
+          totalPages={totalPages}
+          total={pagination.total}
+          itemLabel="jobs"
+          disabled={list.isFetching}
+          onPageChange={setPage}
+        />
       ) : null}
 
       <JobFormDialog
