@@ -4,7 +4,11 @@ const STORAGE_KEY = 'hrms.auth'
 
 export interface StoredAuth {
   accessToken: string
-  refreshToken: string
+  /**
+   * Null after the server has revoked refresh tokens (e.g. change password)
+   * while the access JWT is still usable.
+   */
+  refreshToken: string | null
   user: AuthUser
   /** true -> localStorage (survives browser restart), false -> sessionStorage */
   rememberMe: boolean
@@ -18,12 +22,13 @@ function safeStorage(kind: 'local' | 'session'): Storage | null {
   }
 }
 
-function isStoredAuth(value: unknown): value is StoredAuth {
+/** True when `value` is a persistable auth snapshot (refreshToken may be null). */
+export function isStoredAuth(value: unknown): value is StoredAuth {
   if (typeof value !== 'object' || value === null) return false
   const v = value as Record<string, unknown>
   return (
     typeof v.accessToken === 'string' &&
-    typeof v.refreshToken === 'string' &&
+    (v.refreshToken === null || typeof v.refreshToken === 'string') &&
     typeof v.user === 'object' &&
     v.user !== null
   )

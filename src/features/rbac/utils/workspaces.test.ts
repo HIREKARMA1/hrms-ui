@@ -50,8 +50,8 @@ describe('getAvailableWorkspaces', () => {
     const list = getAvailableWorkspaces(user, 'MANAGER')
     expect(list.map((w) => [w.roleCode, w.route, w.label])).toEqual([
       ['SUPER_ADMIN', '/superadmin/dashboard', 'Super Admin'],
-      ['HR_ADMIN', '/admin/dashboard', 'Admin'],
-      ['MANAGER', '/hr/dashboard', 'HR'],
+      ['HR_ADMIN', '/hradmin/dashboard', 'HR Admin'],
+      ['MANAGER', '/manager/dashboard', 'Manager'],
       ['EMPLOYEE', '/employee/dashboard', 'Employee'],
     ])
   })
@@ -94,17 +94,26 @@ describe('unauthorized workspace navigation and direct URL access', () => {
   it('Employee-only user is denied every other workspace URL', () => {
     const user = makeUser('EMPLOYEE', ['EMPLOYEE'])
     expect(routeAllowed(user, '/employee/leave/my-leave')).toBe(true)
-    expect(routeAllowed(user, '/admin/dashboard')).toBe(false)
-    expect(routeAllowed(user, '/hr/dashboard')).toBe(false)
+    expect(routeAllowed(user, '/hradmin/dashboard')).toBe(false)
+    expect(routeAllowed(user, '/manager/dashboard')).toBe(false)
     expect(routeAllowed(user, '/superadmin/dashboard')).toBe(false)
   })
 
   it('multi-role user is allowed exactly the held workspaces by direct URL', () => {
     const user = makeUser('EMPLOYEE', ['HR_ADMIN'])
-    expect(routeAllowed(user, '/admin/dashboard')).toBe(true)
+    expect(routeAllowed(user, '/hradmin/dashboard')).toBe(true)
     expect(routeAllowed(user, '/employee/dashboard')).toBe(true)
-    expect(routeAllowed(user, '/hr/dashboard')).toBe(false)
+    expect(routeAllowed(user, '/manager/dashboard')).toBe(false)
     expect(routeAllowed(user, '/superadmin/dashboard')).toBe(false)
+  })
+
+  it('legacy /admin and /hr prefixes still resolve to the same held roles', () => {
+    const hrAdmin = makeUser('EMPLOYEE', ['HR_ADMIN'])
+    const manager = makeUser('EMPLOYEE', ['MANAGER'])
+    expect(routeAllowed(hrAdmin, '/admin/dashboard')).toBe(true)
+    expect(routeAllowed(manager, '/hr/dashboard')).toBe(true)
+    expect(routeAllowed(hrAdmin, '/hr/dashboard')).toBe(false)
+    expect(routeAllowed(manager, '/admin/dashboard')).toBe(false)
   })
 
   it('every switcher target route is authorized for that user', () => {
@@ -126,8 +135,8 @@ describe('unauthorized workspace navigation and direct URL access', () => {
     const listed = new Set(getAvailableWorkspaces(user, null).map((w) => w.route))
     for (const route of [
       '/superadmin/dashboard',
-      '/admin/dashboard',
-      '/hr/dashboard',
+      '/hradmin/dashboard',
+      '/manager/dashboard',
       '/employee/dashboard',
     ]) {
       expect(routeAllowed(user, route), route).toBe(listed.has(route))

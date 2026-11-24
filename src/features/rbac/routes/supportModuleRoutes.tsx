@@ -9,8 +9,8 @@ import { RequireAccess } from '../components/RequireAccess'
 export function createSupportModuleRoutes(): ReactElement {
   return (
     <Route
-      key="hr-support-admin-requests"
-      path="/hr/support/admin-requests"
+      key="manager-support-admin-requests"
+      path="/manager/support/admin-requests"
       element={
         <RequireAccess
           feature="support.adminRequests"

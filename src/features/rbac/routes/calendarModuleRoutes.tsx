@@ -12,7 +12,7 @@ import { RequireAccess } from '../components/RequireAccess'
 
 
 
-type OrgCalendarPrefix = 'superadmin' | 'admin' | 'hr'
+type OrgCalendarPrefix = 'superadmin' | 'hradmin' | 'manager'
 
 
 

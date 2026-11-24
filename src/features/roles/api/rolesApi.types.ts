@@ -1,6 +1,12 @@
 /** Types aligned with hrms-server roles / permissions response mappers. */
 
 export type RoleResponse = {
+/**
+ * Role Management shapes from production OpenAPI (`/api/v1/roles`).
+ * Passwords and tokens are never present on these responses.
+ */
+
+export type BackendRole = {
   id: string
   code: string
   name: string
@@ -26,6 +32,12 @@ export type RolesListData = {
 }
 
 export type ListRolesParams = {
+export type RolesPage = {
+  items: BackendRole[]
+  pagination: RolesPagination
+}
+
+export type ListRolesArgs = {
   page?: number
   limit?: number
   search?: string
@@ -33,6 +45,7 @@ export type ListRolesParams = {
   isSystem?: boolean
 }
 
+/** POST /roles — `isSystem` is always false on the server. */
 export type CreateRoleBody = {
   code: string
   name: string
@@ -40,6 +53,7 @@ export type CreateRoleBody = {
   isActive?: boolean
 }
 
+/** PATCH /roles/:id — `code` and `isSystem` are immutable. */
 export type UpdateRoleBody = {
   name?: string
   description?: string | null

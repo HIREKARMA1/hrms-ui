@@ -15,8 +15,8 @@ import {
 
 const LANDING = {
   SUPER_ADMIN: '/superadmin/dashboard',
-  HR_ADMIN: '/admin/dashboard',
-  MANAGER: '/hr/dashboard',
+  HR_ADMIN: '/hradmin/dashboard',
+  MANAGER: '/manager/dashboard',
   EMPLOYEE: '/employee/dashboard',
 } as const
 
@@ -57,23 +57,23 @@ describe('landing workspace for specific multi-role users', () => {
   it('EMPLOYEE (legacy) + [EMPLOYEE, HR_ADMIN] lands on HR_ADMIN', () => {
     const user = makeUser('EMPLOYEE', ['EMPLOYEE', 'HR_ADMIN'])
     expect(getPrimaryRoleCode(user)).toBe('HR_ADMIN')
-    expect(getUserLandingRoute(user)).toBe('/admin/dashboard')
-    expect(getLandingRouteForUserRole(user.role, user.roles)).toBe('/admin/dashboard')
+    expect(getUserLandingRoute(user)).toBe('/hradmin/dashboard')
+    expect(getLandingRouteForUserRole(user.role, user.roles)).toBe('/hradmin/dashboard')
   })
 
   it('EMPLOYEE (legacy) + [HR_ADMIN] only lands on HR_ADMIN', () => {
     const user = makeUser('EMPLOYEE', ['HR_ADMIN'])
-    expect(getUserLandingRoute(user)).toBe('/admin/dashboard')
+    expect(getUserLandingRoute(user)).toBe('/hradmin/dashboard')
   })
 
   it('EMPLOYEE (legacy) + [EMPLOYEE, MANAGER] lands on MANAGER', () => {
     const user = makeUser('EMPLOYEE', ['EMPLOYEE', 'MANAGER'])
-    expect(getUserLandingRoute(user)).toBe('/hr/dashboard')
+    expect(getUserLandingRoute(user)).toBe('/manager/dashboard')
   })
 
   it('HR_ADMIN + MANAGER lands on HR_ADMIN', () => {
     const user = makeUser('EMPLOYEE', ['EMPLOYEE', 'HR_ADMIN', 'MANAGER'])
-    expect(getUserLandingRoute(user)).toBe('/admin/dashboard')
+    expect(getUserLandingRoute(user)).toBe('/hradmin/dashboard')
   })
 
   it('anything + SUPER_ADMIN lands on SUPER_ADMIN', () => {
@@ -87,7 +87,7 @@ describe('landing workspace for specific multi-role users', () => {
   })
 
   it('works when only the legacy role is held (no assignments)', () => {
-    expect(getUserLandingRoute(makeUser('MANAGER', []))).toBe('/hr/dashboard')
+    expect(getUserLandingRoute(makeUser('MANAGER', []))).toBe('/manager/dashboard')
   })
 
   it('single-role users keep their own landing', () => {
@@ -98,7 +98,7 @@ describe('landing workspace for specific multi-role users', () => {
 
   it('ignores unsupported roles but still lands on a supported one', () => {
     expect(getUserLandingRoute(makeUser('EMPLOYEE', ['AUDITOR', 'MANAGER']))).toBe(
-      '/hr/dashboard',
+      '/manager/dashboard',
     )
     expect(getUserLandingRoute(makeUser('AUDITOR', ['AUDITOR']))).toBeNull()
     expect(getUserLandingRoute(makeUser('AUDITOR', ['AUDITOR', 'EMPLOYEE']))).toBe(

@@ -20,25 +20,25 @@ describe('getSafeReturnPath with multiple roles', () => {
   const hrAdmin = makeUser('EMPLOYEE', ['EMPLOYEE', 'HR_ADMIN'])
 
   it('returns to an authorized workspace page for a multi-role user', () => {
-    expect(getSafeReturnPath(from('/admin/employees'), hrAdmin)).toBe('/admin/employees')
+    expect(getSafeReturnPath(from('/hradmin/employees'), hrAdmin)).toBe('/hradmin/employees')
     expect(getSafeReturnPath(from('/employee/leave?tab=a#x'), hrAdmin)).toBe(
       '/employee/leave?tab=a#x',
     )
   })
 
   it('does not return into a workspace the user does not hold', () => {
-    expect(getSafeReturnPath(from('/hr/dashboard'), hrAdmin)).toBeNull()
+    expect(getSafeReturnPath(from('/manager/dashboard'), hrAdmin)).toBeNull()
     expect(getSafeReturnPath(from('/superadmin/dashboard'), hrAdmin)).toBeNull()
   })
 
   it('a plain employee is not returned into the HR_ADMIN workspace', () => {
-    expect(getSafeReturnPath(from('/admin/employees'), makeUser('EMPLOYEE', ['EMPLOYEE']))).toBeNull()
+    expect(getSafeReturnPath(from('/hradmin/employees'), makeUser('EMPLOYEE', ['EMPLOYEE']))).toBeNull()
   })
 
   it('does not depend on role priority: a lower held role is still authorized', () => {
     const superAdmin = makeUser('SUPER_ADMIN', ['EMPLOYEE', 'SUPER_ADMIN'])
     expect(getSafeReturnPath(from('/employee/dashboard'), superAdmin)).toBe('/employee/dashboard')
-    expect(getSafeReturnPath(from('/admin/dashboard'), superAdmin)).toBeNull()
+    expect(getSafeReturnPath(from('/hradmin/dashboard'), superAdmin)).toBeNull()
   })
 
   it('allows shared legacy routes (not role workspaces)', () => {
@@ -51,6 +51,6 @@ describe('getSafeReturnPath with multiple roles', () => {
     expect(getSafeReturnPath(from('/'), hrAdmin)).toBeNull()
     expect(getSafeReturnPath(from('/forgot-password'), hrAdmin)).toBeNull()
     expect(getSafeReturnPath(undefined, hrAdmin)).toBeNull()
-    expect(getSafeReturnPath(from('/admin/employees'), null)).toBeNull()
+    expect(getSafeReturnPath(from('/hradmin/employees'), null)).toBeNull()
   })
 })

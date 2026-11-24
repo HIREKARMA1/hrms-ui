@@ -38,7 +38,9 @@ store.subscribe(() => {
   if (auth === previousAuth) return
   previousAuth = auth
 
-  if (auth.accessToken && auth.refreshToken && auth.user) {
+  // Persist while the access session is usable. `refreshToken` may be null
+  // after the server revokes it (change password) without ending the session.
+  if (auth.accessToken && auth.user) {
     saveStoredAuth({
       accessToken: auth.accessToken,
       refreshToken: auth.refreshToken,
