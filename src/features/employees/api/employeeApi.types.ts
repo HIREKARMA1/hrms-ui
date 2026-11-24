@@ -74,6 +74,10 @@ export interface BackendEmployee {
   bloodGroup: string
   photoUrl: string
   dateOfBirth: string | null
+  gender: string | null
+  maritalStatus: string | null
+  nationality: string | null
+  noticePeriod: string | null
   uanNumber: string | null
   dateOfJoining: string
   employmentStatus: BackendEmploymentStatus
@@ -159,6 +163,10 @@ export interface UpdateEmployeeBody {
   photoUrl?: string
   dateOfBirth?: string
   dateOfJoining?: string
+  gender?: string
+  maritalStatus?: string
+  nationality?: string
+  noticePeriod?: string
   permanentAddress?: AddressInput
   currentAddress?: AddressInput
   /** TimeWatch device code (PATCH when linking an existing employee). */

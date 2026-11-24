@@ -8,30 +8,91 @@ import {
 } from 'lucide-react'
 
 import { Card, CardContent } from '@/components/ui/card'
+import { Skeleton } from '@/components/ui/skeleton'
 
+import {
+  useGetNewJoinersQuery,
+  useGetOnProbationEmployeesQuery,
+  useGetTerminatedEmployeesQuery,
+} from '../api/employeeDashboardApi'
 import { useEmployeeSummary } from '../hooks/useEmployeeSummary'
 import { workforceExtendedSummary } from '../mocks/employeeDashboard.mock'
-import { employeeStatSummary } from '../mocks/employeeDashboard.mock'
 
 /**
- * Additive workforce cards. Does not replace EmployeeStatsCards.
- * Headcount, probation and terminated come from GET /dashboard/summary when
- * permitted; new joiners, notice period and resigned have no API (sample).
+ * Additive workforce cards. Live headcount / probation / terminated / new joiners.
+ * Notice period and resigned stay hardcoded until those APIs exist.
  */
 export function WorkforceExtendedStats() {
-  const { summary } = useEmployeeSummary()
-  const live = Boolean(summary)
-  const { newJoinersThisMonth, onNoticePeriod, resigned } = workforceExtendedSummary
+  const { summary, isLoading: summaryLoading } = useEmployeeSummary()
+  const newJoinersQuery = useGetNewJoinersQuery({ page: 1, limit: 1 })
+  const probationQuery = useGetOnProbationEmployeesQuery({ page: 1, limit: 1 })
+  const terminatedQuery = useGetTerminatedEmployeesQuery({ page: 1, limit: 1 })
+
+  const { onNoticePeriod, resigned } = workforceExtendedSummary
 
   const cards = [
-    { label: 'Total Employees', value: summary?.totalEmployees ?? employeeStatSummary.totalEmployees, icon: UsersRound, sample: !live },
-    { label: 'Active Employees', value: summary?.activeEmployees ?? employeeStatSummary.activeEmployees, icon: BadgeCheck, sample: !live },
-    { label: 'Inactive Employees', value: summary?.inactiveEmployees ?? employeeStatSummary.inactiveEmployees, icon: UserX, sample: !live },
-    { label: 'New Joiners This Month', value: newJoinersThisMonth, icon: UserPlus, sample: true },
-    { label: 'Employees on Probation', value: summary?.probationEmployees ?? workforceExtendedSummary.onProbation, icon: Hourglass, sample: !live },
-    { label: 'Employees on Notice Period', value: onNoticePeriod, icon: Hourglass, sample: true },
-    { label: 'Resigned Employees', value: resigned, icon: UserMinus, sample: true },
-    { label: 'Terminated Employees', value: summary?.inactiveEmployees ?? workforceExtendedSummary.terminated, icon: UserX, sample: !live },
+    {
+      label: 'Total Employees',
+      value: summary?.totalEmployees ?? 0,
+      icon: UsersRound,
+      loading: summaryLoading,
+      sample: false,
+    },
+    {
+      label: 'Active Employees',
+      value: summary?.activeEmployees ?? 0,
+      icon: BadgeCheck,
+      loading: summaryLoading,
+      sample: false,
+    },
+    {
+      label: 'Inactive Employees',
+      value: summary?.inactiveEmployees ?? 0,
+      icon: UserX,
+      loading: summaryLoading,
+      sample: false,
+    },
+    {
+      label: 'New Joiners This Month',
+      value: newJoinersQuery.data?.pagination.total ?? 0,
+      icon: UserPlus,
+      loading: newJoinersQuery.isLoading,
+      sample: false,
+    },
+    {
+      label: 'Employees on Probation',
+      value:
+        probationQuery.data?.pagination.total ??
+        summary?.probationEmployees ??
+        0,
+      icon: Hourglass,
+      loading: probationQuery.isLoading && summaryLoading,
+      sample: false,
+    },
+    {
+      label: 'Employees on Notice Period',
+      value: onNoticePeriod,
+      icon: Hourglass,
+      loading: false,
+      sample: true,
+    },
+    {
+      label: 'Resigned Employees',
+      value: resigned,
+      icon: UserMinus,
+      loading: false,
+      sample: true,
+    },
+    {
+      label: 'Terminated Employees',
+      value:
+        terminatedQuery.data?.pagination.total ??
+        summary?.inactiveEmployees ??
+        0,
+      icon: UserX,
+      loading: terminatedQuery.isLoading && summaryLoading,
+      sample: false,
+    },
   ]
 
   return (
@@ -49,13 +110,15 @@ export function WorkforceExtendedStats() {
                   {card.label}
                   {card.sample ? (
                     <span className="ml-1.5 rounded bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-amber-700">
-                      Sample
+                      Later
                     </span>
                   ) : null}
                 </p>
-                <p className="text-2xl font-bold tabular-nums text-navy">
-                  {card.value}
-                </p>
+                {card.loading ? (
+                  <Skeleton className="mt-1 h-7 w-12" />
+                ) : (
+                  <p className="text-2xl font-bold tabular-nums text-navy">{card.value}</p>
+                )}
               </div>
             </CardContent>
           </Card>

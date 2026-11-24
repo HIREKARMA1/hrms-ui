@@ -64,6 +64,18 @@ export function createOrgRoleModuleRoutes(prefix: RolePrefix): ReactElement[] {
       }
     />,
     <Route
+      key={`${prefix}-onboarding`}
+      path={`/${prefix}/onboarding`}
+      element={
+        <RequireAccess
+          feature="employee.registration.edit"
+          featureLabel="Employee Registration"
+        >
+          <EmployeeRegistrationPage />
+        </RequireAccess>
+      }
+    />,
+    <Route
       key={`${prefix}-employees-profile`}
       path={`/${prefix}/employees/profile/:employeeId`}
       element={
