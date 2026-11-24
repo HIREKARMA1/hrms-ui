@@ -181,9 +181,6 @@ function DepartmentsSection() {
   const pagination = departmentsQuery.data?.pagination
   const totalPages = Math.max(pagination?.totalPages ?? 0, 0)
   const safePage = totalPages > 0 ? Math.min(page, totalPages) : page
-  if (page !== safePage) {
-    setPage(safePage)
-  }
 
   const resolvedSelectedDeptId = filteredDepartments.some(
     (dept) => dept.id === selectedDeptId,
@@ -191,20 +188,34 @@ function DepartmentsSection() {
     ? selectedDeptId
     : (filteredDepartments[0]?.id ?? '')
 
-  if (resolvedSelectedDeptId !== selectedDeptId) {
-    setSelectedDeptId(resolvedSelectedDeptId)
-  }
-
   const activeEmployeesDeptId = resolvedSelectedDeptId
   const activeEmployeesPage =
     employeesForDeptId === activeEmployeesDeptId ? employeesPage : 1
-  if (
-    employeesForDeptId !== activeEmployeesDeptId ||
-    employeesPage !== activeEmployeesPage
-  ) {
-    setEmployeesForDeptId(activeEmployeesDeptId)
-    setEmployeesPage(activeEmployeesPage)
-  }
+
+  useEffect(() => {
+    if (page !== safePage) setPage(safePage)
+  }, [page, safePage])
+
+  useEffect(() => {
+    if (resolvedSelectedDeptId !== selectedDeptId) {
+      setSelectedDeptId(resolvedSelectedDeptId)
+    }
+  }, [resolvedSelectedDeptId, selectedDeptId])
+
+  useEffect(() => {
+    if (
+      employeesForDeptId !== activeEmployeesDeptId ||
+      employeesPage !== activeEmployeesPage
+    ) {
+      setEmployeesForDeptId(activeEmployeesDeptId)
+      setEmployeesPage(activeEmployeesPage)
+    }
+  }, [
+    activeEmployeesDeptId,
+    activeEmployeesPage,
+    employeesForDeptId,
+    employeesPage,
+  ])
 
   const selectDepartment = (deptId: string) => {
     setSelectedDeptId(deptId)
@@ -536,7 +547,7 @@ function DepartmentsSection() {
       </div>
 
       <div className="overflow-hidden rounded-xl border border-[#E2E6EF] bg-white">
-        {departmentsQuery.isLoading ? (
+        {departmentsQuery.isLoading && !departmentsQuery.data ? (
           <div className="space-y-3 p-4">
             <Skeleton className="h-10 w-full" />
             <Skeleton className="h-10 w-full" />
@@ -687,16 +698,10 @@ function DepartmentsSection() {
 
       {pagination && totalPages > 0 ? (
         <TablePagination
-          page={page}
+          page={safePage}
           totalPages={totalPages}
           total={pagination.total}
           itemLabel="departments"
-          summary={
-            departmentsQuery.isFetching
-              ? `Page ${pagination.page} of ${totalPages} · ${pagination.total} departments · Updating…`
-              : undefined
-          }
-          disabled={departmentsQuery.isFetching}
           onPageChange={setPage}
         />
       ) : null}
@@ -815,7 +820,6 @@ function DepartmentsSection() {
                   totalPages={employeesTotalPages}
                   total={employeesPagination.total}
                   itemLabel="employees"
-                  disabled={employeesQuery.isFetching}
                   onPageChange={setEmployeesPage}
                 />
               ) : null}

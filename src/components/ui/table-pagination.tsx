@@ -1,4 +1,5 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { useCallback } from 'react'
 
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -14,6 +15,10 @@ export type TablePaginationProps = {
   itemLabel?: string
   /** Override the left-side summary text entirely. */
   summary?: string
+  /**
+   * Hard-disable all controls (e.g. no data / permission). Prefer leaving this
+   * false while a page fetch is in flight so Prev/Next stay responsive.
+   */
   disabled?: boolean
   className?: string
   onPageChange: (page: number) => void
@@ -36,6 +41,16 @@ export function TablePagination({
   const safeTotalPages = Math.max(1, totalPages)
   const safePage = Math.min(Math.max(1, page), safeTotalPages)
   const items = buildPaginationItems(safePage, safeTotalPages)
+
+  const goToPage = useCallback(
+    (next: number) => {
+      if (disabled) return
+      const clamped = Math.min(Math.max(1, next), safeTotalPages)
+      if (clamped === safePage) return
+      onPageChange(clamped)
+    },
+    [disabled, onPageChange, safePage, safeTotalPages],
+  )
 
   const resolvedSummary =
     summary ??
@@ -64,7 +79,7 @@ export function TablePagination({
           size="sm"
           className="h-9 gap-1 px-2.5 text-navy hover:bg-muted-bg disabled:text-text-secondary"
           disabled={disabled || safePage <= 1}
-          onClick={() => onPageChange(safePage - 1)}
+          onClick={() => goToPage(safePage - 1)}
         >
           <ChevronLeft className="h-4 w-4" />
           <span className="hidden xs:inline sm:inline">Previous</span>
@@ -93,8 +108,8 @@ export function TablePagination({
                   ? 'bg-navy text-white hover:bg-navy hover:text-white'
                   : 'text-navy hover:bg-muted-bg',
               )}
-              disabled={disabled}
-              onClick={() => onPageChange(item)}
+              disabled={disabled || item === safePage}
+              onClick={() => goToPage(item)}
             >
               {item}
             </Button>
@@ -107,7 +122,7 @@ export function TablePagination({
           size="sm"
           className="h-9 gap-1 px-2.5 text-navy hover:bg-muted-bg disabled:text-text-secondary"
           disabled={disabled || safePage >= safeTotalPages}
-          onClick={() => onPageChange(safePage + 1)}
+          onClick={() => goToPage(safePage + 1)}
         >
           <span className="hidden xs:inline sm:inline">Next</span>
           <ChevronRight className="h-4 w-4" />
