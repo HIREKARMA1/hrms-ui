@@ -2,7 +2,7 @@ import { getRoleFromPathname } from '@/features/rbac/utils/roleRouteMap'
 import { userHoldsRole } from '@/features/rbac/utils/userRoles'
 
 import type { AuthUser } from '../types/auth.types'
-import { PUBLIC_PATHS } from './sessionRedirect'
+import { isPublicPath } from './sessionRedirect'
 
 /**
  * The protected URL a signed-out user originally requested (set by
@@ -23,7 +23,7 @@ export function getSafeReturnPath(
   }
 
   const pathname = from.split(/[?#]/)[0] ?? ''
-  if (PUBLIC_PATHS.includes(pathname)) return null
+  if (isPublicPath(pathname)) return null
 
   const workspaceRole = getRoleFromPathname(pathname)
   if (workspaceRole && !userHoldsRole(user, workspaceRole)) return null

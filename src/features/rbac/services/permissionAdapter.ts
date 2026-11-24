@@ -75,6 +75,10 @@ export const FEATURE_PERMISSION_MAP: Partial<
   // POST /users (login for an onboarded employee)
   'employee.createLogin': 'users:create',
   'employee.manage': 'employees:update',
+  // Organisation onboarding
+  'onboarding.list': 'onboarding:read',
+  'onboarding.create': 'onboarding:create',
+  'onboarding.verify': 'onboarding:verify',
   // DELETE /employees/:id
   'employee.delete': 'employees:delete',
   // POST /employees/:id/sync-device (TimeWatch biometric device)
@@ -188,6 +192,9 @@ const ROLE_FEATURE_MATRIX: Record<BackendRoleCode, FeatureAccessKey[]> = {
     'employee.organization.edit',
     'employee.documents.view',
     'employee.documents.edit',
+    'onboarding.list',
+    'onboarding.create',
+    'onboarding.verify',
     'attendance.overview',
     'attendance.daily',
     'attendance.checkIn',
@@ -242,8 +249,12 @@ const ROLE_FEATURE_MATRIX: Record<BackendRoleCode, FeatureAccessKey[]> = {
     'employee.manage',
     'employee.workforceExtended',
     'employee.registration.view',
+    'employee.registration.edit',
     'employee.organization.view',
     'employee.documents.view',
+    'onboarding.list',
+    'onboarding.create',
+    'onboarding.verify',
     'attendance.overview',
     'attendance.daily',
     'attendance.checkIn',
@@ -322,7 +333,6 @@ const ROLE_FEATURE_MATRIX: Record<BackendRoleCode, FeatureAccessKey[]> = {
     'attendance.checkIn',
     'attendance.my',
     'attendance.corrections',
-    'attendance.regularization.my',
     'attendance.holidays',
     'leads.my',
     'calendar.view',

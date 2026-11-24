@@ -32,11 +32,14 @@ type EmployeeProfileFormProps = {
   mode?: 'create' | 'update'
   /** Employment status choices; defaults to backend-supported statuses. */
   statusOptions?: EmploymentStatus[]
-  /** Department options from GET /departments; when set, replaces the hardcoded list. */
+  /** Department options from GET /departments; when set (including empty), uses the API list. */
   departmentOptions?: Array<{ id: string; name: string }>
   /** When set with departmentOptions, selects by department id (create flow). */
   departmentId?: string
   onDepartmentIdChange?: (departmentId: string) => void
+  /** Loading / error for live department fetch (registration create flow). */
+  departmentsLoading?: boolean
+  departmentsError?: string
 }
 
 const FALLBACK_DEPARTMENTS = [
@@ -92,6 +95,8 @@ export function EmployeeProfileForm({
   departmentOptions,
   departmentId,
   onDepartmentIdChange,
+  departmentsLoading = false,
+  departmentsError,
 }: EmployeeProfileFormProps) {
   const set = <K extends keyof EmployeeProfileFormState>(
     key: K,
@@ -99,7 +104,8 @@ export function EmployeeProfileForm({
   ) => onChange({ ...value, [key]: next })
 
   const disabled = readOnly
-  const useServerDepartments = Boolean(departmentOptions)
+  // Create always uses live departments; update uses them when the parent passes options.
+  const useServerDepartments = mode === 'create' || departmentOptions !== undefined
   const requiredFields =
     mode === 'update' ? UPDATE_REQUIRED_PROFILE_FIELDS : CREATE_REQUIRED_PROFILE_FIELDS
   const isRequired = (name: FormField) => requiredFields.has(name)
@@ -381,26 +387,46 @@ export function EmployeeProfileForm({
           </Field>
           <Field label="Department" name="department" required={false}>
             {useServerDepartments ? (
-              <Select
-                disabled={disabled}
-                value={departmentId || undefined}
-                onValueChange={(v) => {
-                  const selected = departmentOptions?.find((d) => d.id === v)
-                  onDepartmentIdChange?.(v)
-                  set('department', selected?.name ?? '')
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select department" />
-                </SelectTrigger>
-                <SelectContent>
-                  {(departmentOptions ?? []).map((d) => (
-                    <SelectItem key={d.id} value={d.id}>
-                      {d.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="space-y-1.5">
+                <Select
+                  disabled={disabled || departmentsLoading || Boolean(departmentsError)}
+                  value={departmentId || undefined}
+                  onValueChange={(v) => {
+                    const selected = departmentOptions?.find((d) => d.id === v)
+                    onDepartmentIdChange?.(v)
+                    set('department', selected?.name ?? '')
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue
+                      placeholder={
+                        departmentsLoading
+                          ? 'Loading departments…'
+                          : departmentsError
+                            ? 'Departments unavailable'
+                            : 'Select department'
+                      }
+                    />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(departmentOptions ?? []).map((d) => (
+                      <SelectItem key={d.id} value={d.id}>
+                        {d.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {departmentsError ? (
+                  <p className="text-xs text-rose-600">{departmentsError}</p>
+                ) : null}
+                {!departmentsLoading &&
+                !departmentsError &&
+                (departmentOptions?.length ?? 0) === 0 ? (
+                  <p className="text-xs text-text-secondary">
+                    No active departments found. Add one under Organization first.
+                  </p>
+                ) : null}
+              </div>
             ) : (
               <Select
                 disabled={disabled}

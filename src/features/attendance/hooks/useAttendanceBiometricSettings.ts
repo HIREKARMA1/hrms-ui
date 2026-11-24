@@ -5,6 +5,7 @@ import {
   useBiometricDeviceList,
   useBiometricPermissions,
   useBiometricSync,
+  useDeleteBiometricDevice,
   useRegisterBiometricDevice,
   useTimeWatchDeviceCatalog,
   useUpdateBiometricDevice,
@@ -29,6 +30,7 @@ export function useAttendanceBiometricSettings(toast: ToastFn) {
   const { sync, canSync, isLoading: syncLoading } = useBiometricSync()
   const register = useRegisterBiometricDevice()
   const update = useUpdateBiometricDevice()
+  const remove = useDeleteBiometricDevice()
 
   const refetchAll = useCallback(() => {
     void devices.refetch()
@@ -99,6 +101,28 @@ export function useAttendanceBiometricSettings(toast: ToastFn) {
     [refetchAll, toast, update],
   )
 
+  const submitDelete = useCallback(
+    async (device: BiometricDevice) => {
+      if (
+        !window.confirm(
+          `Delete onboarded device "${device.deviceName}" (${device.deviceCode}) from HRMS? This cannot be undone.`,
+        )
+      ) {
+        return false
+      }
+      try {
+        await remove.deleteDevice(device.id).unwrap()
+        toast('Device deleted from HRMS.')
+        refetchAll()
+        return true
+      } catch (error) {
+        toast(getApiErrorMessage(error, 'Could not delete device.'))
+        return false
+      }
+    },
+    [refetchAll, remove, toast],
+  )
+
   return {
     perms,
     devices,
@@ -108,10 +132,12 @@ export function useAttendanceBiometricSettings(toast: ToastFn) {
     syncLoading,
     registerLoading: register.isLoading,
     updateLoading: update.isLoading,
+    deleteLoading: remove.isLoading,
     runConnectionTest,
     runSync,
     submitRegister,
     submitUpdate,
+    submitDelete,
     refetchAll,
   }
 }
