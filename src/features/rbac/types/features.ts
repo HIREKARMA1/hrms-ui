@@ -39,7 +39,7 @@ export type FeatureAccessKey =
   | 'attendance.corrections'
   | 'attendance.corrections.approve'
   | 'attendance.regularization'
-  /** Self-service regularizations (employee workspace; APIs authorize each request). */
+  /** Reserved for future employee regularization views (not in employee nav; HR POST only). */
   | 'attendance.regularization.my'
   | 'attendance.overtime'
   | 'attendance.weeklyOff'

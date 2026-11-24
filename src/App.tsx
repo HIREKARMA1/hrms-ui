@@ -311,17 +311,6 @@ function App() {
             }
           />
           <Route
-            path="/employee/attendance/regularization"
-            element={
-              <RequireAccess
-                feature="attendance.regularization.my"
-                featureLabel="Attendance Regularization"
-              >
-                <RegularizationPage />
-              </RequireAccess>
-            }
-          />
-          <Route
             path="/employee/holidays"
             element={
               <RequireAccess

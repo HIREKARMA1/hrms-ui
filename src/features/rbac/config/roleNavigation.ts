@@ -497,12 +497,6 @@ const employeeNav: RoleNavItem[] = [
     feature: 'attendance.corrections',
   },
   {
-    title: 'Attendance Regularization',
-    path: '/employee/attendance/regularization',
-    iconName: 'ClipboardList',
-    feature: 'attendance.regularization.my',
-  },
-  {
     title: 'Leave Management',
     path: '/employee/leave',
     iconName: 'CalendarDays',

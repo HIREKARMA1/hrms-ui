@@ -9,6 +9,7 @@ import {
 } from '@/features/biometric/utils/biometricAttendanceDates'
 
 import type { AttendanceReportSource } from '../constants/attendanceApiAccess'
+import { DEFAULT_ATTENDANCE_REPORT_SOURCE } from '../constants/attendanceReportSourceOptions'
 
 export type AttendanceReportRangeState = {
   fromDate: string
@@ -17,7 +18,7 @@ export type AttendanceReportRangeState = {
 
 export function useAttendanceReportRangeState() {
   const [range, setRange] = useState<AttendanceReportRangeState>(() => defaultBiometricAttendanceRange())
-  const [source, setSource] = useState<AttendanceReportSource>('auto')
+  const [source, setSource] = useState<AttendanceReportSource>(DEFAULT_ATTENDANCE_REPORT_SOURCE)
   const rangeError = validateBiometricDateRange(range.fromDate, range.toDate)
   const singleDay = range.fromDate === range.toDate && Boolean(range.fromDate)
 

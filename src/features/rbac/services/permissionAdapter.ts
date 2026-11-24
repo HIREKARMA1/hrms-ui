@@ -333,7 +333,6 @@ const ROLE_FEATURE_MATRIX: Record<BackendRoleCode, FeatureAccessKey[]> = {
     'attendance.checkIn',
     'attendance.my',
     'attendance.corrections',
-    'attendance.regularization.my',
     'attendance.holidays',
     'leads.my',
     'calendar.view',
