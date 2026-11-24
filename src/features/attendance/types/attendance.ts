@@ -6,6 +6,7 @@ export type AttendanceStatus =
   | 'On Leave'
   | 'Holiday'
   | 'Weekly Off'
+  | 'In Progress'
 
 export type ApprovalStatus = 'Pending' | 'Approved' | 'Rejected'
 

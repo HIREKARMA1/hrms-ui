@@ -29,13 +29,17 @@ export type FeatureAccessKey =
   | 'employee.documents.edit'
   | 'employee.profile.own'
   | 'employee.documents.own'
+  /** Organisation onboarding (temp accounts + form review). */
+  | 'onboarding.list'
+  | 'onboarding.create'
+  | 'onboarding.verify'
   | 'attendance.overview'
   | 'attendance.daily'
   | 'attendance.checkIn'
   | 'attendance.corrections'
   | 'attendance.corrections.approve'
   | 'attendance.regularization'
-  /** Self-service regularizations (employee workspace; APIs authorize each request). */
+  /** Reserved for future employee regularization views (not in employee nav; HR POST only). */
   | 'attendance.regularization.my'
   | 'attendance.overtime'
   | 'attendance.weeklyOff'

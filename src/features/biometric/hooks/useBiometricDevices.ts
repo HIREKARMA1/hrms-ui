@@ -5,6 +5,7 @@ import {
   useBiometricConnectionTestQuery,
   useRegisterBiometricDeviceMutation,
   useUpdateBiometricDeviceMutation,
+  useDeleteBiometricDeviceMutation,
 } from '../api/biometricApi'
 import { useBiometricPermissions } from './useBiometricPermissions'
 
@@ -41,6 +42,16 @@ export function useUpdateBiometricDevice() {
   return {
     updateDevice: mutate,
     canUpdate: canConfigureDevices,
+    ...state,
+  }
+}
+
+export function useDeleteBiometricDevice() {
+  const { canDeleteDevices } = useBiometricPermissions()
+  const [mutate, state] = useDeleteBiometricDeviceMutation()
+  return {
+    deleteDevice: mutate,
+    canDelete: canDeleteDevices,
     ...state,
   }
 }

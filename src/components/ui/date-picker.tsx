@@ -1,6 +1,6 @@
 import { format, isValid, parse } from 'date-fns'
 import { Calendar as CalendarIcon } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
@@ -43,6 +43,16 @@ export function DatePicker({
   const selected = parseIsoDate(value)
   const max = maxDate ? parseIsoDate(maxDate) : undefined
   const min = minDate ? parseIsoDate(minDate) : undefined
+  const startMonth = useMemo(() => min ?? new Date(1950, 0), [min])
+  const endMonth = useMemo(
+    () => max ?? new Date(new Date().getFullYear() + 5, 11),
+    [max],
+  )
+  const [month, setMonth] = useState<Date>(selected ?? new Date())
+
+  useEffect(() => {
+    if (selected) setMonth(selected)
+  }, [selected])
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -57,18 +67,19 @@ export function DatePicker({
             !selected && 'text-text-secondary',
           )}
         >
-          <CalendarIcon className="mr-2 h-4 w-4 text-brand-500" />
+          <CalendarIcon className="mr-2 h-4 w-4 shrink-0 text-brand-500" />
           {selected ? format(selected, 'dd MMM yyyy') : placeholder}
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-auto p-0" align="start">
         <Calendar
           mode="single"
+          month={month}
+          onMonthChange={setMonth}
           selected={selected}
-          defaultMonth={selected}
           captionLayout="dropdown"
-          startMonth={new Date(1950, 0)}
-          endMonth={new Date(new Date().getFullYear() + 5, 11)}
+          startMonth={startMonth}
+          endMonth={endMonth}
           disabled={[
             ...(max ? [{ after: max }] : []),
             ...(min ? [{ before: min }] : []),
