@@ -378,9 +378,6 @@ export function RoleManagementPage() {
         <div className="flex flex-col gap-4 border-b border-border-soft px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
           <div>
             <h2 className="text-base font-semibold text-navy">All Roles</h2>
-            {rolesQuery.isFetching && !rolesQuery.isLoading ? (
-              <p className="mt-0.5 text-xs text-text-secondary">Updating…</p>
-            ) : null}
           </div>
           <RolesFilterBar
             search={search}
@@ -403,7 +400,7 @@ export function RoleManagementPage() {
               Retry
             </Button>
           </div>
-        ) : rolesQuery.isLoading ? (
+        ) : rolesQuery.isLoading && !rolesQuery.data ? (
           <div className="px-6 py-12 text-center text-sm text-text-secondary">
             Loading roles…
           </div>

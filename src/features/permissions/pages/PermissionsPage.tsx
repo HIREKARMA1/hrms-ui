@@ -158,7 +158,6 @@ export function PermissionsPage() {
           totalPages={totalPages}
           total={pagination.total}
           itemLabel="permissions"
-          disabled={list.isFetching}
           onPageChange={setPage}
         />
       ) : null}

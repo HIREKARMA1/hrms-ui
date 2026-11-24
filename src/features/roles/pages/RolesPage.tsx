@@ -265,7 +265,6 @@ export function RolesPage() {
           totalPages={totalPages}
           total={pagination.total}
           itemLabel="roles"
-          disabled={list.isFetching}
           onPageChange={setPage}
         />
       ) : null}
