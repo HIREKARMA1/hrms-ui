@@ -153,6 +153,11 @@ const superAdminNav: RoleNavItem[] = [
         path: '/superadmin/employees/add',
         feature: 'employee.registration.edit',
       },
+      {
+        title: 'Organisation Onboarding',
+        path: '/superadmin/organisation-onboarding',
+        feature: 'onboarding.list',
+      },
     ],
   },
   {
@@ -280,8 +285,13 @@ const hrAdminNav: RoleNavItem[] = [
       },
       {
         title: 'Add Employee',
-        path: '/admin/employees/add',
+        path: '/hradmin/employees/add',
         feature: 'employee.registration.edit',
+      },
+      {
+        title: 'Organisation Onboarding',
+        path: '/hradmin/organisation-onboarding',
+        feature: 'onboarding.list',
       },
     ],
   },
@@ -485,12 +495,6 @@ const employeeNav: RoleNavItem[] = [
     path: '/employee/attendance/corrections',
     iconName: 'ClipboardList',
     feature: 'attendance.corrections',
-  },
-  {
-    title: 'Attendance Regularization',
-    path: '/employee/attendance/regularization',
-    iconName: 'ClipboardList',
-    feature: 'attendance.regularization.my',
   },
   {
     title: 'Leave Management',

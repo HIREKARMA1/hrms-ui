@@ -1,36 +1,52 @@
 /**
  * HR employee attendance reports — APIs by employee code or id (range or single day).
  */
-import { useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import type { EmployeeRecord } from '@/features/employees/api/employeeMappers'
 
+import { DEFAULT_ATTENDANCE_REPORT_SOURCE } from '../constants/attendanceReportSourceOptions'
 import { useAttendancePermissions } from '../hooks'
 import { useAttendanceReportRangeState } from '../hooks/useAttendanceReportRangeState'
 import type { HrLookupMode } from '../hooks/useHrAttendanceReportActive'
 import { useHrAttendanceReportActive } from '../hooks/useHrAttendanceReportActive'
 import { hrAttendanceApiLabel } from '../utils/hrAttendanceApiLabel'
-import { AttendanceReportFetchState } from './reports/AttendanceReportFetchState'
-import { AttendanceReportRangeControls } from './reports/AttendanceReportRangeControls'
-import { AttendanceReportResultSection } from './reports/AttendanceReportResultSection'
-import { HrAttendanceLookupControls } from './reports/HrAttendanceLookupControls'
+import { AttendanceReportEmployeePicker } from './reports/AttendanceReportEmployeePicker'
+import { AttendanceLiveReportResultSection } from './reports/liveDaily/AttendanceLiveReportResultSection'
+import { AttendancePolicyReportEmployeeStrip } from './reports/policyReport/AttendancePolicyReportEmployeeStrip'
+import { AttendancePolicyReportFetchState } from './reports/policyReport/AttendancePolicyReportFetchState'
+import { AttendancePolicyReportFilterGrid } from './reports/policyReport/AttendancePolicyReportFilterGrid'
+import {
+  policyCardClass,
+  policyPrimaryText,
+  policySecondaryText,
+} from './reports/policyReport/attendancePolicyReportUi'
+import type { HrAttendanceReportPreset } from '../types/hrAttendanceReportPreset'
+
+export type { HrAttendanceReportPreset } from '../types/hrAttendanceReportPreset'
 
 type HrAttendanceLiveReportProps = {
   defaultMode?: HrLookupMode
   defaultEmployeeCode?: string
   title?: string
+  /** Bump `presetVersion` when applying roster “Use in report”. */
+  preset?: HrAttendanceReportPreset | null
+  presetVersion?: number
 }
 
 export function HrAttendanceLiveReport({
   defaultMode = 'code',
   defaultEmployeeCode = '',
   title = 'Employee attendance report (live API)',
+  preset,
+  presetVersion = 0,
 }: HrAttendanceLiveReportProps) {
   const { canViewEmployeeReports } = useAttendancePermissions()
   const [mode, setMode] = useState<HrLookupMode>(defaultMode)
   const [employeeCodeInput, setEmployeeCodeInput] = useState(defaultEmployeeCode)
   const [employeeIdInput, setEmployeeIdInput] = useState('')
-  const { range, setRange, source, setSource, rangeError, singleDay } = useAttendanceReportRangeState()
+  const { range, setRange, source, setSource, rangeError, singleDay } =
+    useAttendanceReportRangeState()
   const { active, days, activeLookup, lookupReady, submitLookup } = useHrAttendanceReportActive(
     range,
     source,
@@ -38,34 +54,59 @@ export function HrAttendanceLiveReport({
     singleDay,
   )
 
+  useEffect(() => {
+    if (!preset || presetVersion < 1) return
+    setMode(preset.mode)
+    setEmployeeCodeInput(preset.employeeCode)
+    setEmployeeIdInput(preset.employeeId)
+    setSource(DEFAULT_ATTENDANCE_REPORT_SOURCE)
+    if (preset.autoLoad) {
+      submitLookup(preset.mode, preset.employeeCode, preset.employeeId)
+    }
+    // Only re-apply when the roster bumps `presetVersion` (not when `submitLookup` identity changes).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [presetVersion])
+
+  const onRosterSelect = useCallback((record: EmployeeRecord) => {
+    setMode('code')
+    setEmployeeCodeInput(record.profile.employeeId)
+    setEmployeeIdInput(record.server.id)
+  }, [])
+
   const showResult = lookupReady && !active.isError && !rangeError && Boolean(active.data)
+
+  const endpointLabel = hrAttendanceApiLabel(activeLookup, singleDay)
 
   if (!canViewEmployeeReports) {
     return (
-      <Card className="border-border-soft shadow-sm">
-        <CardHeader>
-          <CardTitle>{title}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-text-secondary">
+      <div className={policyCardClass}>
+        <div className="border-b border-[#E2E6EF] px-[22px] py-4">
+          <h2 className={`text-base font-semibold ${policyPrimaryText}`}>{title}</h2>
+        </div>
+        <div className="px-[22px] py-4">
+          <p className={`text-sm ${policySecondaryText}`}>
             Your role does not include permission to view employee attendance reports.
           </p>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     )
   }
 
   return (
-    <Card className="border-border-soft shadow-sm">
-      <CardHeader>
-        <CardTitle>{title}</CardTitle>
-        <CardDescription>
-          {hrAttendanceApiLabel(activeLookup, singleDay)} — processed policy status and in/out times (max 31
-          days).
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <HrAttendanceLookupControls
+    <div className="space-y-6">
+      <div className={policyCardClass}>
+        <div className="flex flex-wrap items-start justify-between gap-3 border-b border-[#E2E6EF] px-[22px] py-4">
+          <div className="min-w-0">
+            <h2 className={`text-base font-semibold ${policyPrimaryText}`}>{title}</h2>
+            <p className={`mt-1 text-xs ${policySecondaryText}`}>
+              Processed policy status and in/out times (max 31 days).
+            </p>
+          </div>
+          <span className="shrink-0 rounded-lg bg-[#EEF0F6] px-[10px] py-[7px] font-mono text-xs text-[#667085]">
+            {endpointLabel}
+          </span>
+        </div>
+        <AttendancePolicyReportFilterGrid
           mode={mode}
           onModeChange={setMode}
           employeeCode={employeeCodeInput}
@@ -73,8 +114,12 @@ export function HrAttendanceLiveReport({
           employeeId={employeeIdInput}
           onEmployeeIdChange={setEmployeeIdInput}
           onSubmit={() => submitLookup(mode, employeeCodeInput, employeeIdInput)}
-        />
-        <AttendanceReportRangeControls
+          employeePicker={
+            <AttendanceReportEmployeePicker
+              selectedCode={employeeCodeInput}
+              onSelect={onRosterSelect}
+            />
+          }
           idPrefix="hr-att"
           range={range}
           onRangeChange={setRange}
@@ -84,19 +129,28 @@ export function HrAttendanceLiveReport({
           refreshDisabled={!lookupReady || active.isFetching || Boolean(rangeError)}
           isFetching={active.isFetching}
         />
-        <AttendanceReportFetchState
-          rangeError={rangeError}
-          placeholder={!lookupReady ? 'Enter an employee code or ID, then click Load report.' : null}
-          isLoading={lookupReady && active.isFetching && !active.data}
-          isError={lookupReady && active.isError}
-          error={active.error}
-          loadingMessage="Loading attendance report…"
-          errorFallback="Could not load the attendance report."
-        />
         {showResult && active.data ? (
-          <AttendanceReportResultSection data={active.data} days={days} showEmployeeId />
+          <AttendancePolicyReportEmployeeStrip data={active.data} dayCount={days.length} />
         ) : null}
-      </CardContent>
-    </Card>
+      </div>
+
+      <AttendancePolicyReportFetchState
+        rangeError={rangeError}
+        placeholder={
+          !lookupReady
+            ? 'Choose an employee or enter code / ID, then click Load report.'
+            : null
+        }
+        isLoading={lookupReady && active.isFetching && !active.data}
+        isError={lookupReady && active.isError}
+        error={active.error}
+        loadingMessage="Loading attendance report…"
+        errorFallback="Could not load the attendance report."
+      />
+
+      {showResult && active.data ? (
+        <AttendanceLiveReportResultSection data={active.data} days={days} />
+      ) : null}
+    </div>
   )
 }

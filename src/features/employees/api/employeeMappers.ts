@@ -635,7 +635,7 @@ export function buildCreateFormData(
     }
   }
 
-  const photoUrl = isHttpUrl(t(form.profilePictureUrl)) ? t(form.profilePictureUrl) : t(extras.photoUrl)
+  const photoUrl = t(form.profilePictureUrl)
   const permanent = buildAddress(form.permanentAddress, sharedLocation(form))
   const current = t(form.currentAddress) ? buildAddress(form.currentAddress, sharedLocation(form)) : null
   const bank = extras.bankDetail

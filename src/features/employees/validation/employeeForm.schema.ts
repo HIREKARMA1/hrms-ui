@@ -167,11 +167,8 @@ export function validateEmployeeCreate(
     errors.push(`Employment Status "${form.employmentStatus}" cannot be stored by the server.`)
   }
 
-  const photoUrl = isHttpUrl(form.profilePictureUrl.trim())
-    ? form.profilePictureUrl.trim()
-    : extras.photoUrl.trim()
-  if (!isHttpUrl(photoUrl)) {
-    errors.push('A photo URL (http or https) is required.')
+  if (!isHttpUrl(form.profilePictureUrl.trim())) {
+    errors.push('Profile Photo is required. Upload a photo first.')
   }
 
   for (const { field, label } of EMPLOYEE_DOCUMENT_FIELDS) {

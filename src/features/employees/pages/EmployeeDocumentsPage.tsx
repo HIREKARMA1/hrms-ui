@@ -1,27 +1,24 @@
-import { Download, Eye, Plus, Upload } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { Download, Eye, FileText, MoreHorizontal, Search } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
 
-import { Feature } from '@/features/rbac/components/Feature'
-import { useOptionalFeatureAccess } from '@/features/rbac/hooks/useFeatureAccess'
+import { useAuthenticatedUser } from '@/features/auth/hooks/useAuthenticatedUser'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { Input } from '@/components/ui/input'
+import { Skeleton } from '@/components/ui/skeleton'
 import {
   Table,
   TableBody,
@@ -30,458 +27,333 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { getApiErrorMessage } from '@/services/api/errors'
 
 import {
-  documentCategories,
-  employeeDocumentsMock,
-} from '../mocks/employeeDocuments.mock'
-import type {
-  DocumentCategory,
-  DocumentVerificationStatus,
-  EmployeeDocument,
-} from '../types/employeeDocuments.types'
+  EMPLOYEE_MAX_TAKE,
+  useGetEmployeeQuery,
+  useListEmployeesQuery,
+} from '../api/employeesApi'
+import type { EmployeeDocument } from '../types/employeeDocuments.types'
+import {
+  mapEmployeeDocumentOptions,
+  mapEmployeeRecordsToDocuments,
+  type EmployeeDocumentOption,
+} from '../utils/mapServerDocuments'
 
 type EmployeeDocumentsPageProps = {
-  /** Employee self-service: only own documents for demo EMP-1021. */
+  /** Employee self-service: only documents for the signed-in employee. */
   ownDocumentsOnly?: boolean
 }
 
+type EmployeeDocumentsRow = EmployeeDocumentOption & {
+  documents: EmployeeDocument[]
+}
+
 /**
- * Additive document management for existing `/…/documents` nav routes.
- * Reuses Input type=file; no separate upload library. Storage is UI-only.
+ * One row per employee. Actions menu opens a dialog listing that employee's
+ * documents with individual view/download.
  */
 export function EmployeeDocumentsPage({
   ownDocumentsOnly = false,
 }: EmployeeDocumentsPageProps) {
-  const { canAccess } = useOptionalFeatureAccess()
-  const [docs, setDocs] = useState(() => structuredClone(employeeDocumentsMock))
-  const [categoryFilter, setCategoryFilter] = useState<string>('All')
-  const [statusFilter, setStatusFilter] = useState<string>('All')
-  const [uploadOpen, setUploadOpen] = useState(false)
-  const [versionDoc, setVersionDoc] = useState<EmployeeDocument | null>(null)
-  const [actionNote, setActionNote] = useState<string | null>(null)
-  const [uploadForm, setUploadForm] = useState({
-    employeeName: 'Ishita Kapoor',
-    employeeId: 'EMP-1201',
-    category: 'Resume' as DocumentCategory,
-    fileName: '',
-    expiryDate: '',
-    accessLevel: 'Employee+HR' as EmployeeDocument['accessLevel'],
+  const { user } = useAuthenticatedUser()
+  const ownEmployeeId = user?.employeeId?.trim() || ''
+
+  const listQuery = useListEmployeesQuery(
+    { skip: 0, take: EMPLOYEE_MAX_TAKE },
+    { skip: ownDocumentsOnly },
+  )
+  const ownQuery = useGetEmployeeQuery(ownEmployeeId, {
+    skip: !ownDocumentsOnly || !ownEmployeeId,
   })
 
-  const canEdit = ownDocumentsOnly
-    ? canAccess('employee.documents.own')
-    : canAccess('employee.documents.edit')
-
-  const filtered = useMemo(() => {
-    return docs.filter((doc) => {
-      if (ownDocumentsOnly && doc.employeeId !== 'EMP-1021') return false
-      if (categoryFilter !== 'All' && doc.category !== categoryFilter) return false
-      if (statusFilter !== 'All' && doc.verificationStatus !== statusFilter)
-        return false
-      return true
-    })
-  }, [docs, ownDocumentsOnly, categoryFilter, statusFilter])
-
-  const expiryReminders = useMemo(
-    () =>
-      filtered.filter(
-        (d) =>
-          d.expiryDate &&
-          (d.verificationStatus === 'Expired' ||
-            d.expiryDate <= '2026-12-31'),
-      ),
-    [filtered],
+  const [search, setSearch] = useState('')
+  const [actionNote, setActionNote] = useState<string | null>(null)
+  const [docsDialogEmployeeId, setDocsDialogEmployeeId] = useState<string | null>(
+    null,
   )
 
-  const saveUpload = () => {
-    if (!uploadForm.fileName) return
-    const now = new Date().toISOString().slice(0, 10)
-    setDocs((prev) => [
-      {
-        id: `doc-${Date.now()}`,
-        employeeId: uploadForm.employeeId,
-        employeeName: uploadForm.employeeName,
-        category: uploadForm.category,
-        fileName: uploadForm.fileName,
-        verificationStatus: 'Pending',
-        uploadedAt: now,
-        expiryDate: uploadForm.expiryDate,
-        accessLevel: uploadForm.accessLevel,
-        versions: [
-          {
-            version: 1,
-            fileName: uploadForm.fileName,
-            uploadedAt: now,
-            uploadedBy: ownDocumentsOnly ? 'Employee' : 'HR (UI)',
-          },
-        ],
-      },
-      ...prev,
-    ])
-    setUploadOpen(false)
-    setActionNote(
-      'Document metadata saved in UI session only. File was not uploaded to a server.',
-    )
-  }
+  const employees = useMemo(() => {
+    if (ownDocumentsOnly) {
+      return ownQuery.data ? [ownQuery.data] : []
+    }
+    return listQuery.data?.items ?? []
+  }, [ownDocumentsOnly, ownQuery.data, listQuery.data?.items])
 
-  const setVerification = (id: string, status: DocumentVerificationStatus) => {
-    setDocs((prev) =>
-      prev.map((d) =>
-        d.id === id ? { ...d, verificationStatus: status } : d,
-      ),
-    )
-  }
+  const allDocs = useMemo(
+    () => mapEmployeeRecordsToDocuments(employees),
+    [employees],
+  )
 
-  const downloadUiOnly = (doc: EmployeeDocument) => {
-    setActionNote(
-      `Download simulated for “${doc.fileName}”. No file storage API is connected.`,
+  const rows: EmployeeDocumentsRow[] = useMemo(() => {
+    const options = mapEmployeeDocumentOptions(employees)
+    return options.map((opt) => ({
+      ...opt,
+      documents: allDocs.filter((doc) => doc.employeeId === opt.id),
+    }))
+  }, [employees, allDocs])
+
+  const filteredRows = useMemo(() => {
+    const q = search.trim().toLowerCase()
+    if (!q) return rows
+    return rows.filter(
+      (row) =>
+        row.name.toLowerCase().includes(q) ||
+        row.employeeCode.toLowerCase().includes(q),
     )
+  }, [rows, search])
+
+  const dialogRow = useMemo(
+    () => rows.find((row) => row.id === docsDialogEmployeeId) ?? null,
+    [rows, docsDialogEmployeeId],
+  )
+
+  useEffect(() => {
+    if (!docsDialogEmployeeId) return
+    if (!rows.some((row) => row.id === docsDialogEmployeeId)) {
+      setDocsDialogEmployeeId(null)
+    }
+  }, [rows, docsDialogEmployeeId])
+
+  const loading = ownDocumentsOnly
+    ? Boolean(ownEmployeeId) && ownQuery.isLoading
+    : listQuery.isLoading
+  const loadError = ownDocumentsOnly ? ownQuery.error : listQuery.error
+
+  const openDocument = (doc: EmployeeDocument, mode: 'view' | 'download') => {
+    if (!doc.fileUrl) {
+      setActionNote(
+        `No file URL for “${doc.fileName}”. Re-upload or verify onboarding documents again.`,
+      )
+      return
+    }
+    window.open(doc.fileUrl, '_blank', 'noopener,noreferrer')
+    if (mode === 'download') {
+      setActionNote(`Opened “${doc.fileName}” for download / preview.`)
+    }
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <div className="mb-2 flex flex-wrap gap-2">
-            <Badge variant="warning">UI-only uploads</Badge>
-            <Badge variant="secondary">No document API</Badge>
-          </div>
-          <h1 className="text-2xl font-bold tracking-tight text-navy">
-            {ownDocumentsOnly ? 'My Documents' : 'Employee Documents'}
-          </h1>
-          <p className="mt-1 text-sm text-text-secondary">
-            Resume, KYC, certificates, letters, verification and version history.
-          </p>
-          {ownDocumentsOnly ? null : (
-            <p className="mt-1 text-xs text-text-secondary">
-              Sample data. Documents uploaded during registration are stored on the server and
-              listed on each employee&apos;s profile.
-            </p>
-          )}
+    <div className="mx-auto flex w-full max-w-[1100px] flex-col gap-6">
+      <div>
+        <div className="mb-2 flex flex-wrap gap-2">
+          <Badge variant="success">Live employee documents</Badge>
+          <Badge variant="secondary">Grouped by employee</Badge>
         </div>
-        {canEdit ? (
-          <Button
-            type="button"
-            className="gap-2"
-            onClick={() => {
-              setUploadForm((f) => ({
-                ...f,
-                fileName: '',
-                ...(ownDocumentsOnly
-                  ? {
-                      employeeId: 'EMP-1021',
-                      employeeName: 'Ananya Sharma',
-                    }
-                  : {}),
-              }))
-              setUploadOpen(true)
-            }}
-          >
-            <Plus className="h-4 w-4" />
-            Upload Document
-          </Button>
-        ) : null}
+        <h1 className="text-2xl font-bold tracking-tight text-navy">
+          {ownDocumentsOnly ? 'My Documents' : 'Employee Documents'}
+        </h1>
+        <p className="mt-1 text-sm text-text-secondary">
+          {ownDocumentsOnly
+            ? 'Open the actions menu to view and download your documents.'
+            : 'Each employee is listed once. Use the actions menu to view all of their documents and download individually.'}
+        </p>
       </div>
 
-      {actionNote ? (
+      {loadError ? (
+        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm text-red-700">
+          {getApiErrorMessage(loadError, 'Could not load employee documents.')}
+        </div>
+      ) : null}
+
+      {ownDocumentsOnly && !ownEmployeeId ? (
         <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm text-amber-900">
+          Your account is not linked to an employee profile yet, so there are no documents to show.
+        </div>
+      ) : null}
+
+      {actionNote ? (
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm text-emerald-900">
           {actionNote}
         </div>
       ) : null}
 
-      {expiryReminders.length > 0 ? (
-        <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
-          <p className="font-medium">Document expiry reminders</p>
-          <ul className="mt-1 list-inside list-disc">
-            {expiryReminders.map((d) => (
-              <li key={d.id}>
-                {d.employeeName} · {d.category} · expires {d.expiryDate || 'n/a'}{' '}
-                ({d.verificationStatus})
-              </li>
-            ))}
-          </ul>
+      {!ownDocumentsOnly ? (
+        <div className="rounded-2xl border border-border-soft bg-white p-4 shadow-sm">
+          <label className="relative block max-w-md">
+            <span className="mb-1.5 block text-xs font-medium text-slate-500">
+              Search employee
+            </span>
+            <Search className="pointer-events-none absolute bottom-2.5 left-3 h-4 w-4 text-slate-400" />
+            <Input
+              className="pl-9"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Name or employee code"
+            />
+          </label>
         </div>
       ) : null}
-
-      <div className="flex flex-col gap-3 rounded-2xl border border-border-soft bg-white p-4 shadow-sm sm:flex-row">
-        <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-          <SelectTrigger className="w-full sm:w-56">
-            <SelectValue placeholder="Category" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="All">All categories</SelectItem>
-            {documentCategories.map((c) => (
-              <SelectItem key={c} value={c}>
-                {c}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-full sm:w-44">
-            <SelectValue placeholder="Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="All">All statuses</SelectItem>
-            {(
-              [
-                'Pending',
-                'Verified',
-                'Rejected',
-                'Expired',
-              ] as DocumentVerificationStatus[]
-            ).map((s) => (
-              <SelectItem key={s} value={s}>
-                {s}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
 
       <div className="overflow-hidden rounded-2xl border border-border-soft bg-white shadow-sm">
         <Table>
           <TableHeader>
             <TableRow>
-              {!ownDocumentsOnly ? <TableHead>Employee</TableHead> : null}
-              <TableHead>Category</TableHead>
-              <TableHead>File</TableHead>
-              <TableHead>Verification</TableHead>
-              <TableHead>Access</TableHead>
-              <TableHead>Expiry</TableHead>
+              <TableHead>Employee</TableHead>
+              <TableHead>Documents</TableHead>
+              <TableHead>Categories</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filtered.map((doc) => (
-              <TableRow key={doc.id}>
-                {!ownDocumentsOnly ? (
-                  <TableCell>
-                    <p className="font-medium text-navy">{doc.employeeName}</p>
-                    <p className="text-xs text-text-secondary">{doc.employeeId}</p>
-                  </TableCell>
-                ) : null}
-                <TableCell>{doc.category}</TableCell>
-                <TableCell className="text-text-secondary">{doc.fileName}</TableCell>
-                <TableCell>
-                  <Badge
-                    variant={
-                      doc.verificationStatus === 'Verified'
-                        ? 'success'
-                        : doc.verificationStatus === 'Pending'
-                          ? 'warning'
-                          : 'danger'
-                    }
-                  >
-                    {doc.verificationStatus}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  <Badge variant="outline">{doc.accessLevel}</Badge>
-                </TableCell>
-                <TableCell>{doc.expiryDate || '—'}</TableCell>
-                <TableCell className="text-right">
-                  <div className="flex justify-end gap-1">
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => setVersionDoc(doc)}
-                    >
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => downloadUiOnly(doc)}
-                    >
-                      <Download className="h-4 w-4" />
-                    </Button>
-                    <Feature name="employee.documents.edit">
-                      {!ownDocumentsOnly ? (
-                        <Select
-                          onValueChange={(v) =>
-                            setVerification(
-                              doc.id,
-                              v as DocumentVerificationStatus,
-                            )
-                          }
-                        >
-                          <SelectTrigger className="h-8 w-[120px] text-xs">
-                            <SelectValue placeholder="Verify" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {(
-                              [
-                                'Pending',
-                                'Verified',
-                                'Rejected',
-                                'Expired',
-                              ] as DocumentVerificationStatus[]
-                            ).map((s) => (
-                              <SelectItem key={s} value={s}>
-                                {s}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      ) : null}
-                    </Feature>
-                  </div>
+            {loading ? (
+              <TableRow>
+                <TableCell colSpan={4}>
+                  <Skeleton className="h-10 w-full" />
                 </TableCell>
               </TableRow>
-            ))}
+            ) : null}
+            {!loading && filteredRows.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={4} className="py-10 text-center text-sm text-slate-500">
+                  {rows.length === 0
+                    ? 'No employees found. Register or verify an organisation onboarding form first.'
+                    : 'No employees match this search.'}
+                </TableCell>
+              </TableRow>
+            ) : null}
+            {filteredRows.map((row) => {
+              const categories = [
+                ...new Set(row.documents.map((doc) => doc.category)),
+              ]
+              return (
+                <TableRow key={row.id}>
+                  <TableCell>
+                    <p className="font-medium text-navy">{row.name}</p>
+                    <p className="text-xs text-text-secondary">{row.employeeCode}</p>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline">
+                      {row.documents.length} file
+                      {row.documents.length === 1 ? '' : 's'}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    {categories.length === 0 ? (
+                      <span className="text-sm text-slate-500">No documents yet</span>
+                    ) : (
+                      <div className="flex flex-wrap gap-1.5">
+                        {categories.slice(0, 3).map((category) => (
+                          <Badge key={category} variant="secondary">
+                            {category}
+                          </Badge>
+                        ))}
+                        {categories.length > 3 ? (
+                          <Badge variant="outline">+{categories.length - 3}</Badge>
+                        ) : null}
+                      </div>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="ghost"
+                          aria-label={`Actions for ${row.name}`}
+                        >
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-48">
+                        <DropdownMenuItem
+                          onClick={() => setDocsDialogEmployeeId(row.id)}
+                        >
+                          <Eye className="mr-2 h-4 w-4" />
+                          View all documents
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
+              )
+            })}
           </TableBody>
         </Table>
       </div>
 
-      <Dialog open={uploadOpen} onOpenChange={setUploadOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Upload document</DialogTitle>
-            <DialogDescription>
-              File bytes are not stored. Only the file name is kept for this demo.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4">
-            {!ownDocumentsOnly ? (
-              <>
-                <div className="space-y-2">
-                  <Label>Employee name</Label>
-                  <Input
-                    value={uploadForm.employeeName}
-                    onChange={(e) =>
-                      setUploadForm((f) => ({
-                        ...f,
-                        employeeName: e.target.value,
-                      }))
-                    }
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Employee ID</Label>
-                  <Input
-                    value={uploadForm.employeeId}
-                    onChange={(e) =>
-                      setUploadForm((f) => ({
-                        ...f,
-                        employeeId: e.target.value,
-                      }))
-                    }
-                  />
-                </div>
-              </>
-            ) : null}
-            <div className="space-y-2">
-              <Label>Document type</Label>
-              <Select
-                value={uploadForm.category}
-                onValueChange={(v) =>
-                  setUploadForm((f) => ({
-                    ...f,
-                    category: v as DocumentCategory,
-                  }))
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {documentCategories.map((c) => (
-                    <SelectItem key={c} value={c}>
-                      {c}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>File</Label>
-              <Input
-                type="file"
-                onChange={(e) =>
-                  setUploadForm((f) => ({
-                    ...f,
-                    fileName: e.target.files?.[0]?.name ?? '',
-                  }))
-                }
-              />
-              {uploadForm.fileName ? (
-                <p className="flex items-center gap-1 text-xs text-text-secondary">
-                  <Upload className="h-3 w-3" />
-                  {uploadForm.fileName}
-                </p>
-              ) : null}
-            </div>
-            <div className="space-y-2">
-              <Label>Expiry date (optional)</Label>
-              <Input
-                type="date"
-                value={uploadForm.expiryDate}
-                onChange={(e) =>
-                  setUploadForm((f) => ({ ...f, expiryDate: e.target.value }))
-                }
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Access permission</Label>
-              <Select
-                value={uploadForm.accessLevel}
-                onValueChange={(v) =>
-                  setUploadForm((f) => ({
-                    ...f,
-                    accessLevel: v as EmployeeDocument['accessLevel'],
-                  }))
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="HR-only">HR-only</SelectItem>
-                  <SelectItem value="Employee+HR">Employee+HR</SelectItem>
-                  <SelectItem value="Admin-view">Admin-view</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setUploadOpen(false)}>
-              Cancel
-            </Button>
-            <Button type="button" onClick={saveUpload}>
-              Save metadata
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
       <Dialog
-        open={Boolean(versionDoc)}
-        onOpenChange={(open) => !open && setVersionDoc(null)}
+        open={Boolean(dialogRow)}
+        onOpenChange={(open) => {
+          if (!open) setDocsDialogEmployeeId(null)
+        }}
       >
-        <DialogContent>
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Document version history</DialogTitle>
+            <DialogTitle>Documents — {dialogRow?.name}</DialogTitle>
             <DialogDescription>
-              {versionDoc?.category} · {versionDoc?.fileName}
+              {dialogRow?.employeeCode}
+              {dialogRow
+                ? ` · ${dialogRow.documents.length} document${dialogRow.documents.length === 1 ? '' : 's'}`
+                : null}
             </DialogDescription>
           </DialogHeader>
-          <ul className="space-y-2">
-            {versionDoc?.versions.map((v) => (
-              <li
-                key={`${v.version}-${v.fileName}`}
-                className="rounded-xl border border-border-soft px-3 py-2 text-sm"
-              >
-                v{v.version} · {v.fileName}
-                <p className="text-xs text-text-secondary">
-                  {v.uploadedAt} · {v.uploadedBy}
-                </p>
-              </li>
-            ))}
-          </ul>
+
+          {!dialogRow || dialogRow.documents.length === 0 ? (
+            <p className="rounded-xl border border-dashed border-slate-200 px-4 py-8 text-center text-sm text-slate-500">
+              No documents for this employee yet.
+            </p>
+          ) : (
+            <ul className="max-h-[60vh] space-y-2 overflow-y-auto pr-1">
+              {dialogRow.documents.map((doc) => (
+                <li
+                  key={doc.id}
+                  className="flex flex-col gap-3 rounded-xl border border-border-soft bg-slate-50/80 px-3 py-3 sm:flex-row sm:items-center sm:justify-between"
+                >
+                  <div className="min-w-0 flex items-start gap-3">
+                    <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white shadow-sm">
+                      <FileText className="h-4 w-4 text-brand-600" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium text-navy">
+                        {doc.category}
+                      </p>
+                      <p className="truncate text-xs text-text-secondary" title={doc.fileName}>
+                        {doc.fileName}
+                      </p>
+                      <div className="mt-1.5 flex flex-wrap gap-1.5">
+                        <Badge
+                          variant={
+                            doc.verificationStatus === 'Verified'
+                              ? 'success'
+                              : doc.verificationStatus === 'Pending'
+                                ? 'warning'
+                                : 'danger'
+                          }
+                        >
+                          {doc.verificationStatus}
+                        </Badge>
+                        <Badge variant="outline">{doc.accessLevel}</Badge>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex shrink-0 gap-1 self-end sm:self-center">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => openDocument(doc, 'view')}
+                      disabled={!doc.fileUrl}
+                    >
+                      <Eye className="mr-1.5 h-4 w-4" />
+                      View
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={() => openDocument(doc, 'download')}
+                      disabled={!doc.fileUrl}
+                    >
+                      <Download className="mr-1.5 h-4 w-4" />
+                      Download
+                    </Button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
         </DialogContent>
       </Dialog>
     </div>

@@ -11,8 +11,7 @@ export function useAttendancePermissions() {
   return useMemo(
     () => ({
       canViewEmployeeReports: canAccess('attendance.reports'),
-      canRegularize:
-        canAccess('attendance.regularization') || canAccess('attendance.regularization.my'),
+      canRegularize: canAccess('attendance.regularization'),
     }),
     [canAccess],
   )

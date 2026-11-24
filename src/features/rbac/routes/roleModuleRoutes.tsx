@@ -17,8 +17,8 @@ import { EmployeeOverviewPage } from '@/features/employees/pages/EmployeeOvervie
 import { EmployeeProfilePage } from '@/features/employees/pages/EmployeeProfilePage'
 import { EmployeeRegistrationPage } from '@/features/employees/pages/EmployeeRegistrationPage'
 import { OrganizationDepartmentsPage } from '@/features/organization/pages/OrganizationDepartmentsPage'
-import { PermissionManagementPage } from '@/features/permissions/pages/PermissionManagementPage'
-import { RoleManagementPage } from '@/features/roles/pages/RoleManagementPage'
+import { OrganisationOnboardingDetailPage } from '@/features/organisation-onboarding/pages/OrganisationOnboardingDetailPage'
+import { OrganisationOnboardingPage } from '@/features/organisation-onboarding/pages/OrganisationOnboardingPage'
 import { UsersPage } from '@/features/users/pages/UsersPage'
 import { RequireAccess } from '../components/RequireAccess'
 
@@ -135,26 +135,29 @@ export function createOrgRoleModuleRoutes(prefix: RolePrefix): ReactElement[] {
         </RequireAccess>
       }
     />,
-    ...(prefix === 'superadmin'
+    ...(prefix === 'hradmin' || prefix === 'superadmin'
       ? [
           <Route
-            key={`${prefix}-roles`}
-            path={`/${prefix}/roles`}
+            key={`${prefix}-organisation-onboarding`}
+            path={`/${prefix}/organisation-onboarding`}
             element={
-              <RequireAccess feature="module.roles" featureLabel="Role Management">
-                <RoleManagementPage />
+              <RequireAccess
+                feature="onboarding.list"
+                featureLabel="Organisation Onboarding"
+              >
+                <OrganisationOnboardingPage />
               </RequireAccess>
             }
           />,
           <Route
-            key={`${prefix}-permissions`}
-            path={`/${prefix}/permissions`}
+            key={`${prefix}-organisation-onboarding-detail`}
+            path={`/${prefix}/organisation-onboarding/:onboardingId`}
             element={
               <RequireAccess
-                feature="module.permissions"
-                featureLabel="Permission Management"
+                feature="onboarding.list"
+                featureLabel="Organisation Onboarding"
               >
-                <PermissionManagementPage />
+                <OrganisationOnboardingDetailPage />
               </RequireAccess>
             }
           />,
