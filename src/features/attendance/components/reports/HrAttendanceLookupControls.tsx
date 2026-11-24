@@ -2,6 +2,7 @@
  * Employee code / UUID lookup row for HR attendance reports.
  */
 import { Search } from 'lucide-react'
+import type { ReactNode } from 'react'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -24,6 +25,8 @@ type HrAttendanceLookupControlsProps = {
   employeeId: string
   onEmployeeIdChange: (value: string) => void
   onSubmit: () => void
+  /** Shown after employee code field (e.g. roster picker). */
+  employeePicker?: ReactNode
 }
 
 export function HrAttendanceLookupControls({
@@ -34,6 +37,7 @@ export function HrAttendanceLookupControls({
   employeeId,
   onEmployeeIdChange,
   onSubmit,
+  employeePicker,
 }: HrAttendanceLookupControlsProps) {
   return (
     <div className="flex flex-wrap items-end gap-3">
@@ -50,19 +54,22 @@ export function HrAttendanceLookupControls({
         </Select>
       </div>
       {mode === 'code' ? (
-        <div className="space-y-1">
-          <Label htmlFor="hr-att-emp-code">Employee code</Label>
-          <Input
-            id="hr-att-emp-code"
-            value={employeeCode}
-            placeholder="e.g. HK0030"
-            className="w-[200px]"
-            onChange={(event) => onEmployeeCodeChange(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter') onSubmit()
-            }}
-          />
-        </div>
+        <>
+          <div className="space-y-1">
+            <Label htmlFor="hr-att-emp-code">Employee code</Label>
+            <Input
+              id="hr-att-emp-code"
+              value={employeeCode}
+              placeholder="e.g. HK0030"
+              className="w-[200px]"
+              onChange={(event) => onEmployeeCodeChange(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') onSubmit()
+              }}
+            />
+          </div>
+          {employeePicker}
+        </>
       ) : (
         <div className="space-y-1">
           <Label htmlFor="hr-att-emp-id">Employee ID</Label>

@@ -24,6 +24,7 @@ import {
   LeaveDialogRoot,
 } from '../shared/LeaveDialog'
 import { BalanceAdjustmentDialog } from './BalanceAdjustmentDialog'
+import { BalanceLedgerDialogLive } from './BalanceLedgerDialogLive'
 
 type BalanceLedgerDialogProps = {
   open: boolean
@@ -38,6 +39,19 @@ export function BalanceLedgerDialog({ open, employeeId, onOpenChange }: BalanceL
   const permissions = useLeavePermissions()
   if (!snapshot || !employeeId) return null
   const employee = snapshot.employees.find((item) => item.id === employeeId)
+
+  if (snapshot.api) {
+    return (
+      <BalanceLedgerDialogLive
+        open={open}
+        employeeId={employeeId}
+        employeeName={employee?.name ?? 'Employee'}
+        leaveTypes={snapshot.api.leaveTypes}
+        onOpenChange={onOpenChange}
+      />
+    )
+  }
+
   const ledger = snapshot.ledger.filter((item) => item.employeeId === employeeId).sort((a, b) => b.date.localeCompare(a.date))
 
   return (
@@ -58,7 +72,9 @@ export function BalanceLedgerDialog({ open, employeeId, onOpenChange }: BalanceL
               <thead className={LEAVE_TABLE_THEAD}>
                 <tr>
                   {['Date', 'Type', 'Kind', 'Days', 'Balance', 'By'].map((head) => (
-                    <th key={head} className="px-2 py-2 font-semibold">{head}</th>
+                    <th key={head} className="px-2 py-2 font-semibold">
+                      {head}
+                    </th>
                   ))}
                 </tr>
               </thead>
@@ -67,7 +83,9 @@ export function BalanceLedgerDialog({ open, employeeId, onOpenChange }: BalanceL
                   <tr key={row.id} className="border-b border-hrms-border/40">
                     <td className="whitespace-nowrap px-2 py-2">{formatDate(row.date)}</td>
                     <td className="px-2 py-2">{row.leaveTypeCode}</td>
-                    <td className="px-2 py-2"><LeaveStatusPill status={row.kind} /></td>
+                    <td className="px-2 py-2">
+                      <LeaveStatusPill status={row.kind} />
+                    </td>
                     <td className="px-2 py-2 text-right tabular-nums">{row.days > 0 ? `+${row.days}` : row.days}</td>
                     <td className="px-2 py-2 text-right tabular-nums">{row.balanceAfter}</td>
                     <td className="px-2 py-2">{row.by}</td>
@@ -78,7 +96,9 @@ export function BalanceLedgerDialog({ open, employeeId, onOpenChange }: BalanceL
           </LeaveDialogBody>
           {permissions.canAdjustBalance ? (
             <LeaveDialogFooter>
-              <Button type="button" size="sm" onClick={() => setAdjustOpen(true)}>Add adjustment</Button>
+              <Button type="button" size="sm" onClick={() => setAdjustOpen(true)}>
+                Add adjustment
+              </Button>
             </LeaveDialogFooter>
           ) : null}
           <LeaveDialogCloseButton />

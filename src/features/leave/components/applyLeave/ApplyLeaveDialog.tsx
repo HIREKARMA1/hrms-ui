@@ -2,7 +2,7 @@
  * Two-column Apply for leave dialog with validation preview and summary panel.
  */
 
-import { CalendarPlus, UserRound } from 'lucide-react'
+import { CalendarPlus } from 'lucide-react'
 
 import type { LeaveEmployee } from '../../types/employee'
 import type { LeaveSettings } from '../../types/leaveSettings'
@@ -19,7 +19,10 @@ import {
 } from '../shared/LeaveDialog'
 import { ApplyLeaveFormColumn } from './ApplyLeaveFormColumn'
 import { ApplyLeaveSummaryPanel } from './ApplyLeaveSummaryPanel'
-import { ApplyOnBehalfEmployeeField } from './ApplyOnBehalfEmployeeField'
+import { OnBehalfDialogFooterBar, OnBehalfDialogShell } from './onBehalf/OnBehalfDialogShell'
+import { OnBehalfEmployeeSection } from './onBehalf/OnBehalfEmployeeSection'
+import { OnBehalfLeaveForm } from './onBehalf/OnBehalfLeaveForm'
+import { OnBehalfSummaryPanel } from './onBehalf/OnBehalfSummaryPanel'
 import { useApplyLeaveDialogState } from './useApplyLeaveDialogState'
 
 type ApplyLeaveDialogProps = {
@@ -66,43 +69,94 @@ export function ApplyLeaveDialog(props: ApplyLeaveDialogProps) {
     onOpenChange(next)
   }
 
-  // The grid takes its natural height; the dialog body (below) is the single
-  // scroll container. Columns stack on small screens and split from `lg`.
-  const gridClass = onBehalf
-    ? 'grid grid-cols-1 items-stretch divide-y divide-hrms-border lg:min-h-[32rem] lg:grid-cols-2 lg:divide-x lg:divide-y-0'
-    : 'grid grid-cols-1 items-stretch gap-0 lg:grid-cols-2'
+  const handlePrimary = async () => {
+    const outcome = await onSubmit(state.submitPayload)
+    if (outcome === false) return
+    state.reset()
+    onOpenChange(false)
+  }
+
+  const primaryDisabled = !state.preview || state.preview.errors.length > 0 || !state.reason.trim()
+
+  if (onBehalf && hrEmployeePicker) {
+    const formProps = {
+      settings,
+      balanceFor: state.balanceFor,
+      policy: state.policy,
+      preview: state.preview,
+      leaveTypeCode: state.leaveTypeCode,
+      setLeaveTypeCode: state.setLeaveTypeCode,
+      fromDate: state.fromDate,
+      setFromDate: state.setFromDate,
+      toDate: state.toDate,
+      setToDate: state.setToDate,
+      portion: state.portion,
+      setPortion: state.setPortion,
+      halfDayAvailable: state.halfDayAvailable,
+      reason: state.reason,
+      setReason: state.setReason,
+      attachmentName: state.attachmentName,
+      setAttachmentName: state.setAttachmentName,
+      convertLwp: state.convertLwp,
+      setConvertLwp: state.setConvertLwp,
+      touched: state.touched,
+      setTouched: state.setTouched,
+    }
+
+    return (
+      <OnBehalfDialogShell
+        open={open}
+        onOpenChange={handleOpenChange}
+        describedBy="apply-leave-subtitle"
+        footer={
+          <OnBehalfDialogFooterBar
+            showReasonHint={!state.reason.trim()}
+            primaryLabel="Submit on behalf"
+            primaryDisabled={primaryDisabled}
+            loading={saving}
+            onPrimary={() => void handlePrimary()}
+          />
+        }
+      >
+        <div className="grid min-h-0 min-h-[20rem] flex-1 grid-cols-1 max-[820px]:grid-cols-1 min-[820px]:grid-cols-[1.35fr_1fr]">
+          <div className="min-h-0 overflow-y-auto overscroll-contain bg-white">
+            <OnBehalfEmployeeSection
+              options={hrEmployeePicker.options}
+              value={hrEmployeePicker.value}
+              onChange={hrEmployeePicker.onChange}
+              employee={employee}
+              submitterName={submitterName}
+            />
+            <OnBehalfLeaveForm {...formProps} />
+          </div>
+          <OnBehalfSummaryPanel
+            preview={state.preview}
+            chain={state.chain}
+            balanceBefore={state.balanceBefore}
+            balanceAfter={state.balanceAfter}
+            applicantName={employee.name}
+            hasDates={state.hasDates}
+            submitterName={submitterName}
+          />
+        </div>
+      </OnBehalfDialogShell>
+    )
+  }
+
+  const gridClass = 'grid grid-cols-1 items-stretch gap-0 lg:grid-cols-2'
 
   return (
     <LeaveDialogRoot open={open} onOpenChange={handleOpenChange}>
-      <LeaveDialogContent
-        size={onBehalf ? 'xl' : 'lg'}
-        describedBy="apply-leave-subtitle"
-        className="max-h-[calc(100dvh-2rem)]"
-      >
+      <LeaveDialogContent size="lg" describedBy="apply-leave-subtitle" className="max-h-[calc(100dvh-2rem)]">
         <LeaveDialogHeader
-          title={onBehalf ? 'Apply on behalf' : 'Apply for leave'}
-          subtitle={
-            onBehalf
-              ? 'Complete leave details for the selected employee.'
-              : 'Choose the leave type and dates. We will show your balance and approvers.'
-          }
+          title="Apply for leave"
+          subtitle="Choose the leave type and dates. We will show your balance and approvers."
           subtitleId="apply-leave-subtitle"
-          icon={onBehalf ? UserRound : CalendarPlus}
+          icon={CalendarPlus}
         />
         <LeaveDialogBody className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-0">
           <div className={gridClass}>
             <div className="flex min-w-0 flex-col bg-white">
-              {hrEmployeePicker ? (
-                <div className="border-b border-hrms-border px-6 py-4">
-                  <ApplyOnBehalfEmployeeField
-                    options={hrEmployeePicker.options}
-                    value={hrEmployeePicker.value}
-                    onChange={hrEmployeePicker.onChange}
-                    employee={employee}
-                    submitterName={submitterName}
-                  />
-                </div>
-              ) : null}
               <ApplyLeaveFormColumn
                 settings={settings}
                 balanceFor={state.balanceFor}
@@ -125,8 +179,6 @@ export function ApplyLeaveDialog(props: ApplyLeaveDialogProps) {
                 setConvertLwp={state.setConvertLwp}
                 touched={state.touched}
                 setTouched={state.setTouched}
-                compactAttachment={onBehalf}
-                onBehalf={onBehalf}
               />
             </div>
             <div className="flex min-w-0 flex-col bg-hrms-muted-bg/30 p-5">
@@ -137,8 +189,6 @@ export function ApplyLeaveDialog(props: ApplyLeaveDialogProps) {
                 balanceAfter={state.balanceAfter}
                 applicantName={employee.name}
                 hasDates={state.hasDates}
-                onBehalf={onBehalf}
-                submitterName={submitterName}
               />
             </div>
           </div>
@@ -155,15 +205,10 @@ export function ApplyLeaveDialog(props: ApplyLeaveDialogProps) {
                     : 'Ready to submit when details are complete.'}
             </p>
             <LeaveDialogFooterActions
-              primaryLabel={onBehalf ? 'Submit on behalf' : 'Submit request'}
+              primaryLabel="Submit request"
               loading={saving}
-              primaryDisabled={!state.preview || state.preview.errors.length > 0 || !state.reason.trim()}
-              onPrimary={async () => {
-                const outcome = await onSubmit(state.submitPayload)
-                if (outcome === false) return
-                state.reset()
-                onOpenChange(false)
-              }}
+              primaryDisabled={primaryDisabled}
+              onPrimary={() => void handlePrimary()}
             />
           </div>
         </LeaveDialogFooter>
