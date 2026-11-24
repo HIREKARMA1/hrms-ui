@@ -1,6 +1,3 @@
-/** Types aligned with hrms-server GET /permissions response mapper. */
-
-export type PermissionResponse = {
 /**
  * Permission catalogue shapes for production `GET /permissions`.
  *
@@ -18,6 +15,9 @@ export type BackendPermission = {
   updatedAt: string
   roleCount: number
 }
+
+/** Alias used by permission management mappers. */
+export type PermissionResponse = BackendPermission
 
 export type PermissionsPagination = {
   page: number

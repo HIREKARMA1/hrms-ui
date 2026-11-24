@@ -1,6 +1,3 @@
-/** Types aligned with hrms-server roles / permissions response mappers. */
-
-export type RoleResponse = {
 /**
  * Role Management shapes from production OpenAPI (`/api/v1/roles`).
  * Passwords and tokens are never present on these responses.
@@ -19,6 +16,9 @@ export type BackendRole = {
   permissionCount: number
 }
 
+/** Alias used by role management mappers. */
+export type RoleResponse = BackendRole
+
 export type RolesPagination = {
   page: number
   limit: number
@@ -26,14 +26,13 @@ export type RolesPagination = {
   totalPages: number
 }
 
-export type RolesListData = {
-  items: RoleResponse[]
+export type RolesPage = {
+  items: BackendRole[]
   pagination: RolesPagination
 }
 
-export type ListRolesParams = {
-export type RolesPage = {
-  items: BackendRole[]
+export type RolesListData = {
+  items: RoleResponse[]
   pagination: RolesPagination
 }
 

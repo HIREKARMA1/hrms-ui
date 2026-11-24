@@ -9,9 +9,11 @@ import { getApiErrorMessage } from '@/services/api/errors'
 import { unwrapData, type ApiResponse } from '@/services/api/types'
 
 import type {
+  AssignRolePermissionsBody,
   BackendRole,
   CreateRoleBody,
   ListRolesArgs,
+  RoleWithPermissionsResponse,
   RolesPage,
   UpdateRoleBody,
 } from './rolesApi.types'
@@ -112,6 +114,24 @@ export const rolesApi = baseApi.injectEndpoints({
       transformResponse: (response: ApiResponse<BackendRole | { id: string } | null>) =>
         unwrapData(response),
       invalidatesTags: (_result, _error, id) => [{ type: 'Role', id }, ROLES_LIST_TAG],
+    }),
+
+    /**
+     * POST /roles/:id/permissions (roles:assign_permissions).
+     * Replace-set: role permissions become exactly `permissionIds`.
+     */
+    assignRolePermissions: build.mutation<
+      RoleWithPermissionsResponse,
+      { id: string; body: AssignRolePermissionsBody }
+    >({
+      query: ({ id, body }) => ({
+        url: `/roles/${encodeURIComponent(id)}/permissions`,
+        method: 'POST',
+        body,
+      }),
+      transformResponse: (response: ApiResponse<RoleWithPermissionsResponse>) =>
+        unwrapData(response),
+      invalidatesTags: (_result, _error, { id }) => [{ type: 'Role', id }, ROLES_LIST_TAG],
     }),
   }),
 })
