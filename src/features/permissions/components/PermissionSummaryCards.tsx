@@ -53,7 +53,7 @@ export function PermissionSummaryCards({
             <CardContent className="flex items-center gap-4 p-5">
               <div
                 className={cn(
-                  'flex h-11 w-11 shrink-0 items-center justify-center rounded-xl',
+                  'flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl',
                   card.accent,
                 )}
               >
@@ -61,7 +61,7 @@ export function PermissionSummaryCards({
               </div>
               <div className="min-w-0">
                 <p className="text-sm text-text-secondary">{card.label}</p>
-                <p className="text-2xl font-bold tabular-nums text-navy">
+                <p className="mt-0.5 text-2xl font-bold tabular-nums text-navy">
                   {values[card.key]}
                 </p>
               </div>

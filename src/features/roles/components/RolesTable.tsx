@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight, Eye, Pencil, Trash2 } from 'lucide-react'
+import { Eye, Pencil, Trash2 } from 'lucide-react'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -10,6 +10,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { TablePagination } from '@/components/ui/table-pagination'
 import { cn } from '@/lib/utils'
 
 import type { ManagedRole } from '../types/roleManagement.types'
@@ -40,14 +41,15 @@ export function RolesTable({
   const end = Math.min(page * pageSize, total)
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-border-soft bg-white shadow-sm">
+    <div className="overflow-hidden">
       <div className="overflow-x-auto">
-        <Table className="min-w-[720px] table-fixed">
+        <Table className="min-w-[860px] table-fixed">
           <colgroup>
-            <col className="w-[22%]" />
-            <col className="w-[34%]" />
-            <col className="w-[14%]" />
-            <col className="w-[14%]" />
+            <col className="w-[20%]" />
+            <col className="w-[28%]" />
+            <col className="w-[12%]" />
+            <col className="w-[12%]" />
+            <col className="w-[12%]" />
             <col className="w-[16%]" />
           </colgroup>
           <TableHeader>
@@ -56,6 +58,7 @@ export function RolesTable({
               <TableHead className="px-4">Description</TableHead>
               <TableHead className="px-4 text-center">Type</TableHead>
               <TableHead className="px-4 text-center">Permissions</TableHead>
+              <TableHead className="px-4 text-center">Users</TableHead>
               <TableHead className="px-4 text-center">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -63,7 +66,7 @@ export function RolesTable({
             {roles.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={5}
+                  colSpan={6}
                   className="h-32 text-center text-sm text-text-secondary"
                 >
                   No roles match your filters.
@@ -71,8 +74,8 @@ export function RolesTable({
               </TableRow>
             ) : (
               roles.map((role) => {
-                const primaryLabel = role.name?.trim() || role.code
-                const showCodeSubtext =
+                const primaryLabel = role.code || role.name
+                const showNameSubtext =
                   Boolean(role.name?.trim()) &&
                   role.name.trim().toUpperCase() !== role.code.toUpperCase()
 
@@ -81,17 +84,17 @@ export function RolesTable({
                     <TableCell className="px-4 align-middle">
                       <div className="min-w-0">
                         <p
-                          className="truncate font-semibold text-navy"
+                          className="truncate font-semibold tracking-wide text-navy"
                           title={primaryLabel}
                         >
                           {primaryLabel}
                         </p>
-                        {showCodeSubtext ? (
+                        {showNameSubtext ? (
                           <p
-                            className="truncate font-mono text-xs tracking-wide text-text-secondary uppercase"
-                            title={role.code}
+                            className="truncate text-xs text-text-secondary"
+                            title={role.name}
                           >
-                            {role.code}
+                            {role.name}
                           </p>
                         ) : null}
                       </div>
@@ -119,17 +122,21 @@ export function RolesTable({
                         </Badge>
                       </div>
                     </TableCell>
-                    <TableCell className="px-4 text-center align-middle tabular-nums">
+                    <TableCell className="px-4 text-center align-middle tabular-nums text-navy">
                       {role.permissionCount}
                     </TableCell>
+                    <TableCell className="px-4 text-center align-middle tabular-nums text-navy">
+                      {role.userCount}
+                    </TableCell>
                     <TableCell className="px-4 text-center align-middle">
-                      <div className="inline-flex items-center justify-center gap-0.5">
+                      <div className="flex items-center justify-center gap-1">
                         <Button
                           type="button"
                           size="sm"
                           variant="ghost"
-                          className="h-8 w-8 p-0"
-                          title="View role"
+                          className="h-8 w-8 p-0 text-text-secondary hover:text-navy"
+                          title="View"
+                          aria-label={`View ${primaryLabel}`}
                           onClick={() => onView(role)}
                         >
                           <Eye className="h-4 w-4" />
@@ -138,8 +145,9 @@ export function RolesTable({
                           type="button"
                           size="sm"
                           variant="ghost"
-                          className="h-8 w-8 p-0"
-                          title="Edit role"
+                          className="h-8 w-8 p-0 text-text-secondary hover:text-navy"
+                          title="Edit"
+                          aria-label={`Edit ${primaryLabel}`}
                           onClick={() => onEdit(role)}
                         >
                           <Pencil className="h-4 w-4" />
@@ -148,21 +156,21 @@ export function RolesTable({
                           type="button"
                           size="sm"
                           variant="ghost"
-                          className="h-8 w-8 p-0"
+                          className="h-8 w-8 p-0 text-rose-600 hover:bg-rose-50 hover:text-rose-700 disabled:text-rose-300"
                           title={
                             role.type === 'system'
                               ? 'System roles cannot be deleted'
-                              : 'Delete role'
+                              : role.userCount > 0
+                                ? 'Remove user assignments first'
+                                : 'Delete'
                           }
-                          disabled={role.type === 'system'}
+                          aria-label={`Delete ${primaryLabel}`}
+                          disabled={
+                            role.type === 'system' || role.userCount > 0
+                          }
                           onClick={() => onDelete(role)}
                         >
-                          <Trash2
-                            className={cn(
-                              'h-4 w-4',
-                              role.type !== 'system' && 'text-rose-600',
-                            )}
-                          />
+                          <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
                     </TableCell>
@@ -174,37 +182,19 @@ export function RolesTable({
         </Table>
       </div>
 
-      <div className="flex flex-col gap-3 border-t border-border-soft px-4 py-3 text-sm text-text-secondary sm:flex-row sm:items-center sm:justify-between">
-        <span className="text-center sm:text-left">
-          {total === 0
+      <TablePagination
+        className="border-t border-border-soft px-4 py-3"
+        page={page}
+        totalPages={totalPages}
+        total={total}
+        itemLabel="roles"
+        summary={
+          total === 0
             ? 'No roles'
-            : `Showing ${start}–${end} of ${total} roles`}
-        </span>
-        <div className="flex items-center justify-center gap-2 sm:justify-end">
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            className="flex-1 sm:flex-none"
-            disabled={page <= 1}
-            onClick={() => onPageChange(page - 1)}
-          >
-            <ChevronLeft className="h-4 w-4" />
-            Previous
-          </Button>
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            className="flex-1 sm:flex-none"
-            disabled={page >= totalPages}
-            onClick={() => onPageChange(page + 1)}
-          >
-            Next
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
+            : `Showing ${start}–${end} of ${total} roles`
+        }
+        onPageChange={onPageChange}
+      />
     </div>
   )
 }

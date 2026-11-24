@@ -25,6 +25,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { TablePagination } from '@/components/ui/table-pagination'
 import { getApiErrorMessage } from '@/services/api/errors'
 
 import { USERS_PAGE_SIZE, useListUsersQuery } from '../api/usersApi'
@@ -208,15 +209,17 @@ export function UsersPage() {
                 <TableHead>Legacy role</TableHead>
                 <TableHead>Roles</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead className="text-center">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {items.map((row) => (
                 <TableRow key={row.id}>
-                  <TableCell className="font-medium text-navy">{row.email}</TableCell>
-                  <TableCell>{row.role}</TableCell>
-                  <TableCell>
+                  <TableCell className="align-middle font-medium text-navy">
+                    {row.email}
+                  </TableCell>
+                  <TableCell className="align-middle">{row.role}</TableCell>
+                  <TableCell className="align-middle">
                     <div className="flex flex-wrap gap-1">
                       {row.roles.length === 0 ? (
                         <span className="text-slate-400">—</span>
@@ -229,13 +232,13 @@ export function UsersPage() {
                       )}
                     </div>
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="align-middle">
                     <Badge variant={row.isActive ? 'success' : 'secondary'}>
                       {row.isActive ? 'Active' : 'Inactive'}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-1">
+                  <TableCell className="text-center align-middle">
+                    <div className="inline-flex items-center justify-center gap-1">
                       <Button
                         type="button"
                         variant="ghost"
@@ -266,29 +269,14 @@ export function UsersPage() {
       </div>
 
       {pagination && totalPages > 0 ? (
-        <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-slate-600">
-          <p>
-            Page {pagination.page} of {totalPages} · {pagination.total} users
-          </p>
-          <div className="flex gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              disabled={page <= 1 || list.isFetching}
-              onClick={() => setPage((current) => Math.max(1, current - 1))}
-            >
-              Previous
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              disabled={page >= totalPages || list.isFetching}
-              onClick={() => setPage((current) => current + 1)}
-            >
-              Next
-            </Button>
-          </div>
-        </div>
+        <TablePagination
+          page={page}
+          totalPages={totalPages}
+          total={pagination.total}
+          itemLabel="users"
+          disabled={list.isFetching}
+          onPageChange={setPage}
+        />
       ) : null}
 
       <CreateUserDialog

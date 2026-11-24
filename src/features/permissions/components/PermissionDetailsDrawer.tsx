@@ -1,10 +1,4 @@
-import {
-  CalendarDays,
-  Clock3,
-  RefreshCw,
-  Shield,
-  Users,
-} from 'lucide-react'
+import { Clock3, RefreshCw, Shield, Users } from 'lucide-react'
 
 import { Badge } from '@/components/ui/badge'
 import {
@@ -21,6 +15,9 @@ import {
   formatPermissionDate,
   getModuleBadgeClass,
 } from '../utils/moduleBadgeStyles'
+import { getModuleIcon } from '../utils/moduleIcons'
+
+const VISIBLE_ROLE_BADGES = 3
 
 type PermissionDetailsDrawerProps = {
   permission: ManagedPermission | null
@@ -33,6 +30,16 @@ export function PermissionDetailsDrawer({
   open,
   onOpenChange,
 }: PermissionDetailsDrawerProps) {
+  const ModuleIcon = permission
+    ? getModuleIcon(permission.module)
+    : Shield
+  const relatedRoles = permission?.relatedRoles ?? []
+  const visibleRoles = relatedRoles.slice(0, VISIBLE_ROLE_BADGES)
+  const hiddenRoleCount = Math.max(
+    relatedRoles.length - VISIBLE_ROLE_BADGES,
+    0,
+  )
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
@@ -54,11 +61,11 @@ export function PermissionDetailsDrawer({
           <div className="flex-1 space-y-6 overflow-y-auto px-4 py-5 sm:px-6">
             <div className="flex items-start gap-3">
               <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#F0EDFF] text-brand-500">
-                <CalendarDays className="h-6 w-6" strokeWidth={1.8} />
+                <ModuleIcon className="h-6 w-6" strokeWidth={1.8} />
               </span>
               <div className="min-w-0 space-y-2">
                 <p
-                  className="truncate text-lg font-bold tracking-tight text-navy"
+                  className="truncate font-mono text-lg font-bold tracking-tight text-navy"
                   title={permission.code}
                 >
                   {permission.code}
@@ -126,19 +133,31 @@ export function PermissionDetailsDrawer({
               <p className="mb-3 text-sm font-semibold text-navy">
                 Related Roles
               </p>
-              {permission.roleCount === 0 ? (
+              {relatedRoles.length === 0 ? (
                 <p className="rounded-xl border border-border-soft bg-[#FAFBFD] px-3 py-4 text-sm text-text-secondary">
                   This permission is not assigned to any roles.
                 </p>
               ) : (
-                <p className="rounded-xl border border-border-soft bg-[#FAFBFD] px-3 py-4 text-sm text-text-secondary">
-                  Assigned to{' '}
-                  <span className="font-semibold text-navy tabular-nums">
-                    {permission.roleCount}
-                  </span>{' '}
-                  {permission.roleCount === 1 ? 'role' : 'roles'} across the
-                  organization.
-                </p>
+                <div className="flex flex-wrap gap-2">
+                  {visibleRoles.map((role) => (
+                    <Badge
+                      key={role.id}
+                      variant="secondary"
+                      className="border border-border-soft bg-white px-2.5 py-1 font-mono text-xs font-semibold tracking-wide text-navy"
+                      title={role.name}
+                    >
+                      {role.code}
+                    </Badge>
+                  ))}
+                  {hiddenRoleCount > 0 ? (
+                    <Badge
+                      variant="secondary"
+                      className="border-0 bg-[#F0EDFF] px-2.5 py-1 text-xs font-semibold text-brand-500"
+                    >
+                      +{hiddenRoleCount} more
+                    </Badge>
+                  ) : null}
+                </div>
               )}
             </div>
           </div>

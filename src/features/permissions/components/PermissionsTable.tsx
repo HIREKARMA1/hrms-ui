@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight, Eye } from 'lucide-react'
+import { Eye } from 'lucide-react'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -10,6 +10,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { TablePagination } from '@/components/ui/table-pagination'
 import { cn } from '@/lib/utils'
 
 import type { ManagedPermission } from '../types/permissionManagement.types'
@@ -27,15 +28,6 @@ type PermissionsTableProps = {
   onView: (permission: ManagedPermission) => void
 }
 
-function buildPageNumbers(page: number, totalPages: number): number[] {
-  if (totalPages <= 5) {
-    return Array.from({ length: totalPages }, (_, index) => index + 1)
-  }
-
-  const start = Math.max(1, Math.min(page - 2, totalPages - 4))
-  return Array.from({ length: 5 }, (_, index) => start + index)
-}
-
 export function PermissionsTable({
   permissions,
   page,
@@ -47,7 +39,6 @@ export function PermissionsTable({
   const totalPages = Math.max(1, Math.ceil(total / pageSize))
   const start = total === 0 ? 0 : (page - 1) * pageSize + 1
   const end = Math.min(page * pageSize, total)
-  const pageNumbers = buildPageNumbers(page, totalPages)
 
   return (
     <div className="overflow-hidden rounded-2xl border border-border-soft bg-white shadow-sm">
@@ -60,13 +51,23 @@ export function PermissionsTable({
             <col className="w-[12%]" />
             <col className="w-[16%]" />
           </colgroup>
-          <TableHeader>
+          <TableHeader className="bg-[#F7F8FC]">
             <TableRow className="hover:bg-transparent">
-              <TableHead className="px-4">Permission Code</TableHead>
-              <TableHead className="px-4">Module</TableHead>
-              <TableHead className="px-4">Description</TableHead>
-              <TableHead className="px-4 text-center">Role Count</TableHead>
-              <TableHead className="px-4 text-center">Actions</TableHead>
+              <TableHead className="px-4 text-xs font-semibold tracking-wide text-text-secondary uppercase">
+                Permission Code
+              </TableHead>
+              <TableHead className="px-4 text-xs font-semibold tracking-wide text-text-secondary uppercase">
+                Module
+              </TableHead>
+              <TableHead className="px-4 text-xs font-semibold tracking-wide text-text-secondary uppercase">
+                Description
+              </TableHead>
+              <TableHead className="px-4 text-center text-xs font-semibold tracking-wide text-text-secondary uppercase">
+                Role Count
+              </TableHead>
+              <TableHead className="px-4 text-center text-xs font-semibold tracking-wide text-text-secondary uppercase">
+                Actions
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -84,7 +85,7 @@ export function PermissionsTable({
                 <TableRow key={permission.id}>
                   <TableCell className="px-4 align-middle">
                     <p
-                      className="truncate font-semibold text-navy"
+                      className="truncate font-mono text-sm font-semibold text-navy"
                       title={permission.code}
                     >
                       {permission.code}
@@ -116,8 +117,8 @@ export function PermissionsTable({
                     <Button
                       type="button"
                       size="sm"
-                      variant="ghost"
-                      className="gap-1.5 text-text-secondary hover:text-navy"
+                      variant="outline"
+                      className="h-8 gap-1.5 border-border-soft bg-white px-3 text-text-secondary hover:bg-[#F7F8FC] hover:text-navy"
                       title="View permission"
                       onClick={() => onView(permission)}
                     >
@@ -132,49 +133,19 @@ export function PermissionsTable({
         </Table>
       </div>
 
-      <div className="flex flex-col gap-3 border-t border-border-soft px-4 py-3 text-sm text-text-secondary sm:flex-row sm:items-center sm:justify-between">
-        <span className="text-center sm:text-left">
-          {total === 0
+      <TablePagination
+        className="border-t border-border-soft px-4 py-3"
+        page={page}
+        totalPages={totalPages}
+        total={total}
+        itemLabel="permissions"
+        summary={
+          total === 0
             ? 'No permissions'
-            : `Showing ${start}–${end} of ${total} permissions`}
-        </span>
-        <div className="flex items-center justify-center gap-1 sm:justify-end">
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            className="h-8 w-8 p-0"
-            disabled={page <= 1}
-            aria-label="Previous page"
-            onClick={() => onPageChange(page - 1)}
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          {pageNumbers.map((pageNumber) => (
-            <Button
-              key={pageNumber}
-              type="button"
-              size="sm"
-              variant={pageNumber === page ? 'default' : 'outline'}
-              className="h-8 w-8 p-0"
-              onClick={() => onPageChange(pageNumber)}
-            >
-              {pageNumber}
-            </Button>
-          ))}
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            className="h-8 w-8 p-0"
-            disabled={page >= totalPages}
-            aria-label="Next page"
-            onClick={() => onPageChange(page + 1)}
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
+            : `Showing ${start}–${end} of ${total} permissions`
+        }
+        onPageChange={onPageChange}
+      />
     </div>
   )
 }
