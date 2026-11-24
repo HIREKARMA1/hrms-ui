@@ -10,9 +10,14 @@ export type BackendRole = {
   description: string | null
   isSystem: boolean
   isActive: boolean
+  createdAt: string
+  updatedAt: string
   userCount: number
   permissionCount: number
 }
+
+/** Alias used by role management mappers. */
+export type RoleResponse = BackendRole
 
 export type RolesPagination = {
   page: number
@@ -23,6 +28,11 @@ export type RolesPagination = {
 
 export type RolesPage = {
   items: BackendRole[]
+  pagination: RolesPagination
+}
+
+export type RolesListData = {
+  items: RoleResponse[]
   pagination: RolesPagination
 }
 
@@ -47,4 +57,34 @@ export type UpdateRoleBody = {
   name?: string
   description?: string | null
   isActive?: boolean
+}
+
+export type RolePermissionItem = {
+  id: string
+  code: string
+  module: string
+  description: string | null
+}
+
+export type RoleWithPermissionsResponse = RoleResponse & {
+  permissions: RolePermissionItem[]
+}
+
+export type AssignRolePermissionsBody = {
+  permissionIds: string[]
+}
+
+export type PermissionResponse = {
+  id: string
+  code: string
+  module: string
+  description: string | null
+  createdAt: string
+  updatedAt: string
+  roleCount: number
+}
+
+export type PermissionsListData = {
+  items: PermissionResponse[]
+  pagination: RolesPagination
 }

@@ -11,8 +11,13 @@ export type BackendPermission = {
   code: string
   module: string
   description: string | null
+  createdAt: string
+  updatedAt: string
   roleCount: number
 }
+
+/** Alias used by permission management mappers. */
+export type PermissionResponse = BackendPermission
 
 export type PermissionsPagination = {
   page: number
