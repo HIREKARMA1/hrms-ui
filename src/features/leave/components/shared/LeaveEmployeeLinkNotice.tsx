@@ -1,7 +1,7 @@
 /**
- * Shown where personal records are needed but no verified employee id is
- * available (the session API does not return one yet). Personal leave requests
- * stay blocked while this is shown.
+ * Shown only when the signed-in auth user has no linked Employee id
+ * (`employeeId` missing on login / refresh / GET /auth/me). Personal leave
+ * requests stay blocked while this is shown.
  */
 
 import { EMPLOYEE_RECORD_UNAVAILABLE_MESSAGE } from '../../constants/employeeRecordMessages'
