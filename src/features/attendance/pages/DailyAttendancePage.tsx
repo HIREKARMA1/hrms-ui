@@ -334,8 +334,6 @@ export function DailyAttendancePage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      <ToastBanner message={message} />
     </div>
   )
 }
