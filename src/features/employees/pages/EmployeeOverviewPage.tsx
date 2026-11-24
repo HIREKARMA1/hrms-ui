@@ -1,5 +1,5 @@
 import { CalendarRange } from 'lucide-react'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 
 import { Button } from '@/components/ui/button'
 import {
@@ -17,21 +17,18 @@ import { EmployeeAttrition } from '../components/EmployeeAttrition'
 import { EmployeeStatsCards } from '../components/EmployeeStatsCards'
 import { LeaveAnalytics } from '../components/LeaveAnalytics'
 import { MonthlyPayrollOverview } from '../components/MonthlyPayrollOverview'
-import { NamedCountDistribution } from '../components/NamedCountDistribution'
 import { NewJoiners } from '../components/NewJoiners'
 import { NoticePeriodEmployees } from '../components/NoticePeriodEmployees'
 import { RecentlyAddedEmployees } from '../components/RecentlyAddedEmployees'
 import { UpcomingBirthdays } from '../components/UpcomingBirthdays'
 import { WorkAnniversaries } from '../components/WorkAnniversaries'
 import { WorkforceExtendedStats } from '../components/WorkforceExtendedStats'
-import {
-  branchDistribution,
-  employmentTypeDistribution,
-  genderDistribution,
-} from '../mocks/employeeDashboard.mock'
+import type { DateRangePreset } from '../types/employeeDashboard.types'
+import { dashboardPeriodRange, formatDashboardDate } from '../utils/dashboardDateRange'
 
 export function EmployeeOverviewPage() {
-  const [dateRange, setDateRange] = useState('this-month')
+  const [dateRange, setDateRange] = useState<Exclude<DateRangePreset, 'custom'>>('this-month')
+  const range = useMemo(() => dashboardPeriodRange(dateRange), [dateRange])
 
   return (
     <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-6">
@@ -46,7 +43,12 @@ export function EmployeeOverviewPage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <Select value={dateRange} onValueChange={setDateRange}>
+          <Select
+            value={dateRange}
+            onValueChange={(value) =>
+              setDateRange(value as Exclude<DateRangePreset, 'custom'>)
+            }
+          >
             <SelectTrigger className="w-[170px]">
               <SelectValue placeholder="Date range" />
             </SelectTrigger>
@@ -61,17 +63,10 @@ export function EmployeeOverviewPage() {
           </Select>
           <Button type="button" variant="outline" className="h-10 gap-2">
             <CalendarRange className="h-4 w-4" />
-            Nov 1 – Nov 12, 2026
+            {formatDashboardDate(range.startDate)} – {formatDashboardDate(range.endDate)}
           </Button>
         </div>
       </div>
-
-      <p className="-mt-2 text-xs text-text-secondary">
-        Headcount and recently added employees are live. Widgets marked{' '}
-        <span className="font-semibold text-amber-700">Sample</span>, along with birthdays,
-        anniversaries, distributions, attendance, leave, attrition and payroll analytics, still use
-        sample data until their APIs are available.
-      </p>
 
       <Feature name="employee.stats">
         <EmployeeStatsCards />
@@ -119,26 +114,6 @@ export function EmployeeOverviewPage() {
 
       <Feature name="employee.payrollOverview">
         <MonthlyPayrollOverview />
-      </Feature>
-
-      <Feature name="employee.workforceExtended">
-        <div className="grid gap-4 xl:grid-cols-3">
-          <NamedCountDistribution
-            title="Branch-wise Employee Count"
-            description="Headcount by work location / branch"
-            data={branchDistribution}
-          />
-          <NamedCountDistribution
-            title="Gender-wise Distribution"
-            description="Workforce gender composition"
-            data={genderDistribution}
-          />
-          <NamedCountDistribution
-            title="Employment-type Distribution"
-            description="Full-time, contract, intern and part-time mix"
-            data={employmentTypeDistribution}
-          />
-        </div>
       </Feature>
 
       <Feature name="employee.workforceExtended">

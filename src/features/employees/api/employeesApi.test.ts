@@ -83,6 +83,10 @@ function backendEmployee(overrides: Partial<BackendEmployee> = {}): BackendEmplo
     bloodGroup: 'O+',
     photoUrl: 'https://cdn.example.test/p/asha.png',
     dateOfBirth: '1994-05-06T00:00:00.000Z',
+    gender: null,
+    maritalStatus: null,
+    nationality: null,
+    noticePeriod: null,
     uanNumber: '100200300400',
     dateOfJoining: '2024-01-15T00:00:00.000Z',
     employmentStatus: 'ACTIVE',
@@ -128,6 +132,7 @@ function validExtras(): EmployeeCreateExtras {
     ...emptyCreateExtras(),
     aadhaar: '123412341234',
     pan: 'abcde1234f',
+    departmentId: 'dep-1',
     deviceId: 'DEV-1',
     photoUrl: 'https://cdn.example.test/p/new.png',
     bankDetail: {
@@ -271,12 +276,22 @@ describe('read mapping', () => {
     expect(server.deviceId).toBeNull()
   })
 
-  it('leaves frontend-only fields empty instead of inventing defaults', () => {
-    const { profile } = mapEmployee(backendEmployee(), API_BASE)
-    expect(profile.gender).toBe('')
+  it('maps optional profile fields and leaves remaining frontend-only fields empty', () => {
+    const { profile } = mapEmployee(
+      backendEmployee({
+        gender: 'Female',
+        maritalStatus: 'Married',
+        nationality: 'Indian',
+        noticePeriod: '60 days',
+      }),
+      API_BASE,
+    )
+    expect(profile.gender).toBe('Female')
+    expect(profile.maritalStatus).toBe('Married')
+    expect(profile.nationality).toBe('Indian')
+    expect(profile.noticePeriod).toBe('60 days')
     expect(profile.workLocation).toBe('')
     expect(profile.branch).toBe('')
-    expect(profile.noticePeriod).toBe('')
     expect(profile.activityHistory).toEqual([])
   })
 })
@@ -348,14 +363,36 @@ describe('update payload (PATCH /employees/:id)', () => {
     const record = original()
     const form = {
       ...toFormState(record.profile),
-      gender: 'Male',
       designation: 'Lead Engineer',
       department: 'Product',
       workLocation: 'Remote',
     }
     const result = buildUpdatePayload(form, record)
     expect(result.body).toEqual({})
-    expect(result.unsupported.map((u) => u.field).sort()).toEqual(['department', 'designation', 'gender', 'workLocation'])
+    expect(result.unsupported.map((u) => u.field).sort()).toEqual([
+      'department',
+      'designation',
+      'workLocation',
+    ])
+  })
+
+  it('includes optional personal fields when they change', () => {
+    const record = original()
+    const form = {
+      ...toFormState(record.profile),
+      gender: 'Male',
+      maritalStatus: 'Single',
+      nationality: 'Indian',
+      noticePeriod: '90 days',
+    }
+    const result = buildUpdatePayload(form, record)
+    expect(result.errors).toEqual([])
+    expect(result.body).toEqual({
+      gender: 'Male',
+      maritalStatus: 'Single',
+      nationality: 'Indian',
+      noticePeriod: '90 days',
+    })
   })
 
   it('reports UI-only statuses and local photo previews as unsupported', () => {
@@ -486,7 +523,10 @@ describe('create payload (POST /employees multipart)', () => {
     })
     expect((data.get('graduation') as File).name).toBe('degree.pdf')
     expect(data.has('department')).toBe(false)
-    expect(data.has('gender')).toBe(false)
+    expect(data.get('gender')).toBe('Female')
+    expect(data.get('maritalStatus')).toBe('Single')
+    expect(data.get('nationality')).toBe('Indian')
+    expect(data.get('departmentId')).toBe('dep-1')
   })
 
   it('returns every validation error and no body when required fields are missing', () => {
@@ -503,7 +543,7 @@ describe('create payload (POST /employees multipart)', () => {
         'PAN must look like ABCDE1234F.',
         'Date of Joining is required.',
         'A photo URL (http or https) is required.',
-        'Permanent Address: address line is required.',
+        'Permanent Address is required.',
         'IFSC must look like SBIN0001234.',
       ]),
     )
@@ -520,8 +560,10 @@ describe('create payload (POST /employees multipart)', () => {
   it('lists filled frontend-only fields (including defaults) as not stored', () => {
     const result = buildCreateFormData({ ...validCreateForm(), middleName: 'K' }, validExtras())
     const fields = result.unsupported.map((u) => u.field)
-    expect(fields).toEqual(expect.arrayContaining(['middleName', 'gender', 'department', 'workLocation', 'branch']))
+    expect(fields).toEqual(expect.arrayContaining(['middleName', 'workLocation', 'branch']))
+    expect(fields).not.toContain('gender')
     expect(fields).not.toContain('firstName')
+    expect(fields).not.toContain('department')
   })
 
   it('refuses statuses the backend cannot store', () => {
@@ -671,8 +713,13 @@ describe('permission restrictions', () => {
     expect(UPDATE_UNSUPPORTED_FIELDS.has('designation')).toBe(true)
     expect(UPDATE_UNSUPPORTED_FIELDS.has('department')).toBe(true)
     expect(CREATE_UNSUPPORTED_FIELDS.has('designation')).toBe(false)
-    expect(CREATE_UNSUPPORTED_FIELDS.has('department')).toBe(true)
+    expect(CREATE_UNSUPPORTED_FIELDS.has('department')).toBe(false)
     expect(UPDATE_UNSUPPORTED_FIELDS.has('firstName')).toBe(false)
+  })
+
+  it('create-login is gated by users:create', () => {
+    expect(canAccessFeature('employee.createLogin', 'HR_ADMIN', ['users:create'])).toBe(true)
+    expect(canAccessFeature('employee.createLogin', 'HR_ADMIN', ['employees:create'])).toBe(false)
   })
 })
 

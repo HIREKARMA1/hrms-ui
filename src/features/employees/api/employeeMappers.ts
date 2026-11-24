@@ -9,6 +9,7 @@
  */
 
 import { emptyEmployeeForm } from '../utils/employeeForm'
+import { validateEmployeeCreate } from '../validation/employeeForm.schema'
 import type {
   EmployeeProfile,
   EmployeeProfileFormState,
@@ -16,8 +17,6 @@ import type {
 } from '../types/employeeProfile.types'
 import {
   EMPLOYEE_DOCUMENT_FIELDS,
-  EMPLOYEE_DOCUMENT_MAX_BYTES,
-  EMPLOYEE_DOCUMENT_MIME_TYPES,
   type AddressInput,
   type BackendAddress,
   type BackendDeviceSyncStatus,
@@ -157,13 +156,9 @@ export function mapEmployee(employee: BackendEmployee, apiBaseUrl: string): Empl
 
   const profile: EmployeeProfile = {
     ...blank,
-    // Frontend-only fields have no stored value: show them empty, not defaults.
-    gender: '',
-    maritalStatus: '',
-    nationality: '',
+    // Remaining frontend-only fields have no stored value: show empty, not defaults.
     workLocation: '',
     branch: '',
-    noticePeriod: '',
     workShift: '',
     id: employee.id,
     employeeId: employee.employeeCode,
@@ -173,6 +168,10 @@ export function mapEmployee(employee: BackendEmployee, apiBaseUrl: string): Empl
     profilePictureName: employee.photoUrl ? employee.photoUrl.split('/').pop() ?? '' : '',
     profilePictureUrl: employee.photoUrl ?? '',
     dateOfBirth: isoToDateInput(employee.dateOfBirth),
+    gender: employee.gender ?? '',
+    maritalStatus: employee.maritalStatus ?? '',
+    nationality: employee.nationality ?? '',
+    noticePeriod: employee.noticePeriod ?? '',
     bloodGroup: employee.bloodGroup ?? '',
     personalMobile: employee.phone ?? '',
     currentAddress: addressToText(current),
@@ -306,9 +305,6 @@ export const PROFILE_FIELD_LABELS: Record<FormField, string> = {
 export const FRONTEND_ONLY_FIELDS: readonly FormField[] = [
   'employeeId',
   'middleName',
-  'gender',
-  'maritalStatus',
-  'nationality',
   'personalEmail',
   'emergencyContactPerson',
   'emergencyContactNumber',
@@ -323,17 +319,12 @@ export const FRONTEND_ONLY_FIELDS: readonly FormField[] = [
   'probationStartDate',
   'probationEndDate',
   'confirmationDate',
-  'noticePeriod',
   'workShift',
 ]
 
-/**
- * Not storable on create: department needs a `departmentId` and there is no
- * departments endpoint to resolve one.
- */
+/** No backend column on create (department is sent as `departmentId` separately). */
 export const CREATE_UNSUPPORTED_FIELDS: ReadonlySet<FormField> = new Set([
   ...FRONTEND_ONLY_FIELDS,
-  'department',
 ])
 
 /** PATCH /employees/:id has no `designation` or `departmentId`. */
@@ -366,9 +357,6 @@ export function getUnsupportedChanges(
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-const AADHAAR_RE = /^\d{12}$/
-const PAN_RE = /^[A-Z]{5}[0-9]{4}[A-Z]$/i
-const IFSC_RE = /^[A-Z]{4}0[A-Z0-9]{6}$/i
 
 export function isHttpUrl(value: string): boolean {
   try {
@@ -472,6 +460,9 @@ export function buildUpdatePayload(
   if (changed('profilePictureUrl')) {
     if (isHttpUrl(text('profilePictureUrl'))) body.photoUrl = text('profilePictureUrl')
     else unsupported.push({ field: 'profilePictureUrl', label: 'Profile Picture (local preview only)' })
+  }
+  for (const field of ['gender', 'maritalStatus', 'nationality', 'noticePeriod'] as const) {
+    if (changed(field)) body[field] = text(field) || undefined
   }
 
   const locationChanged = (['city', 'state', 'pinCode', 'country'] as const).some(changed)
@@ -582,6 +573,8 @@ export type EmployeeCreateExtras = {
   uanNumber: string
   deviceId: string
   deviceUserId: string
+  /** Optional department cuid from GET /departments. */
+  departmentId: string
   /** Used when the profile picture is not already an http(s) URL. */
   photoUrl: string
   bankDetail: {
@@ -602,6 +595,7 @@ export function emptyCreateExtras(): EmployeeCreateExtras {
     uanNumber: '',
     deviceId: '',
     deviceUserId: '',
+    departmentId: '',
     photoUrl: '',
     bankDetail: { accountHolderName: '', accountNumber: '', ifsc: '', bankName: '', branch: '' },
     documents: {},
@@ -622,59 +616,29 @@ export function buildCreateFormData(
   form: EmployeeProfileFormState,
   extras: EmployeeCreateExtras,
 ): CreatePayloadResult {
-  const errors: string[] = []
-  // Pre-filled defaults count too: anything visible in the form but not stored is reported.
   const blank = Object.fromEntries(
     Object.keys(form).map((key) => [key, '']),
   ) as unknown as EmployeeProfileFormState
   const unsupported = getUnsupportedChanges(form, blank, CREATE_UNSUPPORTED_FIELDS)
-  const t = (value: string) => value.trim()
-
-  const required: Array<[string, string]> = [
-    ['Employee Code', form.employeeCode],
-    ['First Name', form.firstName],
-    ['Last Name', form.lastName],
-    ['Designation', form.designation],
-    ['Blood Group', form.bloodGroup],
-    ['Device ID', extras.deviceId],
-  ]
-  for (const [label, value] of required) {
-    if (!t(value)) errors.push(`${label} is required.`)
+  const validation = validateEmployeeCreate(form, extras)
+  if (!validation.ok) {
+    return { formData: null, errors: validation.errors, unsupported }
   }
-  if (!EMAIL_RE.test(t(form.workEmail))) errors.push('Work Email must be a valid email.')
-  if (t(form.personalMobile).length < 8) errors.push('Mobile Number must have at least 8 characters.')
-  if (!AADHAAR_RE.test(t(extras.aadhaar))) errors.push('Aadhaar must be 12 digits.')
-  if (!PAN_RE.test(t(extras.pan))) errors.push('PAN must look like ABCDE1234F.')
-  if (!DATE_RE.test(t(form.dateOfJoining))) errors.push('Date of Joining is required.')
-  if (t(form.dateOfBirth) && !DATE_RE.test(t(form.dateOfBirth))) errors.push('Date of Birth must be a valid date.')
 
+  const t = (value: string) => value.trim()
   const status = toBackendStatus(form.employmentStatus)
-  if (!status) errors.push(`Employment Status "${form.employmentStatus}" cannot be stored by the server.`)
+  if (!status) {
+    return {
+      formData: null,
+      errors: [`Employment Status "${form.employmentStatus}" cannot be stored by the server.`],
+      unsupported,
+    }
+  }
 
   const photoUrl = isHttpUrl(t(form.profilePictureUrl)) ? t(form.profilePictureUrl) : t(extras.photoUrl)
-  if (!isHttpUrl(photoUrl)) errors.push('A photo URL (http or https) is required.')
-
   const permanent = buildAddress(form.permanentAddress, sharedLocation(form))
-  errors.push(...addressErrors(permanent, 'Permanent Address'))
   const current = t(form.currentAddress) ? buildAddress(form.currentAddress, sharedLocation(form)) : null
-  if (current) errors.push(...addressErrors(current, 'Current Address'))
-
   const bank = extras.bankDetail
-  if (!t(bank.accountHolderName)) errors.push('Account holder name is required.')
-  if (t(bank.accountNumber).length < 5) errors.push('Account number is required.')
-  if (!IFSC_RE.test(t(bank.ifsc))) errors.push('IFSC must look like SBIN0001234.')
-  if (!t(bank.bankName)) errors.push('Bank name is required.')
-
-  for (const { field, label } of EMPLOYEE_DOCUMENT_FIELDS) {
-    const file = extras.documents[field]
-    if (!file) continue
-    if (!(EMPLOYEE_DOCUMENT_MIME_TYPES as readonly string[]).includes(file.type)) {
-      errors.push(`${label} must be a PDF, JPEG, PNG or WebP file.`)
-    }
-    if (file.size > EMPLOYEE_DOCUMENT_MAX_BYTES) errors.push(`${label} exceeds 10MB.`)
-  }
-
-  if (errors.length > 0 || !status) return { formData: null, errors, unsupported }
 
   const bankDetail: BankDetailInput = {
     accountHolderName: t(bank.accountHolderName),
@@ -702,7 +666,12 @@ export function buildCreateFormData(
   append('photoUrl', photoUrl)
   append('dateOfJoining', t(form.dateOfJoining))
   append('dateOfBirth', t(form.dateOfBirth))
+  append('gender', t(form.gender))
+  append('maritalStatus', t(form.maritalStatus))
+  append('nationality', t(form.nationality))
+  append('noticePeriod', t(form.noticePeriod))
   append('uanNumber', t(extras.uanNumber))
+  append('departmentId', t(extras.departmentId))
   append('deviceId', t(extras.deviceId))
   append('deviceUserId', t(extras.deviceUserId))
   data.append('permanentAddress', JSON.stringify(permanent))
