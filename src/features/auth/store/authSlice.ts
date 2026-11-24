@@ -47,6 +47,14 @@ const authSlice = createSlice({
     clearCredentials() {
       return emptyState
     },
+    /**
+     * Drop the refresh token after the server has revoked it (e.g. change
+     * password). The access token and user stay so the current session
+     * continues until the access JWT expires.
+     */
+    clearRefreshToken(state) {
+      state.refreshToken = null
+    },
   },
   extraReducers: (builder) => {
     builder.addMatcher(
@@ -80,7 +88,7 @@ const authSlice = createSlice({
   },
 })
 
-export const { setCredentials, clearCredentials } = authSlice.actions
+export const { setCredentials, clearCredentials, clearRefreshToken } = authSlice.actions
 export const { selectCurrentUser, selectAccessToken, selectIsAuthenticated } =
   authSlice.selectors
 export const authReducer = authSlice.reducer

@@ -3,7 +3,6 @@
  */
 import { useCallback, useMemo, useState, type Dispatch, type SetStateAction } from 'react'
 
-import type { OfficeCalendarEventListSource } from '../context/officeCalendarContext'
 import {
   useCreateCalendarEventMutation,
   useDeleteCalendarEventMutation,
@@ -11,6 +10,7 @@ import {
   useSearchCalendarEventsQuery,
   useUpdateCalendarEventMutation,
 } from '../api/calendarApi'
+import type { OfficeCalendarEventListSource } from '../context/officeCalendarContext'
 import { deleteOfficeEvent, upsertOfficeEvent } from '../services/officeCalendarService'
 import type { OfficeCalendarEvent, OfficeCalendarEventInput } from '../types/officeCalendar'
 import { calendarEventYearBounds } from '../utils/calendarEventYearBounds'

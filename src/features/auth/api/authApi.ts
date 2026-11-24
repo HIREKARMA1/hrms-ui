@@ -6,6 +6,7 @@ import { unwrapData, type ApiResponse } from '@/services/api/types'
 
 import type {
   AuthUser,
+  ChangePasswordRequest,
   ForgotPasswordRequest,
   LoginRequest,
   LoginResponseData,
@@ -106,6 +107,24 @@ export const authApi = baseApi.injectEndpoints({
         url: '/auth/reset-password',
         method: 'POST',
         body: { token, newPassword },
+        timeout: PASSWORD_RESET_TIMEOUT_MS,
+      }),
+      transformResponse: () => null,
+    }),
+
+    /**
+     * POST /auth/change-password (Bearer access token). Success is a 200 with
+     * `data: null`; the server revokes every refresh token for the caller while
+     * the access JWT stays valid until it expires. A 401 is either a wrong
+     * current password or a dead access token (refresh-and-retry still applies
+     * for the latter). Dispatch with `{ track: false }` so passwords are not
+     * kept in the store.
+     */
+    changePassword: build.mutation<null, ChangePasswordRequest>({
+      query: ({ currentPassword, newPassword }) => ({
+        url: '/auth/change-password',
+        method: 'POST',
+        body: { currentPassword, newPassword },
         timeout: PASSWORD_RESET_TIMEOUT_MS,
       }),
       transformResponse: () => null,

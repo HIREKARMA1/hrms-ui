@@ -4,8 +4,8 @@
 
 const ORDERED_PREFIXES = [
   '/superadmin/leave',
-  '/admin/leave',
-  '/hr/leave',
+  '/hradmin/leave',
+  '/manager/leave',
   '/employee/leave',
   '/leave',
 ] as const

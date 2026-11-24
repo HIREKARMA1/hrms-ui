@@ -41,7 +41,21 @@ export const FEATURE_PERMISSION_MAP: Partial<
 > = {
   // GET /users, /roles, /permissions
   'module.users': 'users:read',
+  // POST /users
+  'users.create': 'users:create',
+  // PATCH /users/:id
+  'users.update': 'users:update',
+  // PATCH /users/:id/deactivate
+  'users.deactivate': 'users:deactivate',
+  // POST /users/:id/roles, DELETE /users/:id/roles/:roleId
+  'users.assignRoles': 'users:assign_roles',
   'module.roles': 'roles:read',
+  // POST /roles
+  'roles.create': 'roles:create',
+  // PATCH /roles/:id
+  'roles.update': 'roles:update',
+  // DELETE /roles/:id
+  'roles.delete': 'roles:delete',
   'module.permissions': 'permissions:read',
   // GET /employees, /employees/:id, /dashboard/*
   'employee.overview': 'employees:read',
