@@ -21,6 +21,8 @@ export type FeatureAccessKey =
   | 'employee.workforceExtended'
   | 'employee.registration.view'
   | 'employee.registration.edit'
+  /** POST /users linked to an employee after onboarding. */
+  | 'employee.createLogin'
   | 'employee.organization.view'
   | 'employee.organization.edit'
   | 'employee.documents.view'

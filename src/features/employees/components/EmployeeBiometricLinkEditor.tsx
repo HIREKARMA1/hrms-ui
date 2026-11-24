@@ -3,6 +3,7 @@ import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 
 import type { EmployeeDeviceLinkFormState } from '../api/employeeMappers'
+import { BiometricDeviceSelect } from './BiometricDeviceSelect'
 
 type EmployeeBiometricLinkEditorProps = {
   value: EmployeeDeviceLinkFormState
@@ -25,19 +26,18 @@ export function EmployeeBiometricLinkEditor({
   return (
     <div className="space-y-4">
       <p className="text-xs text-text-secondary">
-        Links this employee to TimeWatch for attendance reports. Use the device code from Attendance →
-        Biometric settings and the user ID from the device.
+        Links this employee to TimeWatch for attendance reports. Pick an onboarded HRMS device and
+        the user ID from that device.
       </p>
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2">
-          <Label htmlFor="emp-device-id">Biometric device ID</Label>
-          <Input
+          <Label htmlFor="emp-device-id">Biometric device</Label>
+          <BiometricDeviceSelect
             id="emp-device-id"
             value={value.deviceId}
             disabled={disabled}
-            placeholder="Device code from HRMS"
-            autoComplete="off"
-            onChange={(event) => set('deviceId', event.target.value)}
+            allowEmpty
+            onChange={(deviceCode) => set('deviceId', deviceCode)}
           />
         </div>
         <div className="space-y-2">

@@ -107,7 +107,8 @@ describe('uploadsApi (verified contract: POST /uploads)', () => {
 
 describe('uploadEmployeeProfilePhoto', () => {
   async function loadHelper(enabled: string | undefined) {
-    if (enabled !== undefined) vi.stubEnv('VITE_EMPLOYEE_PHOTO_UPLOAD_ENABLED', enabled)
+    // Explicitly clear when undefined so a previous stubEnv('true') cannot leak.
+    vi.stubEnv('VITE_EMPLOYEE_PHOTO_UPLOAD_ENABLED', enabled ?? '')
     vi.resetModules()
     return import('@/features/employees/services/employeeApi')
   }
@@ -149,13 +150,19 @@ describe('uploadEmployeeProfilePhoto', () => {
     expect(noUrl).toMatchObject({ ok: false, code: 'http' })
   })
 
-  it('validates employee id and the 10MB limit before uploading', async () => {
+  it('allows upload without employee id (registration) and rejects oversized files', async () => {
     const { uploadEmployeeProfilePhoto } = await loadHelper('true')
-    const upload = vi.fn()
-    expect(await uploadEmployeeProfilePhoto({ ...input, employeeId: ' ' }, upload)).toMatchObject({ code: 'invalid' })
+    const upload = vi.fn().mockResolvedValue(ASSET)
+    expect(
+      await uploadEmployeeProfilePhoto({ employeeId: ' ', file: input.file, fileName: 'me.png' }, upload),
+    ).toMatchObject({ ok: true })
+    expect(upload).toHaveBeenCalledWith(
+      expect.objectContaining({ folder: 'employees/photos', fileName: 'me.png' }),
+    )
     const big = { size: MAX_UPLOAD_BYTES + 1 } as Blob
-    expect(await uploadEmployeeProfilePhoto({ ...input, file: big }, upload)).toMatchObject({ code: 'invalid' })
-    expect(upload).not.toHaveBeenCalled()
+    expect(
+      await uploadEmployeeProfilePhoto({ ...input, file: big }, vi.fn()),
+    ).toMatchObject({ code: 'invalid' })
   })
 })
 

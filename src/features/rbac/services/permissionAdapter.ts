@@ -43,13 +43,23 @@ export const FEATURE_PERMISSION_MAP: Partial<
   'module.users': 'users:read',
   'module.roles': 'roles:read',
   'module.permissions': 'permissions:read',
-  // GET /employees, /employees/:id, /dashboard/employees/*
+  // GET /employees, /employees/:id, /dashboard/*
   'employee.overview': 'employees:read',
   'employee.stats': 'employees:read',
+  'employee.birthdays': 'employees:read',
+  'employee.anniversaries': 'employees:read',
+  'employee.newJoiners': 'employees:read',
+  'employee.departmentDistribution': 'employees:read',
+  'employee.attendanceAnalytics': 'employees:read',
+  'employee.attrition': 'employees:read',
+  'employee.workforceExtended': 'employees:read',
+  'employee.leaveAnalytics': 'leaves:read',
   'employee.directory': 'employees:read',
   'employee.registration.view': 'employees:read',
   // POST /employees, PATCH /employees/:id
   'employee.registration.edit': 'employees:create',
+  // POST /users (login for an onboarded employee)
+  'employee.createLogin': 'users:create',
   'employee.manage': 'employees:update',
   // DELETE /employees/:id
   'employee.delete': 'employees:delete',

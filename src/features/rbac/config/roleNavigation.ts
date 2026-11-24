@@ -278,6 +278,11 @@ const adminNav: RoleNavItem[] = [
         path: '/admin/employees/directory',
         feature: 'employee.directory',
       },
+      {
+        title: 'Add Employee',
+        path: '/admin/employees/add',
+        feature: 'employee.registration.edit',
+      },
     ],
   },
   {
@@ -410,7 +415,12 @@ const hrNav: RoleNavItem[] = [
     iconName: 'Wallet',
     children: payrollNavChildrenForRbac('MANAGER', '/hr'),
   },
-  { title: 'Onboarding', path: '/hr/onboarding', iconName: 'UserRoundPlus' },
+  {
+    title: 'Onboarding',
+    path: '/hr/employees/add',
+    iconName: 'UserRoundPlus',
+    feature: 'employee.registration.edit',
+  },
   { title: 'Offboarding', path: '/hr/offboarding', iconName: 'UserRoundMinus' },
   {
     title: 'Request',
