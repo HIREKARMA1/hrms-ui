@@ -24,6 +24,7 @@ import {
   LeaveDialogHeader,
   LeaveDialogRoot,
 } from '../shared/LeaveDialog'
+import { EmployeeLeaveHistorySection } from '../history/EmployeeLeaveHistorySection'
 import { ApiBalanceAdjustmentDialog } from './ApiBalanceAdjustmentDialog'
 
 type ApiBalanceDialogProps = {
@@ -93,6 +94,7 @@ export function ApiBalanceDialog({ employeeId, employeeName, currentYear, leaveT
                 </tbody>
               </table>
             )}
+            <EmployeeLeaveHistorySection employeeId={employeeId} enabled year={year} title="Leave requests" />
           </LeaveDialogBody>
           {permissions.canAdjustBalance ? (
             <LeaveDialogFooter>

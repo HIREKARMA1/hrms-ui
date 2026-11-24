@@ -3,6 +3,7 @@ import type { AttendanceDayRecord } from '../types/api/attendanceReport.types'
 
 const STATUS_MAP: Record<string, AttendanceStatus> = {
   PRESENT: 'Present',
+  IN_PROGRESS: 'In Progress',
   LATE: 'Late',
   HALF_DAY: 'Half-Day',
   EARLY_LEAVE: 'Half-Day',
@@ -15,7 +16,7 @@ const STATUS_MAP: Record<string, AttendanceStatus> = {
 export function mapApiAttendanceStatus(status?: string): AttendanceStatus {
   if (!status) return 'Absent'
   const key = status.trim().toUpperCase().replace(/\s+/g, '_')
-  return STATUS_MAP[key] ?? 'Present'
+  return STATUS_MAP[key] ?? 'Absent'
 }
 
 export function formatMinutesAsDuration(minutes?: number): string {
@@ -36,11 +37,20 @@ export function formatAttendanceDate(iso: string): string {
 
 export function formatAttendanceTime(value?: string | null): string {
   if (!value) return '—'
+  const trimmed = value.trim()
+  const wallClock = /^(\d{1,2}):(\d{2})(?::\d{2})?$/.exec(trimmed)
+  if (wallClock) {
+    const hour = Number(wallClock[1])
+    const minute = wallClock[2]
+    if (hour >= 0 && hour <= 23) {
+      return `${hour.toString().padStart(2, '0')}:${minute}`
+    }
+  }
   const parsed = new Date(value)
   if (!Number.isNaN(parsed.getTime())) {
     return parsed.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
   }
-  return value
+  return trimmed
 }
 
 export function dayRowKey(day: AttendanceDayRecord, index: number): string {

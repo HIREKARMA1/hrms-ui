@@ -17,6 +17,7 @@ import { ChangePasswordPage } from '@/features/auth/pages/ChangePasswordPage'
 import { ForgotPasswordPage } from '@/features/auth/pages/ForgotPasswordPage'
 import { LoginPage } from '@/features/auth/pages/LoginPage'
 import { ResetPasswordPage } from '@/features/auth/pages/ResetPasswordPage'
+import { OrganisationOnboardingFormPage } from '@/features/organisation-onboarding/pages/OrganisationOnboardingFormPage'
 import { ContactAdministratorPage } from '@/features/support/pages/ContactAdministratorPage'
 import { DashboardPage } from '@/features/dashboard/pages/DashboardPage'
 import { EmployeeDashboardPage } from '@/features/employee/pages/EmployeeDashboardPage'
@@ -61,6 +62,10 @@ function App() {
         <Route
           path="/contact-administrator"
           element={<ContactAdministratorPage />}
+        />
+        <Route
+          path="/organisation-onboarding/:onboardingId"
+          element={<OrganisationOnboardingFormPage />}
         />
 
         {/* Every route below requires an authenticated session. */}
@@ -302,17 +307,6 @@ function App() {
                 featureLabel="Attendance Corrections"
               >
                 <AttendanceCorrectionsPage />
-              </RequireAccess>
-            }
-          />
-          <Route
-            path="/employee/attendance/regularization"
-            element={
-              <RequireAccess
-                feature="attendance.regularization.my"
-                featureLabel="Attendance Regularization"
-              >
-                <RegularizationPage />
               </RequireAccess>
             }
           />

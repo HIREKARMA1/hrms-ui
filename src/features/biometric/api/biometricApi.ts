@@ -72,6 +72,18 @@ export const biometricApi = baseApi.injectEndpoints({
         normalizeBiometricDevice(unwrapData(response)),
       invalidatesTags: [BIOMETRIC_DEVICES_TAG],
     }),
+    deleteBiometricDevice: build.mutation<
+      ReturnType<typeof normalizeBiometricDevice>,
+      string
+    >({
+      query: (id) => ({
+        url: `/attendance/biometric/devices/${encodeURIComponent(id)}`,
+        method: 'DELETE',
+      }),
+      transformResponse: (response: ApiResponse<unknown>) =>
+        normalizeBiometricDevice(unwrapData(response)),
+      invalidatesTags: [BIOMETRIC_DEVICES_TAG],
+    }),
     listTimeWatchDevices: build.query<ReturnType<typeof normalizeTimeWatchDeviceList>, void>({
       query: () => '/attendance/biometric/devices/timewatch',
       transformResponse: (response: ApiResponse<unknown>) =>
@@ -133,6 +145,7 @@ export const {
   useListBiometricDevicesQuery,
   useRegisterBiometricDeviceMutation,
   useUpdateBiometricDeviceMutation,
+  useDeleteBiometricDeviceMutation,
   useListTimeWatchDevicesQuery,
   useBiometricConnectionTestQuery,
   useSyncBiometricPunchesMutation,

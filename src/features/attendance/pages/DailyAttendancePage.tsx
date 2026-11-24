@@ -14,43 +14,7 @@ import { Label } from '@/components/ui/label'
 import { TablePagination } from '@/components/ui/table-pagination'
 import { ToastBanner, useToast } from '@/hooks/useToast'
 
-import {
-  AttendanceFilters,
-  AttendanceTable,
-  type AttendanceFilterState,
-} from '../components'
 import { HrAttendanceLiveReport } from '../components/HrAttendanceLiveReport'
-import { dailyAttendanceRecords } from '../mocks/attendanceMocks'
-import type { DailyAttendanceRecord } from '../types/attendance'
-
-const MONTH_LABELS = [
-  'Jan',
-  'Feb',
-  'Mar',
-  'Apr',
-  'May',
-  'Jun',
-  'Jul',
-  'Aug',
-  'Sep',
-  'Oct',
-  'Nov',
-  'Dec',
-] as const
-
-function displayDateFromIso(iso: string): string {
-  const [year, month, day] = iso.split('-').map(Number)
-  if (!year || !month || !day) return ''
-  return `${day} ${MONTH_LABELS[month - 1]} ${year}`
-}
-
-const initialFilters: AttendanceFilterState = {
-  search: '',
-  department: 'All',
-  date: '',
-  status: 'All',
-  shift: 'All',
-}
 
 export function DailyAttendancePage() {
   const { message, toast } = useToast()
@@ -167,34 +131,8 @@ export function DailyAttendancePage() {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-navy">
-          Daily Attendance
-        </h1>
-        <p className="mt-1 text-sm text-text-secondary">
-          Live API lookup by employee code or ID. The table below still uses mock daily records.
-        </p>
-      </div>
-
-      <HrAttendanceLiveReport title="Daily employee attendance (live API)" />
-
-      <h2 className="text-lg font-semibold text-navy">Daily register (mock data)</h2>
-
-      <AttendanceFilters
-        value={filters}
-        onChange={setFilters}
-        onExport={() => toast('CSV export is a UI preview only.')}
-      />
-
-      <AttendanceTable
-        records={pageRecords}
-        selectedIds={selectedIds}
-        onToggleAll={handleToggleAll}
-        onToggleOne={handleToggleOne}
-        onView={openView}
-        onEdit={openEdit}
-      />
+    <div className="mx-auto w-full max-w-[1280px] px-7 pb-8 font-[Inter,system-ui,sans-serif]">
+      <ToastBanner message={message} />
 
       <TablePagination
         page={safePage}
@@ -268,73 +206,15 @@ export function DailyAttendancePage() {
           ) : null}
         </DialogContent>
       </Dialog>
+      <header className="mb-6">
+        <h1 className="text-[26px] font-bold tracking-[-0.4px] text-[#17213A]">Daily Attendance</h1>
+        <p className="mt-1 text-sm text-[#667085]">
+          Employee roster, code or ID lookup, and date range from the live API — check-in, check-out, and
+          status by day.
+        </p>
+      </header>
 
-      <Dialog
-        open={editRecord !== null}
-        onOpenChange={(open) => {
-          if (!open) setEditRecord(null)
-        }}
-      >
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Edit Attendance</DialogTitle>
-            <DialogDescription>
-              {editRecord
-                ? `Update times for ${editRecord.employeeName}`
-                : 'Edit record'}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4">
-            <div className="grid gap-2">
-              <Label htmlFor="edit-check-in">Check-in</Label>
-              <Input
-                id="edit-check-in"
-                value={editDraft.checkIn}
-                onChange={(event) =>
-                  setEditDraft((prev) => ({ ...prev, checkIn: event.target.value }))
-                }
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="edit-check-out">Check-out</Label>
-              <Input
-                id="edit-check-out"
-                value={editDraft.checkOut}
-                onChange={(event) =>
-                  setEditDraft((prev) => ({ ...prev, checkOut: event.target.value }))
-                }
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="edit-status">Status</Label>
-              <Input
-                id="edit-status"
-                value={editDraft.status}
-                onChange={(event) =>
-                  setEditDraft((prev) => ({
-                    ...prev,
-                    status: event.target.value as DailyAttendanceRecord['status'],
-                  }))
-                }
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setEditRecord(null)}
-            >
-              Cancel
-            </Button>
-            <Button type="button" onClick={saveEdit}>
-              Save
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <ToastBanner message={message} />
+      <HrAttendanceLiveReport title="Daily employee attendance (live API)" />
     </div>
   )
 }

@@ -53,6 +53,9 @@ export function EmployeeRegistrationPage() {
   const departmentsQuery = useListDepartmentsQuery({ isActive: true, limit: 100, page: 1 })
   const departmentOptions =
     departmentsQuery.data?.items.map((d) => ({ id: d.id, name: d.name })) ?? []
+  const departmentsError = departmentsQuery.isError
+    ? getEmployeeErrorMessage(departmentsQuery.error, 'Could not load departments.')
+    : undefined
 
   const createValidation = useMemo(() => validateEmployeeCreate(form, extras), [form, extras])
   const canSubmit = createValidation.ok
@@ -163,7 +166,16 @@ export function EmployeeRegistrationPage() {
             <Feature
               name="employee.registration.edit"
               fallback={
-                <EmployeeProfileForm value={form} onChange={setForm} readOnly mode="create" />
+                <EmployeeProfileForm
+                  value={form}
+                  onChange={setForm}
+                  readOnly
+                  mode="create"
+                  departmentOptions={departmentOptions}
+                  departmentId={extras.departmentId}
+                  departmentsLoading={departmentsQuery.isLoading || departmentsQuery.isFetching}
+                  departmentsError={departmentsError}
+                />
               }
             >
               <EmployeeProfileForm
@@ -177,37 +189,48 @@ export function EmployeeRegistrationPage() {
                 onDepartmentIdChange={(departmentId) =>
                   setExtras((prev) => ({ ...prev, departmentId }))
                 }
+                departmentsLoading={departmentsQuery.isLoading || departmentsQuery.isFetching}
+                departmentsError={departmentsError}
               />
               <EmployeeServerDetailsSection
                 value={extras}
                 onChange={setExtras}
-                profilePictureUrl={form.profilePictureUrl}
                 disabled={saving}
               />
             </Feature>
 
-            <div className="flex flex-wrap items-center gap-2">
-              <Feature name="employee.registration.edit">
+            <div className="space-y-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <Feature name="employee.registration.edit">
+                  <Button
+                    type="button"
+                    disabled={saving || !canSubmit}
+                    onClick={() => void save()}
+                  >
+                    {saving ? 'Saving…' : 'Save Employee'}
+                  </Button>
+                </Feature>
                 <Button
                   type="button"
-                  disabled={saving || !canSubmit}
-                  onClick={() => void save()}
+                  variant="outline"
+                  disabled={saving}
+                  onClick={() => navigate(`${prefix}/employees`)}
                 >
-                  {saving ? 'Saving…' : 'Save Employee'}
+                  Cancel
                 </Button>
-              </Feature>
-              <Button
-                type="button"
-                variant="outline"
-                disabled={saving}
-                onClick={() => navigate(`${prefix}/employees`)}
-              >
-                Cancel
-              </Button>
+              </div>
               {!canSubmit ? (
-                <p className="text-xs text-text-secondary">
-                  Fill all required fields (*) to enable Save.
-                </p>
+                <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+                  <p className="font-medium">Save is disabled until these are fixed:</p>
+                  <ul className="mt-1 list-disc space-y-0.5 pl-4">
+                    {createValidation.errors.slice(0, 6).map((error) => (
+                      <li key={error}>{error}</li>
+                    ))}
+                    {createValidation.errors.length > 6 ? (
+                      <li>+{createValidation.errors.length - 6} more…</li>
+                    ) : null}
+                  </ul>
+                </div>
               ) : null}
             </div>
           </CardContent>
