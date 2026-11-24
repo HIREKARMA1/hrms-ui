@@ -12,6 +12,7 @@ import { SCHEDULE_MOTION } from './officeCalendarScheduleUi'
 
 const CATEGORY_LABEL: Record<OfficeCalendarScheduleItem['category'], string> = {
   holiday: 'Holiday',
+  weeklyOff: 'Weekly off',
   event: 'Event',
   meeting: 'Meeting',
   training: 'Training',

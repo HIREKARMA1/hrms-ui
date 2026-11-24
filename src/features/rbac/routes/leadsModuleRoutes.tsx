@@ -5,10 +5,10 @@ import { LeadsPage } from '@/features/leads/pages/LeadsPage'
 
 import { RequireAccess } from '../components/RequireAccess'
 
-type OrgLeadsPrefix = 'superadmin' | 'admin' | 'hr'
+type OrgLeadsPrefix = 'superadmin' | 'hradmin' | 'manager'
 
 export function createLeadsModuleRoutes(prefix: OrgLeadsPrefix): ReactElement[] {
-  const feature = prefix === 'hr' ? 'leads.my' : 'leads.overview'
+  const feature = prefix === 'manager' ? 'leads.my' : 'leads.overview'
   return [
     <Route
       key={`${prefix}-leads`}

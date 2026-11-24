@@ -11,6 +11,7 @@ import {
   PayrollDialogRoot,
 } from '@/features/payroll/components/shared/PayrollDialog'
 
+import { useOfficeCalendar } from '../hooks/useOfficeCalendar'
 import { useOfficeEventFormDialog } from '../hooks/useOfficeEventFormDialog'
 import type { OfficeCalendarEvent } from '../types/officeCalendar'
 import { OfficeEventFormFields } from './events/OfficeEventFormFields'
@@ -33,6 +34,7 @@ export function OfficeEventFormDialog({
   defaultStartDate,
   onSaved,
 }: OfficeEventFormDialogProps) {
+  const { eventsSource } = useOfficeCalendar()
   const { draft, setDraft, error, saving, handleSubmit } = useOfficeEventFormDialog({
     open,
     mode,
@@ -55,7 +57,13 @@ export function OfficeEventFormDialog({
             <div className={`relative ${CALENDAR_DIALOG_HEADER_BAND}`}>
               <PayrollDialogHeader
                 title={mode === 'create' ? 'Schedule event' : 'Edit event'}
-                description="Saved to the mock calendar store until API is connected."
+                description={
+                  eventsSource === 'api'
+                    ? mode === 'create'
+                      ? 'Creates the event with POST /calendar/events.'
+                      : 'Updates the event with PATCH /calendar/events/{id}.'
+                    : 'Saved to the mock calendar store until API is connected.'
+                }
               />
               <PayrollDialogCloseButton />
             </div>
@@ -66,7 +74,11 @@ export function OfficeEventFormDialog({
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={saving} className="bg-hrms-primary text-white">
+              <Button
+                type="submit"
+                disabled={saving}
+                className="bg-hrms-primary text-white"
+              >
                 {saving ? 'Saving…' : mode === 'create' ? 'Create event' : 'Save changes'}
               </Button>
             </PayrollDialogFooter>

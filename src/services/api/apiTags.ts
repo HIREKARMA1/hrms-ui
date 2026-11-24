@@ -6,11 +6,17 @@ export const API_TAGS = [
   'Auth',
   'User',
   'Role',
+  'Permission',
   'Employee',
+  'Department',
   'Leave',
   'Attendance',
   'Holiday',
+  'CalendarEvent',
+  'WeeklyOff',
   'Lead',
+  'Dashboard',
+  'RecruitmentJob',
 ] as const
 
 export type ApiTag = (typeof API_TAGS)[number]

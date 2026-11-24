@@ -1,18 +1,22 @@
-import { Navigate } from 'react-router-dom'
+import { Navigate, useLocation } from 'react-router-dom'
 
 import { useAppSelector } from '@/app/store/hooks'
 
 import { LoginBranding } from '../components/LoginBranding'
 import { LoginForm } from '../components/LoginForm'
 import { selectCurrentUser } from '../store/authSlice'
+import { normalizeAuthUser } from '../utils/authUser'
 import { getLandingRouteForUserRole } from '../utils/landingRoute'
+import { getSafeReturnPath } from '../utils/returnPath'
 
 export function LoginPage() {
+  const location = useLocation()
   const user = useAppSelector(selectCurrentUser)
-  const landing = user ? getLandingRouteForUserRole(user.role) : null
+  const landing = user ? getLandingRouteForUserRole(user.role, user.roles) : null
 
   if (landing) {
-    return <Navigate to={landing} replace />
+    const returnTo = getSafeReturnPath(location.state, normalizeAuthUser(user))
+    return <Navigate to={returnTo ?? landing} replace />
   }
 
   return (

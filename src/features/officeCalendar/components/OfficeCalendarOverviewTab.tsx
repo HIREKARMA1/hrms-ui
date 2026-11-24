@@ -4,10 +4,13 @@ import { isHrAdminExperience, isManagerExperience } from '@/features/leave/const
 
 
 
+import type {
+  OfficeCalendarEventListSource,
+  OfficeHolidayListSource,
+} from '../context/officeCalendarContext'
 import type { OfficeCalendarPageTabId } from '../hooks/useOfficeCalendarPageTabs'
-
 import { useOfficeCalendarOverviewData } from '../hooks/useOfficeCalendarOverviewData'
-
+import { useOfficeCalendarOverviewInsights } from '../hooks/useOfficeCalendarOverviewInsights'
 import type { OfficeCalendarEvent, OfficeHoliday } from '../types/officeCalendar'
 
 import { OfficeCalendarMockBanner } from './OfficeCalendarMockBanner'
@@ -32,17 +35,21 @@ type OfficeCalendarOverviewTabProps = {
 
   onNavigate: (tab: OfficeCalendarPageTabId) => void
 
-  canManageEvents?: boolean
+  canCreateEvents?: boolean
 
   onScheduleEvent?: () => void
 
   onOpenEvent?: (eventId: string) => void
 
+  eventsSource?: OfficeCalendarEventListSource
+
+  holidaysSource?: OfficeHolidayListSource
+
 }
 
 
 
-/** Office Calendar Overview tab content (/hr/calendar and role variants). */
+/** Office Calendar Overview tab content (/manager/calendar and role variants). */
 
 export function OfficeCalendarOverviewTab({
 
@@ -54,9 +61,15 @@ export function OfficeCalendarOverviewTab({
 
   onNavigate,
 
+  canCreateEvents,
+
   onScheduleEvent,
 
   onOpenEvent,
+
+  eventsSource = 'demo',
+
+  holidaysSource = 'demo',
 
 }: OfficeCalendarOverviewTabProps) {
 
@@ -68,7 +81,12 @@ export function OfficeCalendarOverviewTab({
 
 
 
-  const data = useOfficeCalendarOverviewData(holidays, events)
+  const insights = useOfficeCalendarOverviewInsights(eventsSource)
+
+  const data = useOfficeCalendarOverviewData(holidays, events, {
+    todayEvents: insights.todayEvents,
+    upcomingEvents: insights.upcomingEvents,
+  })
 
 
 
@@ -76,9 +94,9 @@ export function OfficeCalendarOverviewTab({
 
     <div className="flex flex-col gap-5 font-[family-name:var(--font-inter)]">
 
-      {isHrAdminExperience(role) ? <OfficeCalendarMockBanner /> : null}
-
-
+      {isHrAdminExperience(role) ? (
+        <OfficeCalendarMockBanner eventsSource={eventsSource} holidaysSource={holidaysSource} />
+      ) : null}
 
       <OfficeCalendarOverviewSummaryCard
 
@@ -91,6 +109,8 @@ export function OfficeCalendarOverviewTab({
         holidayTab={holidayNavTab}
 
         onNavigate={onNavigate}
+
+        canCreateEvents={canCreateEvents}
 
         onScheduleEvent={onScheduleEvent}
 

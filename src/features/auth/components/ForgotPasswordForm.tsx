@@ -1,54 +1,58 @@
-import { ArrowLeft, IdCard } from 'lucide-react'
+import { ArrowLeft, CheckCircle2, Loader2, Mail } from 'lucide-react'
 
 import { HireKarmaMark } from '@/components/brand/HireKarmaMark'
-import { useEffect, useState, type FormEvent } from 'react'
+import { useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 
+import { useAppDispatch } from '@/app/store/hooks'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
 
-type FormErrors = {
-  employeeId?: string
-}
+import { authApi } from '../api/authApi'
+import {
+  createSubmitGuard,
+  FORGOT_PASSWORD_SUCCESS_MESSAGE,
+  submitForgotPassword,
+  type ForgotPasswordErrors,
+} from '../utils/passwordReset'
 
 export function ForgotPasswordForm() {
-  const [employeeId, setEmployeeId] = useState('')
-  const [errors, setErrors] = useState<FormErrors>({})
-  const [toastMessage, setToastMessage] = useState<string | null>(null)
+  const dispatch = useAppDispatch()
+  const [guard] = useState(createSubmitGuard)
+  const [email, setEmail] = useState('')
+  const [errors, setErrors] = useState<ForgotPasswordErrors>({})
+  const [formError, setFormError] = useState<string | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [submitted, setSubmitted] = useState(false)
 
-  useEffect(() => {
-    if (!toastMessage) return
-    const timer = window.setTimeout(() => setToastMessage(null), 4200)
-    return () => window.clearTimeout(timer)
-  }, [toastMessage])
-
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
+    setFormError(null)
+    setIsSubmitting(true)
 
-    if (!employeeId.trim()) {
-      setErrors({ employeeId: 'Employee ID is required.' })
-      return
+    const outcome = await submitForgotPassword({
+      email,
+      guard,
+      send: (arg) => dispatch(authApi.endpoints.forgotPassword.initiate(arg, { track: false })),
+    })
+
+    if (outcome.status === 'busy') return
+    setIsSubmitting(false)
+    if (outcome.status === 'invalid') {
+      setErrors(outcome.errors)
+    } else if (outcome.status === 'error') {
+      setErrors({})
+      setFormError(outcome.message)
+    } else {
+      setErrors({})
+      setSubmitted(true)
     }
-
-    setErrors({})
-    setToastMessage(
-      'Your password request has been submitted. Please contact your HR administrator for further assistance.',
-    )
   }
 
   return (
     <div className="relative w-full max-w-[420px]">
-      {toastMessage ? (
-        <div
-          role="status"
-          className="fixed bottom-6 left-1/2 z-50 w-[min(92vw,420px)] -translate-x-1/2 rounded-xl border border-brand-200 bg-white px-4 py-3 text-center text-sm text-slate-700 shadow-lg"
-        >
-          {toastMessage}
-        </div>
-      ) : null}
-
       <div className="rounded-3xl border border-slate-100 bg-white p-8 shadow-[0_20px_50px_-24px_rgba(79,70,229,0.35)] sm:p-9">
         <div className="mb-8 flex flex-col items-center text-center">
           <HireKarmaMark className="mb-4 h-12 w-12 rounded-2xl" />
@@ -56,53 +60,85 @@ export function ForgotPasswordForm() {
             Forgot Password
           </h2>
           <p className="mt-1.5 text-sm text-slate-500">
-            Enter your Employee ID to request a password reset
+            Enter your email address to request a password reset
           </p>
         </div>
 
-        <form className="space-y-5" onSubmit={handleSubmit} noValidate>
-          <div className="space-y-2">
-            <Label htmlFor="forgot-employee-id">Employee ID</Label>
-            <div className="relative">
-              <IdCard
-                className="pointer-events-none absolute top-1/2 left-3.5 h-4 w-4 -translate-y-1/2 text-slate-400"
-                aria-hidden="true"
-              />
-              <Input
-                id="forgot-employee-id"
-                name="employeeId"
-                type="text"
-                autoComplete="username"
-                placeholder="Enter your Employee ID"
-                value={employeeId}
-                onChange={(event) => {
-                  setEmployeeId(event.target.value)
-                  if (errors.employeeId) {
-                    setErrors({})
-                  }
-                }}
-                aria-invalid={Boolean(errors.employeeId)}
-                aria-describedby={
-                  errors.employeeId ? 'forgot-employee-id-error' : undefined
-                }
-                className={cn(
-                  'pl-10',
-                  errors.employeeId &&
-                    'border-red-400 focus-visible:ring-red-200',
-                )}
-              />
+        {submitted ? (
+          <div role="status" className="space-y-4 text-center">
+            <CheckCircle2 className="mx-auto h-10 w-10 text-emerald-500" aria-hidden="true" />
+            <p className="text-sm text-slate-600">{FORGOT_PASSWORD_SUCCESS_MESSAGE}</p>
+            <p className="text-xs text-slate-500">
+              Check your inbox and spam folder. The link works only for a short time.
+            </p>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full"
+              onClick={() => {
+                setSubmitted(false)
+                setEmail('')
+              }}
+            >
+              Use a different email
+            </Button>
+          </div>
+        ) : (
+          <form className="space-y-5" onSubmit={handleSubmit} noValidate>
+            <div className="space-y-2">
+              <Label htmlFor="forgot-email">Email Address</Label>
+              <div className="relative">
+                <Mail
+                  className="pointer-events-none absolute top-1/2 left-3.5 h-4 w-4 -translate-y-1/2 text-slate-400"
+                  aria-hidden="true"
+                />
+                <Input
+                  id="forgot-email"
+                  name="email"
+                  type="email"
+                  autoComplete="email"
+                  placeholder="Enter your email address"
+                  value={email}
+                  onChange={(event) => {
+                    setEmail(event.target.value)
+                    if (errors.email) setErrors({})
+                  }}
+                  aria-invalid={Boolean(errors.email)}
+                  aria-describedby={errors.email ? 'forgot-email-error' : undefined}
+                  className={cn(
+                    'pl-10',
+                    errors.email && 'border-red-400 focus-visible:ring-red-200',
+                  )}
+                />
+              </div>
+              {errors.email ? (
+                <p id="forgot-email-error" className="text-xs text-red-500">
+                  {errors.email}
+                </p>
+              ) : null}
             </div>
-            {errors.employeeId ? (
-              <p id="forgot-employee-id-error" className="text-xs text-red-500">
-                {errors.employeeId}
+
+            {formError ? (
+              <p
+                role="alert"
+                className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600"
+              >
+                {formError}
               </p>
             ) : null}
-          </div>
 
-          <Button type="submit" className="w-full" size="lg">
-            Request for Password
-          </Button>
-        </form>
+            <Button type="submit" className="w-full" size="lg" disabled={isSubmitting}>
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                  Sending...
+                </>
+              ) : (
+                'Request Password Reset'
+              )}
+            </Button>
+          </form>
+        )}
 
         <div className="mt-7 flex justify-center">
           <Link

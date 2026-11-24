@@ -1,125 +1,76 @@
-import { useState } from 'react'
-
-import {
-  RegularizationForm,
-  type RegularizationFormValues,
-} from '../components/RegularizationForm'
-import { ApprovalStatusBadge } from '../components/AttendanceStatusBadge'
-import { regularizationRequests } from '../mocks/attendanceMocks'
-import type { RegularizationRequest } from '../types/attendance'
+/**
+ * Attendance regularization — APIs #7–#9 (create, list, revoke).
+ */
 import { ToastBanner, useToast } from '@/hooks/useToast'
 
-function formatDisplayDate(iso: string): string {
-  const date = new Date(`${iso}T00:00:00`)
-  return date.toLocaleDateString('en-GB', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  })
-}
-
-function formatTimeDisplay(time24: string): string {
-  const [hours, minutes] = time24.split(':').map(Number)
-  const period = hours >= 12 ? 'PM' : 'AM'
-  const hour12 = hours % 12 || 12
-  return `${hour12.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')} ${period}`
-}
+import { AttendanceRegularizationForm } from '../components/regularization/AttendanceRegularizationForm'
+import { AttendanceRegularizationList } from '../components/regularization/AttendanceRegularizationList'
+import { RevokeRegularizationDialog } from '../components/regularization/RevokeRegularizationDialog'
+import { useAttendanceRegularizationPage } from '../hooks/useAttendanceRegularizationPage'
 
 export function RegularizationPage() {
   const { message, toast } = useToast()
-  const [history, setHistory] = useState<RegularizationRequest[]>(() => [
-    ...regularizationRequests,
-  ])
+  const page = useAttendanceRegularizationPage()
 
-  const handleSubmit = (values: RegularizationFormValues) => {
-    const today = new Date()
-    const requestDate = today.toLocaleDateString('en-GB', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-    })
+  const handleCreate = async (values: Parameters<typeof page.submitCreate>[0]) => {
+    const outcome = await page.submitCreate(values)
+    toast(outcome.message)
+  }
 
-    const next: RegularizationRequest = {
-      id: `r-${Date.now()}`,
-      employeeName: 'Rohith Goud',
-      employeeId: 'EMP-1001',
-      requestDate,
-      attendanceDate: formatDisplayDate(values.attendanceDate),
-      correctionType: values.correctionType,
-      checkIn: formatTimeDisplay(values.checkIn),
-      checkOut: formatTimeDisplay(values.checkOut),
-      reason: values.reason.trim(),
-      status: 'Pending',
-      approver: '—',
-    }
-
-    setHistory((prev) => [next, ...prev])
-    toast('Regularization request submitted (UI preview only).')
+  const handleRevoke = async (reason: string) => {
+    const outcome = await page.confirmRevoke(reason)
+    toast(outcome.message)
   }
 
   return (
     <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-6">
+      <ToastBanner message={message} />
       <div>
-        <h1 className="text-2xl font-bold tracking-tight text-navy">
-          Attendance Regularization
-        </h1>
+        <h1 className="text-2xl font-bold tracking-tight text-navy">Attendance Regularization</h1>
         <p className="mt-1 text-sm text-text-secondary">
-          Submit a regularization request and track approval history.
+          Submit and list regularizations from the attendance API (not mock data).
         </p>
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,420px)_1fr]">
-        <RegularizationForm onSubmit={handleSubmit} />
+      {!page.canRegularize ? (
+        <p className="text-sm text-text-secondary">You do not have attendance:regularize permission.</p>
+      ) : null}
 
-        <div className="overflow-x-auto rounded-2xl border border-border-soft bg-white shadow-sm">
-          <div className="border-b border-border-soft px-5 py-4">
-            <h2 className="text-base font-semibold text-navy">Request History</h2>
-            <p className="text-sm text-text-secondary">
-              Past and pending regularization requests.
-            </p>
-          </div>
-          <table className="w-full min-w-[900px] text-left text-sm">
-            <thead className="bg-muted-bg/70 text-text-secondary">
-              <tr>
-                <th className="px-3 py-3 font-medium">Employee</th>
-                <th className="px-3 py-3 font-medium">Employee ID</th>
-                <th className="px-3 py-3 font-medium">Request Date</th>
-                <th className="px-3 py-3 font-medium">Attendance Date</th>
-                <th className="px-3 py-3 font-medium">Type</th>
-                <th className="px-3 py-3 font-medium">Check-in</th>
-                <th className="px-3 py-3 font-medium">Check-out</th>
-                <th className="px-3 py-3 font-medium">Reason</th>
-                <th className="px-3 py-3 font-medium">Status</th>
-                <th className="px-3 py-3 font-medium">Approver</th>
-              </tr>
-            </thead>
-            <tbody>
-              {history.map((row) => (
-                <tr key={row.id} className="border-t border-border-soft">
-                  <td className="px-3 py-3 font-medium text-navy">
-                    {row.employeeName}
-                  </td>
-                  <td className="px-3 py-3 text-text-secondary">{row.employeeId}</td>
-                  <td className="px-3 py-3 text-text-secondary">{row.requestDate}</td>
-                  <td className="px-3 py-3 text-text-secondary">{row.attendanceDate}</td>
-                  <td className="px-3 py-3 text-text-secondary">{row.correctionType}</td>
-                  <td className="px-3 py-3 text-text-secondary">{row.checkIn}</td>
-                  <td className="px-3 py-3 text-text-secondary">{row.checkOut}</td>
-                  <td className="max-w-[180px] truncate px-3 py-3 text-text-secondary">
-                    {row.reason}
-                  </td>
-                  <td className="px-3 py-3">
-                    <ApprovalStatusBadge status={row.status} />
-                  </td>
-                  <td className="px-3 py-3 text-text-secondary">{row.approver}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+      {page.isEmployeeWorkspace && !page.linkedEmployeeId ? (
+        <p className="text-sm text-amber-700">
+          Your account has no linked employeeId — POST regularizations requires an employee record on
+          login.
+        </p>
+      ) : null}
+
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,420px)_1fr]">
+        <AttendanceRegularizationForm
+          showEmployeeIdField={!page.isEmployeeWorkspace}
+          defaultEmployeeId=""
+          disabled={!page.canRegularize || page.isCreating}
+          onSubmit={handleCreate}
+        />
+
+        <AttendanceRegularizationList
+          items={page.items}
+          isLoading={page.list.isLoading}
+          isFetching={page.list.isFetching}
+          isError={page.list.isError}
+          error={page.list.error}
+          canRevoke={page.canRegularize}
+          onRevoke={(id) => page.setRevokeTargetId(id)}
+          onRefresh={() => void page.list.refetch()}
+        />
       </div>
 
-      <ToastBanner message={message} />
+      <RevokeRegularizationDialog
+        open={Boolean(page.revokeTargetId)}
+        saving={page.isRevoking}
+        onOpenChange={(open) => {
+          if (!open) page.setRevokeTargetId(null)
+        }}
+        onConfirm={handleRevoke}
+      />
     </div>
   )
 }

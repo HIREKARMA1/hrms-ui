@@ -31,7 +31,7 @@ export type NavItem = {
 export const navigationItems: NavItem[] = [
   {
     title: 'Dashboard',
-    path: '/hr/dashboard',
+    path: '/manager/dashboard',
     icon: LayoutDashboard,
   },
   {

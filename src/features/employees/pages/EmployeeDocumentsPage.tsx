@@ -153,6 +153,12 @@ export function EmployeeDocumentsPage({
           <p className="mt-1 text-sm text-text-secondary">
             Resume, KYC, certificates, letters, verification and version history.
           </p>
+          {ownDocumentsOnly ? null : (
+            <p className="mt-1 text-xs text-text-secondary">
+              Sample data. Documents uploaded during registration are stored on the server and
+              listed on each employee&apos;s profile.
+            </p>
+          )}
         </div>
         {canEdit ? (
           <Button

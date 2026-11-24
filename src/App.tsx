@@ -1,6 +1,5 @@
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 
-import { MainLayout } from '@/components/layout/MainLayout'
 import { AdminDashboardPage } from '@/features/admin/pages/AdminDashboardPage'
 import { AttendanceCorrectionsPage } from '@/features/attendance/pages/AttendanceCorrectionsPage'
 import { AttendanceOverviewPage } from '@/features/attendance/pages/AttendanceOverviewPage'
@@ -13,8 +12,11 @@ import { MyAttendancePage } from '@/features/attendance/pages/MyAttendancePage'
 import { OvertimePage } from '@/features/attendance/pages/OvertimePage'
 import { RegularizationPage } from '@/features/attendance/pages/RegularizationPage'
 import { WeeklyOffPage } from '@/features/attendance/pages/WeeklyOffPage'
+import { RequireAuth } from '@/features/auth/components/RequireAuth'
+import { ChangePasswordPage } from '@/features/auth/pages/ChangePasswordPage'
 import { ForgotPasswordPage } from '@/features/auth/pages/ForgotPasswordPage'
 import { LoginPage } from '@/features/auth/pages/LoginPage'
+import { ResetPasswordPage } from '@/features/auth/pages/ResetPasswordPage'
 import { ContactAdministratorPage } from '@/features/support/pages/ContactAdministratorPage'
 import { DashboardPage } from '@/features/dashboard/pages/DashboardPage'
 import { EmployeeDashboardPage } from '@/features/employee/pages/EmployeeDashboardPage'
@@ -26,11 +28,28 @@ import { PayrollPage } from '@/features/payroll/pages/PayrollPage'
 import { RequireAccess } from '@/features/rbac/components/RequireAccess'
 import { RoleLayout } from '@/features/rbac/components/RoleLayout'
 import { RoleModulePage } from '@/features/rbac/components/RoleModulePage'
+import { UserLandingRedirect } from '@/features/rbac/components/UserLandingRedirect'
+import { WorkspaceModuleRedirect } from '@/features/rbac/components/WorkspaceModuleRedirect'
 import { createEmployeeCalendarModuleRoutes } from '@/features/rbac/routes/calendarModuleRoutes'
 import { createEmployeeLeadsModuleRoutes } from '@/features/rbac/routes/leadsModuleRoutes'
 import { createEmployeeLeavePayrollRoutes } from '@/features/rbac/routes/leavePayrollModuleRoutes'
 import { createOrgRoleModuleRoutes } from '@/features/rbac/routes/roleModuleRoutes'
 import { SuperAdminDashboardPage } from '@/features/superadmin/pages/SuperAdminDashboardPage'
+
+/** Redirect legacy workspace prefixes while preserving nested path + query. */
+function LegacyWorkspaceRedirect({
+  fromPrefix,
+  toPrefix,
+}: {
+  fromPrefix: '/admin' | '/hr'
+  toPrefix: '/hradmin' | '/manager'
+}) {
+  const { pathname, search, hash } = useLocation()
+  const rest = pathname.startsWith(fromPrefix)
+    ? pathname.slice(fromPrefix.length)
+    : ''
+  return <Navigate to={`${toPrefix}${rest}${search}${hash}`} replace />
+}
 
 function App() {
   return (
@@ -38,40 +57,113 @@ function App() {
       <Routes>
         <Route path="/" element={<LoginPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route
           path="/contact-administrator"
           element={<ContactAdministratorPage />}
         />
 
-        <Route element={<MainLayout />}>
+        {/* Every route below requires an authenticated session. */}
+        <Route element={<RequireAuth />}>
+        {/* Legacy shared routes: MainLayout in the user's own role workspace. */}
+        <Route element={<RoleLayout />}>
+          <Route path="/dashboard" element={<UserLandingRedirect />} />
+          <Route path="/account/change-password" element={<ChangePasswordPage />} />
           <Route
-            path="/dashboard"
-            element={<Navigate to="/hr/dashboard" replace />}
+            path="/employees"
+            element={
+              <RequireAccess feature="employee.overview" featureLabel="Employee Management">
+                <EmployeeOverviewPage />
+              </RequireAccess>
+            }
           />
-          <Route path="/employees" element={<EmployeeOverviewPage />} />
           <Route
             path="/employees/*"
             element={<Navigate to="/employees" replace />}
           />
 
-          <Route path="/attendance" element={<AttendanceOverviewPage />} />
-          <Route path="/attendance/daily" element={<DailyAttendancePage />} />
-          <Route path="/attendance/check-in" element={<CheckInPage />} />
+          <Route
+            path="/attendance"
+            element={
+              <RequireAccess feature="attendance.overview" featureLabel="Attendance Overview">
+                <AttendanceOverviewPage />
+              </RequireAccess>
+            }
+          />
+          <Route
+            path="/attendance/daily"
+            element={
+              <RequireAccess feature="attendance.daily" featureLabel="Daily Attendance">
+                <DailyAttendancePage />
+              </RequireAccess>
+            }
+          />
+          <Route
+            path="/attendance/check-in"
+            element={
+              <RequireAccess feature="attendance.checkIn" featureLabel="Check-in / Check-out">
+                <CheckInPage />
+              </RequireAccess>
+            }
+          />
           <Route
             path="/attendance/corrections"
-            element={<AttendanceCorrectionsPage />}
+            element={
+              <RequireAccess feature="attendance.corrections" featureLabel="Attendance Corrections">
+                <AttendanceCorrectionsPage />
+              </RequireAccess>
+            }
           />
           <Route
             path="/attendance/regularization"
-            element={<RegularizationPage />}
+            element={
+              <RequireAccess
+                feature="attendance.regularization"
+                featureLabel="Attendance Regularization"
+              >
+                <RegularizationPage />
+              </RequireAccess>
+            }
           />
-          <Route path="/attendance/overtime" element={<OvertimePage />} />
-          <Route path="/attendance/weekly-off" element={<WeeklyOffPage />} />
-          <Route path="/attendance/holidays" element={<HolidayPage />} />
-          <Route path="/attendance/reports" element={<AttendanceReportsPage />} />
+          <Route
+            path="/attendance/overtime"
+            element={
+              <RequireAccess feature="attendance.overtime" featureLabel="Overtime Management">
+                <OvertimePage />
+              </RequireAccess>
+            }
+          />
+          <Route
+            path="/attendance/weekly-off"
+            element={
+              <RequireAccess feature="attendance.weeklyOff" featureLabel="Weekly Off Management">
+                <WeeklyOffPage />
+              </RequireAccess>
+            }
+          />
+          <Route
+            path="/attendance/holidays"
+            element={
+              <RequireAccess feature="attendance.holidays" featureLabel="Holiday Management">
+                <HolidayPage />
+              </RequireAccess>
+            }
+          />
+          <Route
+            path="/attendance/reports"
+            element={
+              <RequireAccess feature="attendance.reports" featureLabel="Attendance Reports">
+                <AttendanceReportsPage />
+              </RequireAccess>
+            }
+          />
           <Route
             path="/attendance/settings"
-            element={<AttendanceSettingsPage />}
+            element={
+              <RequireAccess feature="attendance.settings" featureLabel="Attendance Settings">
+                <AttendanceSettingsPage />
+              </RequireAccess>
+            }
           />
 
           <Route path="/leave" element={<LeavePage />} />
@@ -79,15 +171,27 @@ function App() {
           <Route path="/payroll" element={<PayrollPage />} />
           <Route path="/payroll/:section" element={<PayrollPage />} />
 
-          <Route path="/recruitment" element={<DashboardPage />} />
-          <Route path="/performance" element={<DashboardPage />} />
-          <Route path="/leads" element={<Navigate to="/admin/leads" replace />} />
-          <Route path="/leads/*" element={<Navigate to="/admin/leads" replace />} />
-          <Route path="/organization/*" element={<DashboardPage />} />
-          <Route path="/documents" element={<DashboardPage />} />
-          <Route path="/calendar" element={<DashboardPage />} />
-          <Route path="/reports" element={<DashboardPage />} />
-          <Route path="/settings" element={<DashboardPage />} />
+          {[
+            '/recruitment',
+            '/performance',
+            '/organization/*',
+            '/documents',
+            '/calendar',
+            '/reports',
+            '/settings',
+          ].map((path) => (
+            <Route
+              key={path}
+              path={path}
+              element={
+                <RequireAccess feature="dashboard.hr" featureLabel="HR Dashboard">
+                  <DashboardPage />
+                </RequireAccess>
+              }
+            />
+          ))}
+          <Route path="/leads" element={<WorkspaceModuleRedirect section="leads" />} />
+          <Route path="/leads/*" element={<WorkspaceModuleRedirect section="leads" />} />
         </Route>
 
         <Route element={<RoleLayout roleCode="SUPER_ADMIN" />}>
@@ -104,31 +208,60 @@ function App() {
         </Route>
 
         <Route element={<RoleLayout roleCode="HR_ADMIN" />}>
-          <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
+          <Route path="/hradmin/dashboard" element={<AdminDashboardPage />} />
           <Route
-            path="/admin"
-            element={<Navigate to="/admin/dashboard" replace />}
+            path="/hradmin"
+            element={<Navigate to="/hradmin/dashboard" replace />}
           />
-          {createOrgRoleModuleRoutes('admin')}
-          <Route path="/admin/*" element={<RoleModulePage />} />
+          {createOrgRoleModuleRoutes('hradmin')}
+          <Route path="/hradmin/*" element={<RoleModulePage />} />
         </Route>
 
         <Route element={<RoleLayout roleCode="MANAGER" />}>
           <Route
-            path="/hr/dashboard"
+            path="/manager/dashboard"
             element={
               <RequireAccess
                 feature="dashboard.hr"
                 featureLabel="HR Dashboard"
               >
-                <DashboardPage />
+                <DashboardPage showWorkforceSummary />
               </RequireAccess>
             }
           />
-          <Route path="/hr" element={<Navigate to="/hr/dashboard" replace />} />
-          {createOrgRoleModuleRoutes('hr')}
-          <Route path="/hr/*" element={<RoleModulePage />} />
+          <Route
+            path="/manager"
+            element={<Navigate to="/manager/dashboard" replace />}
+          />
+          {createOrgRoleModuleRoutes('manager')}
+          <Route path="/manager/*" element={<RoleModulePage />} />
         </Route>
+
+        {/* Legacy workspace URLs → new prefixes (same role workspaces). */}
+        <Route
+          path="/admin/*"
+          element={
+            <LegacyWorkspaceRedirect fromPrefix="/admin" toPrefix="/hradmin" />
+          }
+        />
+        <Route
+          path="/admin"
+          element={
+            <LegacyWorkspaceRedirect fromPrefix="/admin" toPrefix="/hradmin" />
+          }
+        />
+        <Route
+          path="/hr/*"
+          element={
+            <LegacyWorkspaceRedirect fromPrefix="/hr" toPrefix="/manager" />
+          }
+        />
+        <Route
+          path="/hr"
+          element={
+            <LegacyWorkspaceRedirect fromPrefix="/hr" toPrefix="/manager" />
+          }
+        />
 
         <Route element={<RoleLayout roleCode="EMPLOYEE" />}>
           <Route
@@ -143,7 +276,7 @@ function App() {
             path="/employee/attendance"
             element={
               <RequireAccess
-                feature="attendance.reports"
+                feature="attendance.my"
                 featureLabel="My Attendance"
               >
                 <MyAttendancePage />
@@ -176,7 +309,7 @@ function App() {
             path="/employee/attendance/regularization"
             element={
               <RequireAccess
-                feature="attendance.regularization"
+                feature="attendance.regularization.my"
                 featureLabel="Attendance Regularization"
               >
                 <RegularizationPage />
@@ -221,6 +354,8 @@ function App() {
           {createEmployeeCalendarModuleRoutes()}
           <Route path="/employee/*" element={<RoleModulePage />} />
         </Route>
+        </Route>
+        {/* End of authenticated routes. */}
 
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

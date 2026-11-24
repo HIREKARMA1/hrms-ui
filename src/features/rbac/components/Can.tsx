@@ -12,7 +12,9 @@ type CanProps = {
 
 /**
  * Hides UI when the current session permissions do not allow the action.
- * If permissions are not loaded (null), children remain visible (role menus apply).
+ * Deny by default: when a permission is required and permissions are not
+ * loaded (null) or empty, children are hidden. Omitting every requirement
+ * means no permission is needed.
  */
 export function Can({
   permission,

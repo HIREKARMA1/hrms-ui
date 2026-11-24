@@ -5,6 +5,7 @@
 import { Card, CardContent } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 
+import { useLeavePermissions } from '../../hooks/useLeavePermissions'
 import type { EncashmentRequest } from '../../types/encashment'
 import { formatDate } from '../../utils/formatDate'
 import { LeaveStatusPill } from '../LeaveStatusPill'
@@ -20,6 +21,7 @@ type ApprovalsEncashmentTableProps = {
   onApprove: (id: string) => void
   onReject: (id: string) => void
   busyId: string | null
+  emptyMessage?: string
 }
 
 export function ApprovalsEncashmentTable({
@@ -28,12 +30,14 @@ export function ApprovalsEncashmentTable({
   onApprove,
   onReject,
   busyId,
+  emptyMessage = 'No encashment requests from your team.',
 }: ApprovalsEncashmentTableProps) {
+  const permissions = useLeavePermissions()
   if (rows.length === 0) {
     return (
       <Card>
         <CardContent className="p-0">
-          <LeaveEmptyState message="No encashment requests from your team." />
+          <LeaveEmptyState message={emptyMessage} />
         </CardContent>
       </Card>
     )
@@ -67,8 +71,13 @@ export function ApprovalsEncashmentTable({
                 </td>
                 <td className="px-4 py-3 text-right">
                   <div className="flex flex-wrap items-center justify-end gap-2">
-                    <ApproveRowButton disabled={busyId === row.id} onClick={() => onApprove(row.id)} />
-                    <RejectRowButton disabled={busyId === row.id} onClick={() => onReject(row.id)} />
+                    {/* Encashment approve / reject use their own backend codes, not leaves:approve. */}
+                    {permissions.canApproveEncashment ? (
+                      <ApproveRowButton disabled={busyId === row.id} onClick={() => onApprove(row.id)} />
+                    ) : null}
+                    {permissions.canRejectEncashment ? (
+                      <RejectRowButton disabled={busyId === row.id} onClick={() => onReject(row.id)} />
+                    ) : null}
                   </div>
                 </td>
               </tr>

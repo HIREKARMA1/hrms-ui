@@ -22,8 +22,11 @@ import {
   rejectRequest,
 } from './requestActions'
 import { createDefaultLeaveSettings } from './companyDefaults'
+import type { LeaveApiMeta } from './leaveApiSnapshot'
 
 export type LeaveSnapshot = {
+  /** When `api`, `requests` came from GET /leaves; otherwise mock store data. */
+  requestsSource?: 'api' | 'mock'
   employees: LeaveEmployee[]
   settings: LeaveSettings
   requests: LeaveRequest[]
@@ -35,6 +38,8 @@ export type LeaveSnapshot = {
   accrualRuns: string[]
   yearEndRuns: string[]
   settingsHistory: SettingsHistoryEntry[]
+  /** Present when the snapshot was built from the server for a signed-in user. */
+  api?: LeaveApiMeta
 }
 
 export async function fetchLeaveSnapshot(): Promise<LeaveSnapshot> {
@@ -63,6 +68,17 @@ export async function saveLeaveSettings(settings: LeaveSettings, userName: strin
   const entries = buildSettingsHistoryEntries(before, settings, userName)
   store.settingsHistory.push(...entries)
   store.settings = structuredClone(settings)
+}
+
+/** Whether the monthly accrual for `yearMonth` (YYYY-MM) has already been run. */
+export function hasAccrualRun(yearMonth: string): boolean {
+  return getLeaveStore().accrualRuns.includes(yearMonth)
+}
+
+/** Marks the monthly accrual for `yearMonth` as run (idempotent). */
+export function recordAccrualRun(yearMonth: string): void {
+  const store = getLeaveStore()
+  if (!store.accrualRuns.includes(yearMonth)) store.accrualRuns.push(yearMonth)
 }
 
 export async function resetLeaveData(): Promise<void> {

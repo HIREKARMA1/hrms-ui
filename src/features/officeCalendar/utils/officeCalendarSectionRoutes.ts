@@ -7,7 +7,7 @@ import {
 } from '../hooks/useOfficeCalendarPageTabs'
 import { calendarBaseFromPathname } from './calendarModuleBasePath'
 
-export function calendarPathForTab(tab: OfficeCalendarPageTabId, base = '/admin/calendar'): string {
+export function calendarPathForTab(tab: OfficeCalendarPageTabId, base = '/hradmin/calendar'): string {
   if (tab === 'Overview') return base
   if (tab === 'Calendar') return `${base}/schedule`
   return `${base}/holidays`
@@ -38,7 +38,7 @@ export function calendarTabFromSection(
   return defaultTab
 }
 
-export function calendarNavChildrenForRole(role: UserRole, base = '/admin/calendar') {
+export function calendarNavChildrenForRole(role: UserRole, base = '/hradmin/calendar') {
   return calendarTabsForRole(role).map((tab) => ({
     title: tab,
     path: calendarPathForTab(tab, base),

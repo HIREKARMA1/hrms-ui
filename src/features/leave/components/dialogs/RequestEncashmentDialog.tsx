@@ -35,7 +35,7 @@ export function RequestEncashmentDialog({ open, onOpenChange, onSubmit }: Reques
   const [days, setDays] = useState(1)
   if (!snapshot) return null
   const encashable = snapshot.settings.leaveTypes.filter((t) => t.encashable)
-  const balance = ledgerBalanceForType(snapshot.ledger, viewer.employeeId, code)
+  const balance = viewer.employeeId ? ledgerBalanceForType(snapshot.ledger, viewer.employeeId, code) : 0
   const minKeep = snapshot.settings.encashmentRules.minimumBalanceDays
   const after = balance - days
   const error = after < minKeep ? `Keep at least ${minKeep} days after encashment.` : days > snapshot.settings.encashmentRules.maximumDaysPerYear ? 'Exceeds yearly maximum.' : ''

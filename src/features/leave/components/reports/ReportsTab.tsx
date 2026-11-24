@@ -15,6 +15,7 @@ import { encashmentReportRows } from '../../utils/reportEncashment'
 import { LeaveTabHeader } from '../LeaveTabHeader'
 import { LeaveSegmentedControl } from '../shared/LeaveSegmentedControl'
 import { LeaveEmptyState } from '../shared/LeaveEmptyState'
+import { LeaveServerNotice } from '../shared/LeaveServerNotice'
 import { ReportTable } from './ReportTable'
 
 type ReportId = 'balance' | 'taken' | 'encashment'
@@ -33,7 +34,8 @@ export function ReportsTab() {
 
   const table = useMemo(() => {
     if (!snapshot) return { headers: [] as string[], rows: [] as (string | number)[][] }
-    if (report === 'balance') return { headers: BALANCE_SUMMARY_HEADERS, rows: balanceSummaryRows(snapshot) }
+    // The balance summary is ledger-based; server snapshots carry no ledger.
+    if (report === 'balance') return { headers: BALANCE_SUMMARY_HEADERS, rows: snapshot.api ? [] : balanceSummaryRows(snapshot) }
     if (report === 'encashment') return { headers: ['Employee', 'Days', 'Status', 'Requested on'], rows: encashmentReportRows(snapshot) }
     const headers = takenMode === 'type' ? ['Month', 'Type', 'Days'] : ['Month', 'Department', 'Days']
     const rows = takenMode === 'type' ? leaveTakenByTypeRows(snapshot, year) : leaveTakenByDeptRows(snapshot, year)
@@ -50,6 +52,12 @@ export function ReportsTab() {
   return (
     <div className="space-y-6">
       <LeaveTabHeader title="Reports" subtitle="Download leave data as CSV." actions={<Button type="button" onClick={exportCsv} disabled={table.rows.length === 0}>Download CSV</Button>} />
+      {snapshot.api ? (
+        <LeaveServerNotice>
+          Reports use the {snapshot.requests.length} most recent leave requests and {snapshot.encashments.length} encashment requests loaded from the server.
+          The balance summary needs ledger data the server does not provide yet; see the Balances tab for per-employee balances.
+        </LeaveServerNotice>
+      ) : null}
       <LeaveSegmentedControl options={SEGMENTS} value={report} onChange={setReport} ariaLabel="Reports" />
       {report === 'taken' ? (
         <LeaveSegmentedControl

@@ -1,21 +1,11 @@
 /**
- * Leave page title row with user initials avatar and demo view select.
+ * Leave page title row with the signed-in identity and (demo only) view select.
  * Rendered inside LeavePageChrome on LeavePage.
  */
 
-import { useOptionalRbacSession } from '@/features/rbac/hooks/useRbacSession'
-
 import { LeaveDemoViewSelect } from './LeaveDemoViewSelect'
-import { RolePill } from './RolePill'
+import { SignedInAs } from './SignedInAs'
 import type { LeaveViewer, LeaveViewerRole } from '../types/viewer'
-
-function initialsFromName(name: string) {
-  return name
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase() ?? '')
-    .join('')
-}
 
 type LeavePageHeaderProps = {
   viewer: LeaveViewer
@@ -24,26 +14,13 @@ type LeavePageHeaderProps = {
 }
 
 export function LeavePageHeader({ viewer, role, onRoleChange }: LeavePageHeaderProps) {
-  const rbac = useOptionalRbacSession()
-
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
       <div>
         <h1 className="text-2xl font-bold text-hrms-navy">Leave Management</h1>
-        <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-hrms-text-secondary">
-          <span
-            className="flex h-7 w-7 items-center justify-center rounded-full bg-hrms-lavender text-xs font-semibold text-hrms-primary"
-            aria-hidden
-          >
-            {initialsFromName(viewer.displayName)}
-          </span>
-          <span className="flex flex-wrap items-center gap-2">
-            Signed in as <span className="font-medium text-hrms-navy">{viewer.displayName}</span>
-            <RolePill role={viewer.role} />
-          </span>
-        </div>
+        <SignedInAs viewer={viewer} />
       </div>
-      {rbac ? null : <LeaveDemoViewSelect value={role} onChange={onRoleChange} />}
+      {viewer.source === 'demo' ? <LeaveDemoViewSelect value={role} onChange={onRoleChange} /> : null}
     </div>
   )
 }

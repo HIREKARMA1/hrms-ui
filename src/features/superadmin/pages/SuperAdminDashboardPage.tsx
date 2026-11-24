@@ -19,10 +19,10 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
+import { DashboardStats } from '@/features/dashboard/components/DashboardStats'
 import { Can } from '@/features/rbac/components/Can'
 import { superAdminDashboardMock } from '@/features/rbac/mocks/rbacMocks'
 import { ToastBanner, useToast } from '@/hooks/useToast'
-import { cn } from '@/lib/utils'
 
 const PREVIEW_TOAST = 'UI preview only. Backend authorization required.'
 
@@ -32,14 +32,6 @@ const CHART_TOOLTIP = {
 }
 
 const DEPT_COLORS = ['#5938DB', '#17213A', '#8B7CF6', '#C9BEFF', '#3B82F6', '#10B981']
-
-const statToneClass: Record<string, string> = {
-  brand: 'border-brand-500/20 bg-lavender',
-  info: 'border-blue-200 bg-blue-50/80',
-  success: 'border-emerald-200 bg-emerald-50/80',
-  warning: 'border-amber-200 bg-amber-50/80',
-  danger: 'border-rose-200 bg-rose-50/80',
-}
 
 function initials(name: string) {
   return name
@@ -101,16 +93,7 @@ export function SuperAdminDashboardPage() {
         </div>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {superAdminDashboardMock.stats.map((stat) => (
-          <Card key={stat.id} className={cn('border-border-soft shadow-sm', statToneClass[stat.tone])}>
-            <CardContent className="p-5">
-              <p className="text-sm font-medium text-text-secondary">{stat.label}</p>
-              <p className="mt-2 text-3xl font-bold tracking-tight text-navy">{stat.value}</p>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+      <DashboardStats />
 
       <div className="grid gap-4 xl:grid-cols-3">
         <Card className="border-border-soft shadow-sm xl:col-span-1">

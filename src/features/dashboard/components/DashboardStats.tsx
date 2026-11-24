@@ -1,65 +1,141 @@
-import {
-  ArrowDownRight,
-  ArrowUpRight,
-  CalendarDays,
-  UserCheck,
-  Users,
-  UserX,
-  type LucideIcon,
-} from 'lucide-react'
-
 import { Card, CardContent } from '@/components/ui/card'
-import { cn } from '@/lib/utils'
 
-import type { DashboardStat } from '../types/dashboard'
-import { dashboardStats } from '../utils/sampleData'
+import { Skeleton } from '@/components/ui/skeleton'
 
-const iconMap: Record<DashboardStat['icon'], LucideIcon> = {
-  users: Users,
-  userCheck: UserCheck,
-  calendarDays: CalendarDays,
-  userX: UserX,
+import { getApiErrorMessage } from '@/services/api/errors'
+
+
+
+import { useGetDashboardSummaryQuery } from '../api/dashboardApi'
+
+import { useShouldFetchDashboardSummary } from '../hooks/useShouldFetchDashboardSummary'
+
+import {
+
+  dashboardStatPlaceholders,
+
+  mapSummaryToStats,
+
+} from '../utils/mapSummaryToStats'
+
+import { DashboardStatsGrid } from './DashboardStatsGrid'
+
+
+
+function DashboardStatsSkeleton() {
+
+  return (
+
+    <div
+
+      className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"
+
+      aria-busy="true"
+
+      aria-label="Loading dashboard statistics"
+
+    >
+
+      {Array.from({ length: 4 }).map((_, index) => (
+
+        <Card key={index}>
+
+          <CardContent className="flex items-start justify-between gap-3 p-5">
+
+            <div className="min-w-0 flex-1 space-y-3">
+
+              <Skeleton className="h-4 w-28" />
+
+              <Skeleton className="h-9 w-16" />
+
+              <Skeleton className="h-3 w-36" />
+
+            </div>
+
+            <Skeleton className="h-11 w-11 shrink-0 rounded-xl" />
+
+          </CardContent>
+
+        </Card>
+
+      ))}
+
+    </div>
+
+  )
+
 }
+
+
+
+/** Live org workforce summary (`GET /dashboard/summary`). Skips without token + `employees:read`. */
 
 export function DashboardStats() {
-  return (
-    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-      {dashboardStats.map((stat) => {
-        const Icon = iconMap[stat.icon]
-        return (
-          <Card key={stat.id}>
-            <CardContent className="flex items-start justify-between gap-3 p-5">
-              <div className="min-w-0">
-                <p className="text-sm font-medium text-slate-500">{stat.label}</p>
-                <p className="mt-2 text-3xl font-bold tracking-tight text-slate-900">
-                  {stat.value}
-                </p>
-                <p
-                  className={cn(
-                    'mt-3 inline-flex items-center gap-1 text-xs font-medium',
-                    stat.trend.positive ? 'text-emerald-600' : 'text-rose-600',
-                  )}
-                >
-                  {stat.trend.positive ? (
-                    <ArrowUpRight className="h-3.5 w-3.5" />
-                  ) : (
-                    <ArrowDownRight className="h-3.5 w-3.5" />
-                  )}
-                  {stat.trend.value}
-                </p>
-              </div>
-              <div
-                className={cn(
-                  'flex h-11 w-11 shrink-0 items-center justify-center rounded-xl',
-                  stat.iconClassName,
-                )}
-              >
-                <Icon className="h-5 w-5" />
-              </div>
-            </CardContent>
-          </Card>
-        )
-      })}
-    </div>
+
+  const shouldFetch = useShouldFetchDashboardSummary()
+
+  const { data, isLoading, isError, error } = useGetDashboardSummaryQuery(
+
+    undefined,
+
+    { skip: !shouldFetch },
+
   )
+
+
+
+  if (shouldFetch && isLoading) {
+
+    return <DashboardStatsSkeleton />
+
+  }
+
+
+
+  const stats = data ? mapSummaryToStats(data) : dashboardStatPlaceholders()
+
+  const errorMessage =
+
+    shouldFetch && isError
+
+      ? getApiErrorMessage(
+
+          error,
+
+          'Unable to load dashboard summary. Please try again.',
+
+        )
+
+      : null
+
+
+
+  return (
+
+    <div className="flex flex-col gap-3">
+
+      {errorMessage ? (
+
+        <p
+
+          className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-2 text-sm text-rose-700"
+
+          role="alert"
+
+        >
+
+          {errorMessage}
+
+        </p>
+
+      ) : null}
+
+      <DashboardStatsGrid stats={stats} />
+
+    </div>
+
+  )
+
 }
+
+

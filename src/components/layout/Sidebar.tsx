@@ -1,7 +1,7 @@
 import { ChevronDown, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
 
 import { HireKarmaMark } from '@/components/brand/HireKarmaMark'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 
 import { Button } from '@/components/ui/button'
@@ -17,49 +17,46 @@ import { cn } from '@/lib/utils'
 import { useOptionalRbacSession } from '@/features/rbac/hooks/useRbacSession'
 import { resolveNavIcon } from '@/features/rbac/utils/navIcons'
 
-import { useLeaveViewer } from '@/features/leave/hooks/useLeaveViewer'
-
 import { useLayout } from './LayoutContext'
 import type { NavItem } from './navigation'
-import { resolveNavigationItems } from './resolveNavigation'
 
 const EXACT_ONLY_PATHS = new Set([
   '/dashboard',
   '/attendance',
   '/employees',
   '/superadmin',
-  '/admin',
-  '/hr',
+  '/hradmin',
+  '/manager',
   '/employee',
   '/superadmin/dashboard',
-  '/admin/dashboard',
-  '/hr/dashboard',
+  '/hradmin/dashboard',
+  '/manager/dashboard',
   '/employee/dashboard',
   '/superadmin/attendance',
-  '/admin/attendance',
-  '/hr/attendance',
+  '/hradmin/attendance',
+  '/manager/attendance',
   '/superadmin/employees',
-  '/admin/employees',
-  '/hr/employees',
+  '/hradmin/employees',
+  '/manager/employees',
   '/employee/attendance',
   '/superadmin/recruitment',
-  '/admin/recruitment',
-  '/hr/recruitment',
+  '/hradmin/recruitment',
+  '/manager/recruitment',
   '/superadmin/leave',
-  '/admin/leave',
-  '/hr/leave',
+  '/hradmin/leave',
+  '/manager/leave',
   '/superadmin/payroll',
-  '/admin/payroll',
-  '/hr/payroll',
+  '/hradmin/payroll',
+  '/manager/payroll',
   '/superadmin/leads',
-  '/admin/leads',
-  '/hr/leads',
+  '/hradmin/leads',
+  '/manager/leads',
   '/employee/leads',
   '/employee/leave',
   '/employee/payslips',
   '/superadmin/calendar',
-  '/admin/calendar',
-  '/hr/calendar',
+  '/hradmin/calendar',
+  '/manager/calendar',
   '/employee/calendar',
 ])
 
@@ -254,12 +251,10 @@ type SidebarProps = {
 export function Sidebar({ variant = 'desktop', onNavigate }: SidebarProps) {
   const { collapsed, toggleCollapsed } = useLayout()
   const rbac = useOptionalRbacSession()
-  const { role } = useLeaveViewer()
-  const navigationItems = useMemo(() => resolveNavigationItems(role), [role])
   const isCollapsed = variant === 'desktop' ? collapsed : false
-  const items = rbac
-    ? toSidebarNavItems(rbac.navigation)
-    : navigationItems
+  // Fail closed: without an authenticated RBAC session there is no menu at all
+  // (never fall back to a static, role-agnostic menu).
+  const items = rbac ? toSidebarNavItems(rbac.navigation) : []
 
   return (
     <TooltipProvider delayDuration={0}>

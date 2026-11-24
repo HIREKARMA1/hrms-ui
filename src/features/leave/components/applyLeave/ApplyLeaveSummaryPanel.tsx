@@ -14,8 +14,9 @@ import { ApplyLeaveSectionTitle } from './ApplyLeaveSectionTitle'
 type ApplyLeaveSummaryPanelProps = {
   preview: LeaveValidationResult | null
   chain: ResolvedApprovalStep[]
-  balanceBefore: number
-  balanceAfter: number
+  /** Null when the balance is not known (e.g. still loading from the server). */
+  balanceBefore: number | null
+  balanceAfter: number | null
   applicantName: string
   hasDates: boolean
   onBehalf?: boolean
@@ -33,13 +34,14 @@ export function ApplyLeaveSummaryPanel({
   submitterName,
 }: ApplyLeaveSummaryPanelProps) {
   const ready = hasDates && preview != null
-  const low = ready && balanceAfter < 2
-  const negative = ready && balanceAfter < 0
-  const showBar = ready && preview.daysCounted > 0 && balanceBefore > 0
+  const known = ready && balanceBefore !== null && balanceAfter !== null
+  const low = known && balanceAfter < 2
+  const negative = known && balanceAfter < 0
+  const showBar = known && preview.daysCounted > 0 && balanceBefore > 0
   const pct = showBar ? Math.max(0, Math.min(100, (balanceAfter / balanceBefore) * 100)) : 0
 
   return (
-    <aside className="flex h-full min-h-full flex-col rounded-xl bg-hrms-lavender/40 p-4">
+    <aside className="flex h-full flex-col rounded-xl bg-hrms-lavender/40 p-4">
       <ApplyLeaveSectionTitle>Preview</ApplyLeaveSectionTitle>
       <p className="mt-2 text-xs text-hrms-text-secondary">
         {ready ? 'Review days and balance before submitting.' : 'Select leave type and dates to see impact.'}
@@ -49,12 +51,12 @@ export function ApplyLeaveSummaryPanel({
         <StatTile label="Days counted" value={ready ? String(preview.daysCounted) : '—'} large />
         <StatTile
           label="Balance after"
-          value={ready ? String(balanceAfter) : '—'}
-          tone={ready ? (negative ? 'danger' : low ? 'warning' : 'default') : 'muted'}
+          value={known ? String(balanceAfter) : '—'}
+          tone={known ? (negative ? 'danger' : low ? 'warning' : 'default') : 'muted'}
         />
       </div>
 
-      {ready ? (
+      {known ? (
         <p className="mt-2 text-xs tabular-nums text-hrms-text-secondary">
           From <span className="font-medium text-hrms-navy">{balanceBefore}</span> days available
         </p>

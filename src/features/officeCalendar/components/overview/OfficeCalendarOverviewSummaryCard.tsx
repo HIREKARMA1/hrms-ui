@@ -18,6 +18,7 @@ type OfficeCalendarOverviewSummaryCardProps = {
   events: OfficeCalendarEvent[]
   holidayTab: OfficeCalendarPageTabId
   onNavigate: (tab: OfficeCalendarPageTabId) => void
+  canCreateEvents?: boolean
   onScheduleEvent?: () => void
 }
 
@@ -27,6 +28,7 @@ export function OfficeCalendarOverviewSummaryCard({
   events,
   holidayTab,
   onNavigate,
+  canCreateEvents,
   onScheduleEvent,
 }: OfficeCalendarOverviewSummaryCardProps) {
   const meetings = events.filter((item) => item.type === 'meeting').length
@@ -38,6 +40,7 @@ export function OfficeCalendarOverviewSummaryCard({
         role={role}
         holidayTab={holidayTab}
         onNavigate={onNavigate}
+        canCreateEvents={canCreateEvents}
         onScheduleEvent={onScheduleEvent}
       />
       <div className="grid grid-cols-2 gap-3 p-5 min-[1100px]:grid-cols-4">

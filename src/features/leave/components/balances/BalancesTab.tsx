@@ -25,9 +25,19 @@ import { LEAVE_TABLE_ROW, LEAVE_TABLE_THEAD } from '../shared/leaveUi'
 import { LEAVE_TABLE_BASE, leaveTdClass, leaveThClass } from '../shared/leaveTableLayout'
 import { LeaveEmptyState } from '../shared/LeaveEmptyState'
 import { BalanceLedgerDialog } from '../dialogs/BalanceLedgerDialog'
+import { useShouldFetchLeaveList } from '../../hooks/useShouldFetchLeaveList'
+import { ApiBalancesTab } from './ApiBalancesTab'
+import { BalancesHrOverviewLiveSection } from './BalancesHrOverviewLiveSection'
 
 export function BalancesTab() {
   const { snapshot } = useLeave()
+  if (snapshot?.api) return <ApiBalancesTab />
+  return <DemoBalancesTab />
+}
+
+function DemoBalancesTab() {
+  const { snapshot } = useLeave()
+  const canFetchLeaves = useShouldFetchLeaveList()
   const [search, setSearch] = useState('')
   const [selectedId, setSelectedId] = useState<string | null>(null)
 

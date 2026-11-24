@@ -1,5 +1,6 @@
 import { Activity, AlertTriangle, Filter, GitBranch } from 'lucide-react'
 
+import { cn } from '@/lib/utils'
 import type { UserRole } from '@/features/leave/constants/userRoles'
 import {
   isEmployeeExperience,
@@ -48,7 +49,7 @@ export function LeadsOverviewTab({
     : isManagerExperience(role)
       ? 'team'
       : 'org'
-  const { scopedLeads } = useLeadsScope(role, scope)
+  const { scopedLeads, canViewAnalytics } = useLeadsScope(role, scope)
   const summary = summarizeLeads(scopedLeads)
   const funnel = buildLeadStatusFunnel(scopedLeads)
   const sources = buildLeadSourceBreakdown(scopedLeads)
@@ -88,10 +89,12 @@ export function LeadsOverviewTab({
           ) : null}
         </LeadsOverviewHero>
 
-        <LeadsStatusSnapshot
-          counts={summary.byStatus}
-          onOpenPipeline={onNavigate ? () => onNavigate('Pipeline') : undefined}
-        />
+        {canViewAnalytics ? (
+          <LeadsStatusSnapshot
+            counts={summary.byStatus}
+            onOpenPipeline={onNavigate ? () => onNavigate('Pipeline') : undefined}
+          />
+        ) : null}
 
         <div className="grid items-stretch gap-5 min-[900px]:grid-cols-2">
           <LeadsOverviewCard
@@ -112,20 +115,22 @@ export function LeadsOverviewTab({
             />
           </LeadsOverviewCard>
 
-          <LeadsOverviewCard
-            variant="overview"
-            icon={GitBranch}
-            title="Pipeline funnel"
-            subtitle="Active stages only"
-            className="h-full"
-          >
-            <LeadsPipelineFunnelCard
-              data={funnel}
-              wonCount={summary.byStatus.Won ?? 0}
-              lostCount={summary.byStatus.Lost ?? 0}
-              onStatusClick={() => onNavigate?.('Pipeline')}
-            />
-          </LeadsOverviewCard>
+          {canViewAnalytics ? (
+            <LeadsOverviewCard
+              variant="overview"
+              icon={GitBranch}
+              title="Pipeline funnel"
+              subtitle="Active stages only"
+              className="h-full"
+            >
+              <LeadsPipelineFunnelCard
+                data={funnel}
+                wonCount={summary.byStatus.Won ?? 0}
+                lostCount={summary.byStatus.Lost ?? 0}
+                onStatusClick={() => onNavigate?.('Pipeline')}
+              />
+            </LeadsOverviewCard>
+          ) : null}
         </div>
 
         <div className="grid min-h-0 items-stretch gap-5 min-[900px]:grid-cols-3">
@@ -134,21 +139,26 @@ export function LeadsOverviewTab({
             icon={Activity}
             title="Recent activity"
             subtitle="Latest updates across leads"
-            className="h-full min-h-0 min-[900px]:col-span-2"
+            className={cn(
+              'h-full min-h-0',
+              canViewAnalytics ? 'min-[900px]:col-span-2' : 'min-[900px]:col-span-3',
+            )}
             bodyClassName="flex min-h-0 flex-col"
           >
             <LeadsRecentActivityList items={activity} onOpenLead={(id) => onOpenLead?.(id)} />
           </LeadsOverviewCard>
 
-          <LeadsOverviewCard
-            variant="overview"
-            icon={Filter}
-            title="Leads by source"
-            subtitle="Share of pipeline"
-            className="h-full min-h-0"
-          >
-            <LeadsSourceDonutCard data={sources} />
-          </LeadsOverviewCard>
+          {canViewAnalytics ? (
+            <LeadsOverviewCard
+              variant="overview"
+              icon={Filter}
+              title="Leads by source"
+              subtitle="Share of pipeline"
+              className="h-full min-h-0"
+            >
+              <LeadsSourceDonutCard data={sources} />
+            </LeadsOverviewCard>
+          ) : null}
         </div>
       </div>
     </div>

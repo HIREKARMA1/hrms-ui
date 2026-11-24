@@ -7,7 +7,7 @@ import { CalendarPlus, UserRound } from 'lucide-react'
 import type { LeaveEmployee } from '../../types/employee'
 import type { LeaveSettings } from '../../types/leaveSettings'
 import type { LedgerEntry } from '../../types/ledger'
-import type { LeaveRequest } from '../../types/leaveRequest'
+import type { HalfDayPortion, LeaveRequest } from '../../types/leaveRequest'
 import {
   LeaveDialogBody,
   LeaveDialogCloseButton,
@@ -32,14 +32,10 @@ type ApplyLeaveDialogProps = {
   employees: LeaveEmployee[]
   saving?: boolean
   submitterName?: string
-  onSubmit: (input: {
-    leaveTypeCode: string
-    fromDate: string
-    toDate: string
-    reason: string
-    attachmentName?: string
-    convertExtraToLwp?: boolean
-  }) => void
+  /** Server balances (code → available days, null while unknown). Omit to use the demo ledger. */
+  serverBalances?: Record<string, number> | null
+  /** Resolve `false` to keep the dialog open with its input (e.g. the server rejected the request). */
+  onSubmit: (input: ApplyLeaveSubmitInput) => ApplyLeaveSubmitOutcome
   hrEmployeePicker?: {
     options: LeaveEmployee[]
     value: string
@@ -47,24 +43,42 @@ type ApplyLeaveDialogProps = {
   }
 }
 
+export type ApplyLeaveSubmitInput = {
+  leaveTypeCode: string
+  fromDate: string
+  toDate: string
+  reason: string
+  attachmentName?: string
+  convertExtraToLwp?: boolean
+  portion?: HalfDayPortion
+}
+
+export type ApplyLeaveSubmitOutcome = void | boolean | Promise<void | boolean>
+
 export function ApplyLeaveDialog(props: ApplyLeaveDialogProps) {
-  const { open, onOpenChange, employee, settings, ledger, existing, employees, saving, onSubmit, hrEmployeePicker, submitterName } =
+  const { open, onOpenChange, employee, settings, ledger, existing, employees, saving, onSubmit, hrEmployeePicker, submitterName, serverBalances } =
     props
   const onBehalf = Boolean(hrEmployeePicker)
-  const state = useApplyLeaveDialogState(employee, settings, ledger, existing, employees)
+  const state = useApplyLeaveDialogState(employee, settings, ledger, existing, employees, serverBalances)
 
   const handleOpenChange = (next: boolean) => {
     if (!next) state.reset()
     onOpenChange(next)
   }
 
+  // The grid takes its natural height; the dialog body (below) is the single
+  // scroll container. Columns stack on small screens and split from `lg`.
   const gridClass = onBehalf
-    ? 'grid min-h-[32rem] flex-1 grid-cols-2 grid-rows-1 items-stretch divide-x divide-hrms-border overflow-y-auto'
-    : 'grid min-h-0 flex-1 gap-0 lg:grid-cols-2'
+    ? 'grid grid-cols-1 items-stretch divide-y divide-hrms-border lg:min-h-[32rem] lg:grid-cols-2 lg:divide-x lg:divide-y-0'
+    : 'grid grid-cols-1 items-stretch gap-0 lg:grid-cols-2'
 
   return (
     <LeaveDialogRoot open={open} onOpenChange={handleOpenChange}>
-      <LeaveDialogContent size={onBehalf ? 'xl' : 'lg'} describedBy="apply-leave-subtitle">
+      <LeaveDialogContent
+        size={onBehalf ? 'xl' : 'lg'}
+        describedBy="apply-leave-subtitle"
+        className="max-h-[calc(100dvh-2rem)]"
+      >
         <LeaveDialogHeader
           title={onBehalf ? 'Apply on behalf' : 'Apply for leave'}
           subtitle={
@@ -75,9 +89,9 @@ export function ApplyLeaveDialog(props: ApplyLeaveDialogProps) {
           subtitleId="apply-leave-subtitle"
           icon={onBehalf ? UserRound : CalendarPlus}
         />
-        <LeaveDialogBody className="flex min-h-0 flex-1 flex-col overflow-hidden p-0">
+        <LeaveDialogBody className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-0">
           <div className={gridClass}>
-            <div className="flex min-h-full min-w-0 flex-col bg-white">
+            <div className="flex min-w-0 flex-col bg-white">
               {hrEmployeePicker ? (
                 <div className="border-b border-hrms-border px-6 py-4">
                   <ApplyOnBehalfEmployeeField
@@ -90,10 +104,8 @@ export function ApplyLeaveDialog(props: ApplyLeaveDialogProps) {
                 </div>
               ) : null}
               <ApplyLeaveFormColumn
-                employee={employee}
                 settings={settings}
-                ledger={ledger}
-                existing={existing}
+                balanceFor={state.balanceFor}
                 policy={state.policy}
                 preview={state.preview}
                 leaveTypeCode={state.leaveTypeCode}
@@ -102,6 +114,9 @@ export function ApplyLeaveDialog(props: ApplyLeaveDialogProps) {
                 setFromDate={state.setFromDate}
                 toDate={state.toDate}
                 setToDate={state.setToDate}
+                portion={state.portion}
+                setPortion={state.setPortion}
+                halfDayAvailable={state.halfDayAvailable}
                 reason={state.reason}
                 setReason={state.setReason}
                 attachmentName={state.attachmentName}
@@ -114,7 +129,7 @@ export function ApplyLeaveDialog(props: ApplyLeaveDialogProps) {
                 onBehalf={onBehalf}
               />
             </div>
-            <div className="flex min-h-full min-w-0 flex-col bg-hrms-muted-bg/30 p-5">
+            <div className="flex min-w-0 flex-col bg-hrms-muted-bg/30 p-5">
               <ApplyLeaveSummaryPanel
                 preview={state.preview}
                 chain={state.chain}
@@ -128,7 +143,7 @@ export function ApplyLeaveDialog(props: ApplyLeaveDialogProps) {
             </div>
           </div>
         </LeaveDialogBody>
-        <LeaveDialogFooter>
+        <LeaveDialogFooter className="bg-white">
           <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-xs text-hrms-text-muted">
               {state.preview && state.preview.errors.length > 0
@@ -143,8 +158,9 @@ export function ApplyLeaveDialog(props: ApplyLeaveDialogProps) {
               primaryLabel={onBehalf ? 'Submit on behalf' : 'Submit request'}
               loading={saving}
               primaryDisabled={!state.preview || state.preview.errors.length > 0 || !state.reason.trim()}
-              onPrimary={() => {
-                onSubmit(state.submitPayload)
+              onPrimary={async () => {
+                const outcome = await onSubmit(state.submitPayload)
+                if (outcome === false) return
                 state.reset()
                 onOpenChange(false)
               }}

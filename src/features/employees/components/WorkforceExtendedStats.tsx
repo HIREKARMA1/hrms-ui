@@ -8,34 +8,92 @@ import {
 } from 'lucide-react'
 
 import { Card, CardContent } from '@/components/ui/card'
+import { Skeleton } from '@/components/ui/skeleton'
 
+import {
+  useGetNewJoinersQuery,
+  useGetOnProbationEmployeesQuery,
+  useGetTerminatedEmployeesQuery,
+} from '../api/employeeDashboardApi'
+import { useEmployeeSummary } from '../hooks/useEmployeeSummary'
 import { workforceExtendedSummary } from '../mocks/employeeDashboard.mock'
-import { employeeStatSummary } from '../mocks/employeeDashboard.mock'
 
 /**
- * Additive workforce cards. Does not replace EmployeeStatsCards.
- * Total / Active / Inactive are also surfaced here for the requested widget set.
+ * Additive workforce cards. Live headcount / probation / terminated / new joiners.
+ * Notice period and resigned stay hardcoded until those APIs exist.
  */
 export function WorkforceExtendedStats() {
-  const { totalEmployees, activeEmployees, inactiveEmployees } = employeeStatSummary
-  const {
-    newJoinersThisMonth,
-    onProbation,
-    onNoticePeriod,
-    resigned,
-    terminated,
-  } = workforceExtendedSummary
+  const { summary, isLoading: summaryLoading } = useEmployeeSummary()
+  const newJoinersQuery = useGetNewJoinersQuery({ page: 1, limit: 1 })
+  const probationQuery = useGetOnProbationEmployeesQuery({ page: 1, limit: 1 })
+  const terminatedQuery = useGetTerminatedEmployeesQuery({ page: 1, limit: 1 })
+
+  const { onNoticePeriod, resigned } = workforceExtendedSummary
 
   const cards = [
-    { label: 'Total Employees', value: totalEmployees, icon: UsersRound },
-    { label: 'Active Employees', value: activeEmployees, icon: BadgeCheck },
-    { label: 'Inactive Employees', value: inactiveEmployees, icon: UserX },
-    { label: 'New Joiners This Month', value: newJoinersThisMonth, icon: UserPlus },
-    { label: 'Employees on Probation', value: onProbation, icon: Hourglass },
-    { label: 'Employees on Notice Period', value: onNoticePeriod, icon: Hourglass },
-    { label: 'Resigned Employees', value: resigned, icon: UserMinus },
-    { label: 'Terminated Employees', value: terminated, icon: UserX },
-  ] as const
+    {
+      label: 'Total Employees',
+      value: summary?.totalEmployees ?? 0,
+      icon: UsersRound,
+      loading: summaryLoading,
+      sample: false,
+    },
+    {
+      label: 'Active Employees',
+      value: summary?.activeEmployees ?? 0,
+      icon: BadgeCheck,
+      loading: summaryLoading,
+      sample: false,
+    },
+    {
+      label: 'Inactive Employees',
+      value: summary?.inactiveEmployees ?? 0,
+      icon: UserX,
+      loading: summaryLoading,
+      sample: false,
+    },
+    {
+      label: 'New Joiners This Month',
+      value: newJoinersQuery.data?.pagination.total ?? 0,
+      icon: UserPlus,
+      loading: newJoinersQuery.isLoading,
+      sample: false,
+    },
+    {
+      label: 'Employees on Probation',
+      value:
+        probationQuery.data?.pagination.total ??
+        summary?.probationEmployees ??
+        0,
+      icon: Hourglass,
+      loading: probationQuery.isLoading && summaryLoading,
+      sample: false,
+    },
+    {
+      label: 'Employees on Notice Period',
+      value: onNoticePeriod,
+      icon: Hourglass,
+      loading: false,
+      sample: true,
+    },
+    {
+      label: 'Resigned Employees',
+      value: resigned,
+      icon: UserMinus,
+      loading: false,
+      sample: true,
+    },
+    {
+      label: 'Terminated Employees',
+      value:
+        terminatedQuery.data?.pagination.total ??
+        summary?.inactiveEmployees ??
+        0,
+      icon: UserX,
+      loading: terminatedQuery.isLoading && summaryLoading,
+      sample: false,
+    },
+  ]
 
   return (
     <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -48,10 +106,19 @@ export function WorkforceExtendedStats() {
                 <Icon className="h-5 w-5" strokeWidth={1.9} />
               </div>
               <div className="min-w-0">
-                <p className="text-sm text-text-secondary">{card.label}</p>
-                <p className="text-2xl font-bold tabular-nums text-navy">
-                  {card.value}
+                <p className="text-sm text-text-secondary">
+                  {card.label}
+                  {card.sample ? (
+                    <span className="ml-1.5 rounded bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-amber-700">
+                      Later
+                    </span>
+                  ) : null}
                 </p>
+                {card.loading ? (
+                  <Skeleton className="mt-1 h-7 w-12" />
+                ) : (
+                  <p className="text-2xl font-bold tabular-nums text-navy">{card.value}</p>
+                )}
               </div>
             </CardContent>
           </Card>

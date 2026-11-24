@@ -61,6 +61,11 @@ function AgendaItemBody({
       {item.isCompanyHoliday ? (
         <p className="bg-amber-50 px-3 py-1 text-center text-xs font-semibold text-amber-900">Company holiday</p>
       ) : null}
+      {item.category === 'weeklyOff' ? (
+        <p className="bg-slate-100 px-3 py-1 text-center text-xs font-semibold text-slate-800">
+          Weekly off
+        </p>
+      ) : null}
       <div className="space-y-2 p-3.5">
         <div className="flex items-start justify-between gap-2">
           <p className="text-[15px] font-bold text-hrms-navy">{item.title}</p>

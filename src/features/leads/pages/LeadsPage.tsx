@@ -104,7 +104,11 @@ function LeadsPagePanels() {
         ) : null}
         {activeTab === 'All Leads' && showAdminPanels ? (
           <AllLeadsTab
-            onOpenCreate={() => setFormState({ open: true, mode: 'create', lead: null })}
+            onOpenCreate={
+              canCreateLeads
+                ? () => setFormState({ open: true, mode: 'create', lead: null })
+                : undefined
+            }
             onOpenEdit={openEdit}
             canEditLead={canEditLead}
             canDeleteLeads={canDeleteLeads}
@@ -128,7 +132,11 @@ function LeadsPagePanels() {
             role={role}
             scope="team"
             title="Team pipeline (assigned sales owners)"
-            onOpenCreate={() => setFormState({ open: true, mode: 'create', lead: null })}
+            onOpenCreate={
+              canCreateLeads
+                ? () => setFormState({ open: true, mode: 'create', lead: null })
+                : undefined
+            }
             onOpenEdit={openEdit}
           />
         ) : null}
@@ -137,9 +145,12 @@ function LeadsPagePanels() {
         ) : null}
         {activeTab === 'Duplicates' && showAdminPanels ? <LeadsDuplicatesTab /> : null}
       </section>
-      {canCreateLeads ? (
+      {canCreateLeads || canEditLead ? (
         <LeadFormDialog
-          open={formState.open}
+          open={
+            formState.open &&
+            (formState.mode === 'create' ? canCreateLeads : canEditLead)
+          }
           onOpenChange={(open) => setFormState((state) => ({ ...state, open }))}
           mode={formState.mode}
           initial={formState.lead}

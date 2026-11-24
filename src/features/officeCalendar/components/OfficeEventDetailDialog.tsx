@@ -13,6 +13,8 @@ import {
   PayrollDialogRoot,
 } from '@/features/payroll/components/shared/PayrollDialog'
 
+import { getApiErrorMessage } from '@/services/api/errors'
+
 import { useOfficeCalendar } from '../hooks/useOfficeCalendar'
 import { useOfficeCalendarConfirm } from '../hooks/useOfficeCalendarConfirm'
 import { useOfficeCalendarToast } from '../hooks/useOfficeCalendarToast'
@@ -24,7 +26,8 @@ type OfficeEventDetailDialogProps = {
   event: OfficeCalendarEvent | null
   open: boolean
   onOpenChange: (open: boolean) => void
-  canManage: boolean
+  canEdit: boolean
+  canDelete: boolean
   onEdit: () => void
   onDeleted?: () => void
 }
@@ -33,7 +36,8 @@ export function OfficeEventDetailDialog({
   event,
   open,
   onOpenChange,
-  canManage,
+  canEdit,
+  canDelete,
   onEdit,
   onDeleted,
 }: OfficeEventDetailDialogProps) {
@@ -50,10 +54,14 @@ export function OfficeEventDetailDialog({
       description: `Remove “${event.title}” from the office calendar.`,
     })
     if (!confirmed) return
-    await removeEvent(event.id)
-    showToast('Event deleted.')
-    onDeleted?.()
-    onOpenChange(false)
+    try {
+      await removeEvent(event.id)
+      showToast('Event deleted.')
+      onDeleted?.()
+      onOpenChange(false)
+    } catch (cause) {
+      showToast(getApiErrorMessage(cause, 'Could not delete event.'))
+    }
   }
 
   return (
@@ -88,19 +96,23 @@ export function OfficeEventDetailDialog({
             ) : null}
           </PayrollDialogBody>
           <PayrollDialogFooter className="gap-2">
-            {canManage ? (
+            {canEdit || canDelete ? (
               <>
-                <Button type="button" variant="outline" onClick={onEdit}>
-                  Edit
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="text-hrms-danger hover:text-hrms-danger"
-                  onClick={() => void handleDelete()}
-                >
-                  Delete
-                </Button>
+                {canEdit ? (
+                  <Button type="button" variant="outline" onClick={onEdit}>
+                    Edit
+                  </Button>
+                ) : null}
+                {canDelete ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="text-hrms-danger hover:text-hrms-danger"
+                    onClick={() => void handleDelete()}
+                  >
+                    Delete
+                  </Button>
+                ) : null}
               </>
             ) : (
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>

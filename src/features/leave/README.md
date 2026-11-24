@@ -1,6 +1,15 @@
 # Leave Management (UI)
 
-Single-company leave: balances, requests, approvals, calendar, accruals, and policy settings. Mock data lives behind `services/leaveService.ts`.
+Single-company leave: balances, requests, approvals, calendar, accruals, and policy settings. Signed-in users get server data (RTK Query, `api/`); demo routes keep the mock store behind `services/leaveService.ts`.
+
+## Server data (signed-in users)
+
+- Endpoints → `api/leaveApi.ts` (injected into `baseApi`); backend contracts in `api/leaveApi.types.ts`; pure request/response mapping in `api/leaveMappers.ts`. Bodies that fail the strict readers become `LEAVE_INVALID_RESPONSE` errors, never data.
+- Snapshot → `hooks/useLeaveProviderState.ts` picks `hooks/useLeaveApiSnapshot.ts` when `viewer.source === 'authenticated'`. `services/leaveApiSnapshot.ts` decides which reads run (`resolveLeaveApiAccess`) and builds the `LeaveSnapshot`; `snapshot.api` marks server mode.
+- Server mutations → `hooks/useLeaveApiActions.ts` (apply, approve, reject, cancel, encashment approve/reject, balance adjustment, accrual / carry-forward / expiry runs). Every action resolves to `{ ok, message }`.
+- Server-only screens → `components/balances/ApiBalancesTab.tsx`, `components/accruals/ApiAccrualsTab.tsx`, `components/settings/ApiLeaveSettingsTab.tsx`; calendar data in `hooks/useServerLeaveCalendar.ts`.
+- Not stored by the backend, so empty in server mode (never mocked): balance ledger, comp-off, delegations, holidays, accrual run history, settings history. Notices use `components/shared/LeaveServerNotice.tsx`.
+- Personal features need the caller's employee id from auth (`user.employeeId`). When it is missing, My Leave, personal / team calendars, manager approvals and multi-level workflow approvals (`/leave-approval/*`) show `LeaveEmployeeLinkNotice`.
 
 ## Folder structure
 
@@ -15,8 +24,9 @@ Single-company leave: balances, requests, approvals, calendar, accruals, and pol
 - `constants/` — Status pills, type codes, compliance copy
 - `types/` — Requests, ledger, comp-off, encashment, settings models
 - `utils/` — Day counting, validation, accrual, approval chain pure functions
-- `services/` — Mock store, facade, payroll read API
-- `hooks/` — Viewer demo role, page tabs, settings form, provider state
+- `api/` — RTK Query endpoints, backend contract types, mappers
+- `services/` — Mock store, facade, server snapshot builder, payroll read API
+- `hooks/` — Page tabs, settings form, provider state
 
 ## Where to change things
 
@@ -34,7 +44,8 @@ Single-company leave: balances, requests, approvals, calendar, accruals, and pol
 - Settings save history → `types/settingsHistory.ts`, `utils/buildSettingsHistoryEntries.ts`, `services/leaveService.ts`
 - Leave rules seeds → `services/companyDefaults.ts` (sample values, confirm with CA); type seeds in `services/defaultLeaveTypes.ts`
 - Connect payroll → `services/leavePayrollApi.ts`
-- Connect real login → `context/LeaveViewerProvider.tsx` (demo role + sidebar leave nav)
+- Viewer identity → `context/LeaveViewerProvider.tsx` + `utils/resolveLeaveViewer.ts`: signed-in users come from Redux `auth.user` (role from the active workspace, `employeeId` when auth exposes it); `constants/leaveDemoViewers.ts` personas apply only when nobody is signed in
+- Accounts without `employeeId` on auth → `components/shared/LeaveEmployeeLinkNotice.tsx` ("We couldn't retrieve your employee record…", never "not linked") replaces personal data (My Leave, team approvals, personal calendar)
 - HR Admin Overview → `components/overview/HrOverviewTab.tsx` and section cards under `components/overview/`
   - Section chrome → `OverviewSectionHeader.tsx`, shared card shell `OverviewCard.tsx`
   - Attention section → `OverviewAttentionSection.tsx`, banner `OverviewAttentionBanner.tsx`, also-list `OverviewAttentionAlso.tsx` (request queue lives on Requests tab only)

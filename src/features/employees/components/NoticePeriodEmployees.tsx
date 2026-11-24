@@ -28,7 +28,9 @@ export function NoticePeriodEmployees() {
           <Hourglass className="h-4 w-4 text-brand-500" />
           Employees on Notice Period
         </CardTitle>
-        <CardDescription>Current notice period workforce</CardDescription>
+        <CardDescription>
+          Placeholder data for now — notice-period API will be wired later
+        </CardDescription>
       </CardHeader>
       <CardContent>
         <Table>

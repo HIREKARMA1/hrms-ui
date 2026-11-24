@@ -5,6 +5,7 @@
 import { useState } from 'react'
 
 import type { LeaveSettings } from '../../../types/leaveSettings'
+import { EmployeeLeavePolicyDefaultsLiveTable } from '../EmployeeLeavePolicyDefaultsLiveTable'
 import { LeaveConfirmDialog } from '../../shared/LeaveConfirmDialog'
 import { SettingsField } from '../shared/SettingsField'
 import { SettingsSegmented } from '../shared/SettingsSegmented'
@@ -25,6 +26,7 @@ export function GeneralSettingsSection({ draft, onChange }: GeneralSettingsSecti
 
   return (
     <div className="space-y-6">
+      <EmployeeLeavePolicyDefaultsLiveTable />
       <SettingsField label="Leave year" helper="Balances are credited and reset at the start of each leave year." tip="Changing this shifts when yearly quotas reset.">
         <SettingsSegmented
           ariaLabel="Leave year"

@@ -38,6 +38,8 @@ export type LeaveStep = {
 export type LeaveRequest = {
   id: string
   employeeId: string
+  /** Populated from API leave list for HR employee-id resolution. */
+  employeeName?: string
   leaveTypeCode: string
   fromDate: string
   toDate: string
@@ -57,5 +59,7 @@ export type LeaveRequest = {
   expectedDeliveryDate?: string
   compOffLotIds?: string[]
   convertedToLwp?: boolean
+  /** Server requests on a multi-level approval workflow (only the assigned approver can act). */
+  multiLevelWorkflow?: boolean
   steps: LeaveStep[]
 }

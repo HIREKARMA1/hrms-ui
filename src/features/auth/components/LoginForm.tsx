@@ -2,7 +2,7 @@ import { Loader2, Mail } from 'lucide-react'
 
 import { HireKarmaMark } from '@/components/brand/HireKarmaMark'
 import { useEffect, useState, type FormEvent } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 
 import { useAppDispatch } from '@/app/store/hooks'
 import { Button } from '@/components/ui/button'
@@ -14,7 +14,10 @@ import { getApiErrorMessage } from '@/services/api/errors'
 
 import { useLoginMutation } from '../api/authApi'
 import { clearCredentials } from '../store/authSlice'
+import { normalizeAuthUser } from '../utils/authUser'
 import { getLandingRouteForUserRole } from '../utils/landingRoute'
+import { hasPasswordResetState, PASSWORD_RESET_DONE_MESSAGE } from '../utils/passwordReset'
+import { getSafeReturnPath } from '../utils/returnPath'
 import { PasswordInput } from './PasswordInput'
 
 type FormErrors = {
@@ -26,6 +29,7 @@ const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 export function LoginForm() {
   const navigate = useNavigate()
+  const location = useLocation()
   const dispatch = useAppDispatch()
   const [login, { isLoading }] = useLoginMutation()
   const [email, setEmail] = useState('')
@@ -33,7 +37,10 @@ export function LoginForm() {
   const [rememberMe, setRememberMe] = useState(false)
   const [errors, setErrors] = useState<FormErrors>({})
   const [formError, setFormError] = useState<string | null>(null)
-  const [toastMessage, setToastMessage] = useState<string | null>(null)
+  // Set by the reset-password screen after a successful reset (no auto sign-in).
+  const [toastMessage, setToastMessage] = useState<string | null>(() =>
+    hasPasswordResetState(location.state) ? PASSWORD_RESET_DONE_MESSAGE : null,
+  )
 
   useEffect(() => {
     if (!toastMessage) return
@@ -72,7 +79,10 @@ export function LoginForm() {
         rememberMe,
       }).unwrap()
 
-      const landing = getLandingRouteForUserRole(session.user.role)
+      const landing = getLandingRouteForUserRole(
+        session.user.role,
+        session.user.roles,
+      )
       if (!landing) {
         dispatch(clearCredentials())
         setFormError('Your account role is not supported in this portal.')
@@ -80,7 +90,11 @@ export function LoginForm() {
       }
 
       setToastMessage('Signed in. Redirecting...')
-      navigate(landing, { replace: true })
+      const returnTo = getSafeReturnPath(
+        location.state,
+        normalizeAuthUser(session.user),
+      )
+      navigate(returnTo ?? landing, { replace: true })
     } catch (error) {
       setFormError(getApiErrorMessage(error, 'Unable to sign in. Please try again.'))
     }

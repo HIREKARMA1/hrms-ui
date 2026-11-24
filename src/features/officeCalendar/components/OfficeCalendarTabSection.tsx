@@ -1,5 +1,9 @@
 import type { UserRole } from '@/features/leave/constants/userRoles'
 
+import type {
+  OfficeCalendarEventListSource,
+  OfficeHolidayListSource,
+} from '../context/officeCalendarContext'
 import type { OfficeCalendarPageTabId } from '../hooks/useOfficeCalendarPageTabs'
 import type { OfficeCalendarEvent, OfficeHoliday, OfficeHolidayInput } from '../types/officeCalendar'
 import { OfficeCalendarHolidaysTab } from './OfficeCalendarHolidaysTab'
@@ -13,12 +17,18 @@ type OfficeCalendarTabSectionProps = {
   visibleEvents: OfficeCalendarEvent[]
   canViewOverview: boolean
   isReadOnlyHolidays: boolean
-  canManageEvents: boolean
+  canCreateEvents: boolean
   goToTab: (tab: OfficeCalendarPageTabId) => void
   onCreateEvent: (date?: string) => void
   onOpenEvent: (id: string) => void
   onSaveHoliday: (input: OfficeHolidayInput, id?: string) => Promise<OfficeHoliday>
   onDeleteHoliday: (id: string) => Promise<void>
+  eventsSource: OfficeCalendarEventListSource
+  holidaysSource: OfficeHolidayListSource
+  onVisibleEventYearChange: (year: number) => void
+  eventSearchQuery: string
+  onEventSearchQueryChange: (query: string) => void
+  eventSearchFetching: boolean
 }
 
 export function OfficeCalendarTabSection({
@@ -28,12 +38,18 @@ export function OfficeCalendarTabSection({
   visibleEvents,
   canViewOverview,
   isReadOnlyHolidays,
-  canManageEvents,
+  canCreateEvents,
   goToTab,
   onCreateEvent,
   onOpenEvent,
   onSaveHoliday,
   onDeleteHoliday,
+  eventsSource,
+  holidaysSource,
+  onVisibleEventYearChange,
+  eventSearchQuery,
+  onEventSearchQueryChange,
+  eventSearchFetching,
 }: OfficeCalendarTabSectionProps) {
   const holidayTabActive = activeTab === 'Holidays' || activeTab === 'Holiday Management'
 
@@ -45,18 +61,25 @@ export function OfficeCalendarTabSection({
           holidays={holidays}
           events={visibleEvents}
           onNavigate={goToTab}
-          canManageEvents={canManageEvents}
+          canCreateEvents={canCreateEvents}
           onScheduleEvent={() => onCreateEvent()}
           onOpenEvent={onOpenEvent}
+          eventsSource={eventsSource}
+          holidaysSource={holidaysSource}
         />
       ) : null}
       {activeTab === 'Calendar' ? (
         <OfficeCalendarScheduleTab
           holidays={holidays}
           events={visibleEvents}
-          canManageEvents={canManageEvents}
+          canCreateEvents={canCreateEvents}
           onCreateEvent={onCreateEvent}
           onOpenEvent={onOpenEvent}
+          eventsSource={eventsSource}
+          onVisibleYearChange={onVisibleEventYearChange}
+          eventSearchQuery={eventSearchQuery}
+          onEventSearchQueryChange={onEventSearchQueryChange}
+          eventSearchFetching={eventSearchFetching}
         />
       ) : null}
       {holidayTabActive ? (

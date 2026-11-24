@@ -24,7 +24,8 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 
-import { formatInr, payrollSummary } from '../mocks/employeeDashboard.mock'
+import { payrollSummary } from '../mocks/employeeDashboard.mock'
+import { formatInr } from '../utils/format'
 
 export function MonthlyPayrollOverview() {
   const [period, setPeriod] = useState('6m')
@@ -37,7 +38,7 @@ export function MonthlyPayrollOverview() {
         <div>
           <CardTitle>Monthly Payroll Overview</CardTitle>
           <CardDescription>
-            Sample payroll totals and month-wise comparison
+            Hardcoded preview until payroll integration
           </CardDescription>
         </div>
         <Select value={period} onValueChange={setPeriod}>

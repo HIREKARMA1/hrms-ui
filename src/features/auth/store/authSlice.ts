@@ -47,6 +47,14 @@ const authSlice = createSlice({
     clearCredentials() {
       return emptyState
     },
+    /**
+     * Drop the refresh token after the server has revoked it (e.g. change
+     * password). The access token and user stay so the current session
+     * continues until the access JWT expires.
+     */
+    clearRefreshToken(state) {
+      state.refreshToken = null
+    },
   },
   extraReducers: (builder) => {
     builder.addMatcher(
@@ -58,6 +66,19 @@ const authSlice = createSlice({
         state.rememberMe = meta.arg.originalArgs.rememberMe === true
       },
     )
+
+    // Sync the latest backend user from GET /auth/me. Only the user object is
+    // written; tokens and rememberMe are untouched. A late response can never
+    // restore an ended session (no tokens/user) or overwrite a different
+    // account's session (id mismatch).
+    builder.addMatcher(
+      authApi.endpoints.getCurrentUser.matchFulfilled,
+      (state, { payload }) => {
+        if (!state.accessToken || !state.user) return
+        if (state.user.id !== payload.id) return
+        state.user = payload
+      },
+    )
   },
   selectors: {
     selectCurrentUser: (state) => state.user,
@@ -67,7 +88,7 @@ const authSlice = createSlice({
   },
 })
 
-export const { setCredentials, clearCredentials } = authSlice.actions
+export const { setCredentials, clearCredentials, clearRefreshToken } = authSlice.actions
 export const { selectCurrentUser, selectAccessToken, selectIsAuthenticated } =
   authSlice.selectors
 export const authReducer = authSlice.reducer

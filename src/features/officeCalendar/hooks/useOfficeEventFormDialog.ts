@@ -6,6 +6,8 @@ import {
   emptyOfficeEventInput,
   officeEventInputFromEvent,
 } from '../utils/officeCalendarEventForm'
+import { getApiErrorMessage } from '@/services/api/errors'
+
 import { useOfficeCalendarToast } from './useOfficeCalendarToast'
 
 type UseOfficeEventFormDialogArgs = {
@@ -59,7 +61,7 @@ export function useOfficeEventFormDialog({
       onSaved?.(saved)
       onOpenChange(false)
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Could not save event.')
+      setError(getApiErrorMessage(cause, 'Could not save event.'))
     } finally {
       setSaving(false)
     }

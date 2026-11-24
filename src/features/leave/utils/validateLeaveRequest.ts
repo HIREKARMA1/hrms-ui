@@ -35,6 +35,16 @@ export type LeaveValidationResult = {
   coverageWarnings: string[]
 }
 
+/**
+ * Server balance mode. `availableByType` holds the server's available paid
+ * days per type code (pending requests already reserved); null means the
+ * balance is not known yet, so the balance check is skipped. Days beyond the
+ * balance are not an error: the server records them as loss of pay.
+ */
+export type ServerBalanceOptions = {
+  availableByType: Record<string, number> | null
+}
+
 function overlaps(existing: LeaveRequest, from: string, to: string): boolean {
   return existing.fromDate <= to && existing.toDate >= from
 }
@@ -46,6 +56,7 @@ export function validateLeaveRequest(
   ledger: LedgerEntry[],
   existing: LeaveRequest[],
   allEmployees: LeaveEmployee[],
+  serverBalance?: ServerBalanceOptions,
 ): LeaveValidationResult {
   const errors: string[] = []
   const warnings: string[] = []
@@ -56,10 +67,15 @@ export function validateLeaveRequest(
   if (input.toDate < input.fromDate) {
     errors.push('End date cannot be before start date.')
   }
+  if (input.portion && input.portion !== 'full' && input.fromDate !== input.toDate) {
+    errors.push('Half-day leave must start and end on the same date.')
+  }
   const days = countLeaveDays(settings, policy, input)
-  const probationEnd = addDays(employee.joiningDate, settings.minProbationMonths * 30)
-  if (leaveTodayIso() < probationEnd && policy.code !== 'LWP') {
-    errors.push('Employee is still in probation for this leave type.')
+  if (employee.joiningDate && settings.minProbationMonths > 0) {
+    const probationEnd = addDays(employee.joiningDate, settings.minProbationMonths * 30)
+    if (leaveTodayIso() < probationEnd && policy.code !== 'LWP') {
+      errors.push('Employee is still in probation for this leave type.')
+    }
   }
   if (policy.eligibleGender !== 'All' && policy.eligibleGender !== employee.gender) {
     errors.push('Leave type is not eligible for this employee.')
@@ -95,7 +111,13 @@ export function validateLeaveRequest(
     errors.push('Dates overlap another pending or approved request.')
   }
   let extraLwp = 0
-  if (policy.paid && policy.code !== 'LWP') {
+  if (serverBalance) {
+    const available = serverBalance.availableByType ? (serverBalance.availableByType[policy.code] ?? 0) : null
+    if (policy.paid && available !== null && days > available) {
+      extraLwp = Math.round((days - Math.max(available, 0)) * 100) / 100
+      warnings.push(`${extraLwp} day(s) exceed the available balance and will be recorded as loss of pay.`)
+    }
+  } else if (policy.paid && policy.code !== 'LWP') {
     const balance = ledgerBalanceForType(ledger, input.employeeId, policy.code)
     const pending = existing
       .filter((item) => item.employeeId === input.employeeId && item.status === 'Pending')
@@ -130,5 +152,6 @@ export function validateLeaveRequest(
   } else {
     warnings.push(...coverageWarnings)
   }
-  return { errors, warnings, daysCounted: days, extraLwpDays: input.convertExtraToLwp ? extraLwp : 0, coverageWarnings }
+  const lwpDays = serverBalance ? extraLwp : input.convertExtraToLwp ? extraLwp : 0
+  return { errors, warnings, daysCounted: days, extraLwpDays: lwpDays, coverageWarnings }
 }

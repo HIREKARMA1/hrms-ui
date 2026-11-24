@@ -1,11 +1,13 @@
 import { configureStore } from '@reduxjs/toolkit'
 import { setupListeners } from '@reduxjs/toolkit/query'
 
+import { createAuthSessionHandlers } from '@/features/auth/store/authSessionHandlers'
 import {
   clearStoredAuth,
   saveStoredAuth,
 } from '@/features/auth/utils/authStorage'
-import { baseApi } from '@/services/api/baseApi'
+import { redirectToLogin } from '@/features/auth/utils/sessionRedirect'
+import { baseApi, registerAuthSessionHandlers } from '@/services/api/baseApi'
 
 import { rootReducer } from './rootReducer'
 
@@ -17,6 +19,18 @@ export const store = configureStore({
 
 setupListeners(store.dispatch)
 
+// Token refresh (see baseApi): rotated tokens go through the existing
+// `setCredentials` action (rememberMe is preserved) and the persistence
+// subscriber below; a dead session clears state/storage and returns to login.
+registerAuthSessionHandlers(
+  createAuthSessionHandlers(store, {
+    onExpired: () => {
+      clearStoredAuth()
+      redirectToLogin()
+    },
+  }),
+)
+
 // Persist the auth slice (only when it actually changes).
 let previousAuth = store.getState().auth
 store.subscribe(() => {
@@ -24,7 +38,9 @@ store.subscribe(() => {
   if (auth === previousAuth) return
   previousAuth = auth
 
-  if (auth.accessToken && auth.refreshToken && auth.user) {
+  // Persist while the access session is usable. `refreshToken` may be null
+  // after the server revokes it (change password) without ending the session.
+  if (auth.accessToken && auth.user) {
     saveStoredAuth({
       accessToken: auth.accessToken,
       refreshToken: auth.refreshToken,

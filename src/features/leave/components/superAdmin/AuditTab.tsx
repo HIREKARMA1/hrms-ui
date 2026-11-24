@@ -8,6 +8,7 @@ import { useLeave } from '../../hooks/useLeave'
 import { superAdminAuditInsights } from '../../utils/superAdminAuditInsights'
 import { LeaveTabHeader } from '../LeaveTabHeader'
 import { HistorySettingsSection } from '../settings/sections/HistorySettingsSection'
+import { LeaveServerNotice } from '../shared/LeaveServerNotice'
 import { AuditTabOverview } from './AuditTabOverview'
 
 export function AuditTab() {
@@ -22,6 +23,9 @@ export function AuditTab() {
         title="Audit"
         subtitle="Append-only history of saved leave policy changes and demo batch runs."
       />
+      {snapshot.api ? (
+        <LeaveServerNotice>Settings change history and batch run history are not available from the server yet.</LeaveServerNotice>
+      ) : null}
       <AuditTabOverview insights={insights} />
       <Card>
         <CardHeader className="pb-2">

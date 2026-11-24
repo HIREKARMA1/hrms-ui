@@ -1,46 +1,4 @@
-import type { AuthSession, RolesApiResponse } from '../types/roles'
-
-/**
- * UI preview session only — not real authentication.
- * permissions: null means "not loaded from API yet; use role menus".
- */
-export const mockSessionsByRole: Record<
-  AuthSession['roleCode'],
-  AuthSession
-> = {
-  SUPER_ADMIN: {
-    userId: 'USR-0001',
-    displayName: 'Rohith Goud',
-    email: 'superadmin@hrms.local',
-    roleCode: 'SUPER_ADMIN',
-    roleName: 'Super Admin',
-    permissions: null,
-  },
-  HR_ADMIN: {
-    userId: 'USR-0002',
-    displayName: 'Rohith Goud',
-    email: 'admin@hrms.local',
-    roleCode: 'HR_ADMIN',
-    roleName: 'Admin',
-    permissions: null,
-  },
-  MANAGER: {
-    userId: 'USR-0003',
-    displayName: 'Rohith Goud',
-    email: 'hr@hrms.local',
-    roleCode: 'MANAGER',
-    roleName: 'HR Manager',
-    permissions: null,
-  },
-  EMPLOYEE: {
-    userId: 'EMP-1001',
-    displayName: 'Ananya Sharma',
-    email: 'ananya.sharma@hrms.local',
-    roleCode: 'EMPLOYEE',
-    roleName: 'Employee',
-    permissions: null,
-  },
-}
+import type { RolesApiResponse } from '../types/roles'
 
 /** Matches the documented roles API response shape for typing/demo. */
 export const mockRolesApiResponse: RolesApiResponse = {

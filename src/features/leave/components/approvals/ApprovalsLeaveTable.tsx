@@ -5,6 +5,7 @@
 import { Card, CardContent } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 
+import { useLeavePermissions } from '../../hooks/useLeavePermissions'
 import type { LeaveRequest } from '../../types/leaveRequest'
 import { formatDate } from '../../utils/formatDate'
 import { LeaveStatusPill } from '../LeaveStatusPill'
@@ -31,6 +32,7 @@ export function ApprovalsLeaveTable({
   onReject,
   busyId,
 }: ApprovalsLeaveTableProps) {
+  const permissions = useLeavePermissions()
   if (rows.length === 0) {
     return (
       <Card>
@@ -89,8 +91,12 @@ export function ApprovalsLeaveTable({
                 <td className="px-4 py-3 text-right" onClick={(event) => event.stopPropagation()}>
                   <div className="flex flex-wrap items-center justify-end gap-2">
                     <RowLinkButton onClick={() => onView(row)}>View</RowLinkButton>
-                    <ApproveRowButton disabled={busyId === row.id} onClick={() => onApprove(row.id)} />
-                    <RejectRowButton disabled={busyId === row.id} onClick={() => onReject(row.id)} />
+                    {permissions.canApprove ? (
+                      <>
+                        <ApproveRowButton disabled={busyId === row.id} onClick={() => onApprove(row.id)} />
+                        <RejectRowButton disabled={busyId === row.id} onClick={() => onReject(row.id)} />
+                      </>
+                    ) : null}
                   </div>
                 </td>
               </tr>

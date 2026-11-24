@@ -38,8 +38,13 @@ export function useOfficeCalendarHolidayTab(
       description: `Remove “${item.name}” from the office calendar.`,
     })
     if (!confirmed) return
-    await onDelete(id)
-    showToast('Holiday removed.')
+    try {
+      await onDelete(id)
+      showToast('Holiday removed.')
+    } catch (cause) {
+      const message = cause instanceof Error ? cause.message : 'Unable to delete holiday.'
+      showToast(message)
+    }
   }
 
   return {
