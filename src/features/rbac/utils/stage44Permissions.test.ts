@@ -141,6 +141,7 @@ describe('employee management action permissions', () => {
     expect(FEATURE_PERMISSION_MAP['employee.manage']).toBe('employees:update')
     expect(FEATURE_PERMISSION_MAP['employee.delete']).toBe('employees:delete')
     expect(FEATURE_PERMISSION_MAP['employee.registration.edit']).toBe('employees:create')
+    expect(FEATURE_PERMISSION_MAP['employee.createLogin']).toBe('users:create')
   })
 
   it('create alone no longer allows edit, archive or delete', () => {

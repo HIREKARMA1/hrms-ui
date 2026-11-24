@@ -8,6 +8,7 @@ export const API_TAGS = [
   'Role',
   'Permission',
   'Employee',
+  'Department',
   'Leave',
   'Attendance',
   'Holiday',

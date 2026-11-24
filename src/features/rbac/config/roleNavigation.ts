@@ -278,6 +278,11 @@ const hrAdminNav: RoleNavItem[] = [
         path: '/hradmin/employees/directory',
         feature: 'employee.directory',
       },
+      {
+        title: 'Add Employee',
+        path: '/admin/employees/add',
+        feature: 'employee.registration.edit',
+      },
     ],
   },
   {
@@ -410,8 +415,13 @@ const managerNav: RoleNavItem[] = [
     iconName: 'Wallet',
     children: payrollNavChildrenForRbac('MANAGER', '/manager'),
   },
-  { title: 'Onboarding', path: '/manager/onboarding', iconName: 'UserRoundPlus' },
-  { title: 'Offboarding', path: '/manager/offboarding', iconName: 'UserRoundMinus' },
+  {
+    title: 'Onboarding',
+    path: '/hr/employees/add',
+    iconName: 'UserRoundPlus',
+    feature: 'employee.registration.edit',
+  },
+  { title: 'Offboarding', path: '/hr/offboarding', iconName: 'UserRoundMinus' },
   {
     title: 'Request',
     path: '/manager/support/admin-requests',
@@ -462,7 +472,7 @@ const employeeNav: RoleNavItem[] = [
     title: 'My Attendance',
     path: '/employee/attendance',
     iconName: 'ClipboardList',
-    feature: 'attendance.reports',
+    feature: 'attendance.my',
   },
   {
     title: 'Check In / Check Out',
@@ -480,7 +490,7 @@ const employeeNav: RoleNavItem[] = [
     title: 'Attendance Regularization',
     path: '/employee/attendance/regularization',
     iconName: 'ClipboardList',
-    feature: 'attendance.regularization',
+    feature: 'attendance.regularization.my',
   },
   {
     title: 'Leave Management',

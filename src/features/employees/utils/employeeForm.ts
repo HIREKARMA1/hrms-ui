@@ -40,6 +40,6 @@ export const emptyEmployeeForm = (): EmployeeProfileFormState => ({
   probationStartDate: '',
   probationEndDate: '',
   confirmationDate: '',
-  noticePeriod: '60 days',
-  workShift: 'General (9:30–18:30)',
+  noticePeriod: '',
+  workShift: '',
 })

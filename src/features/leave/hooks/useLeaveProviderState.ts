@@ -21,7 +21,8 @@ function useDemoLeaveState(enabled: boolean) {
     setLoading(true)
     setError(null)
     try {
-      setSnapshot(await fetchLeaveSnapshot())
+      const data = await fetchLeaveSnapshot()
+      setSnapshot(data)
     } catch {
       setError('Could not load leave data.')
       setSnapshot(null)

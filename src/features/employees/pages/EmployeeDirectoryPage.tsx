@@ -386,9 +386,8 @@ export function EmployeeDirectoryPage() {
               {deleteTarget
                 ? `${deleteTarget.profile.firstName} ${deleteTarget.profile.lastName} (${deleteTarget.profile.employeeCode})`
                 : 'This employee'}{' '}
-              will be removed from the HRMS database
-              {deleteTarget?.server.deviceId ? ' and from the linked biometric device' : ''}.
-              This cannot be undone.
+              will be removed from the HRMS database. TimeWatch device punch data is not
+              changed. This cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

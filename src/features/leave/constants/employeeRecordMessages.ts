@@ -1,6 +1,6 @@
 /**
- * GET /auth/me does not return the caller's employeeId, so the UI cannot tell
- * whether an employee record is linked. Copy must say the record could not be
+ * Shown when the signed-in user has no linked `employeeId` on auth
+ * (login / refresh / GET /auth/me). Copy must say the record could not be
  * retrieved, never that it does not exist.
  */
 export const EMPLOYEE_RECORD_UNAVAILABLE_MESSAGE =

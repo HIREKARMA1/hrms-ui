@@ -3,6 +3,7 @@
  */
 import { useCallback, useMemo, useState, type Dispatch, type SetStateAction } from 'react'
 
+import type { OfficeCalendarEventListSource } from '../context/officeCalendarContext'
 import {
   useCreateCalendarEventMutation,
   useDeleteCalendarEventMutation,

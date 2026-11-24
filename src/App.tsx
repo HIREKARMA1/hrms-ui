@@ -276,7 +276,7 @@ function App() {
             path="/employee/attendance"
             element={
               <RequireAccess
-                feature="attendance.reports"
+                feature="attendance.my"
                 featureLabel="My Attendance"
               >
                 <MyAttendancePage />
@@ -309,7 +309,7 @@ function App() {
             path="/employee/attendance/regularization"
             element={
               <RequireAccess
-                feature="attendance.regularization"
+                feature="attendance.regularization.my"
                 featureLabel="Attendance Regularization"
               >
                 <RegularizationPage />

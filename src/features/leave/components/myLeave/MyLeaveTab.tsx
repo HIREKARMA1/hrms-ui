@@ -8,7 +8,7 @@ import { useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
-import { useGetLeaveBalanceQuery } from '../../api/leaveApi'
+import { getLeaveErrorMessage, useGetLeaveBalanceQuery } from '../../api/leaveApi'
 import { availableByTypeCode, mapLeaveBalanceRows } from '../../api/leaveMappers'
 import { useLeave } from '../../hooks/useLeave'
 import { useLeaveToast } from '../../hooks/useLeaveToast'
@@ -17,6 +17,7 @@ import { useMyLeaveActions } from '../../hooks/useMyLeaveActions'
 import { isLinkedLeaveViewer, type LeaveViewer, type LinkedLeaveViewer } from '../../types/viewer'
 import { LEAVE_TYPE_CODES, type LeaveTypeCode } from '../../constants/leaveTypeCodes'
 import { canEarnCompOff, canRequestEncashment } from '../../utils/employeeLeavePolicy'
+import { resolveMyLeaveEmployee } from '../../utils/leaveEmployeeFromViewer'
 import { myLeaveTabSubtitle } from '../../utils/myLeaveTabSubtitle'
 import { balanceCardHint } from '../../utils/balanceCardHint'
 import { resolveEarningModel } from '../../utils/leaveEarningModel'
@@ -27,6 +28,7 @@ import { ApplyLeaveDialog } from '../applyLeave/ApplyLeaveDialog'
 import { EarnCompOffDialog } from '../dialogs/EarnCompOffDialog'
 import { RequestDetailDialog } from '../dialogs/RequestDetailDialog'
 import { RequestEncashmentDialog } from '../dialogs/RequestEncashmentDialog'
+import { LeaveErrorState } from '../LeaveErrorState'
 import { LeaveTabHeader } from '../LeaveTabHeader'
 import { LeaveConfirmDialog } from '../shared/LeaveConfirmDialog'
 import { LeaveEmployeeLinkNotice } from '../shared/LeaveEmployeeLinkNotice'
@@ -68,14 +70,21 @@ function MyLeaveTabContent({ viewer }: { viewer: LinkedLeaveViewer }) {
   const [encashOpen, setEncashOpen] = useState(false)
   const [cancelTarget, setCancelTarget] = useState<LeaveRequest | null>(null)
   const [saving, setSaving] = useState(false)
-  const employee = snapshot?.employees.find((item) => item.id === viewer.employeeId)
+  const employee = snapshot ? resolveMyLeaveEmployee(snapshot.employees, viewer) : undefined
   const { handleCancel, handleApply } = useMyLeaveActions(snapshot, viewer, employee, reload)
   const api = snapshot?.api
-  const serverBalance = useGetLeaveBalanceQuery({ employeeId: viewer.employeeId, year: Number(year) }, { skip: !api })
+  const serverBalance = useGetLeaveBalanceQuery(
+    { employeeId: viewer.employeeId, year: Number(year) },
+    { skip: !api },
+  )
   const serverRows = useMemo(
     () => (api && serverBalance.data ? mapLeaveBalanceRows(serverBalance.data, api.leaveTypes) : null),
     [api, serverBalance.data],
   )
+  const balanceError =
+    api && serverBalance.isError && !serverBalance.data
+      ? getLeaveErrorMessage(serverBalance.error, 'Could not load your leave balances.')
+      : null
 
   const requests = useMemo(
     () => snapshot?.requests.filter((item) => item.employeeId === viewer.employeeId) ?? [],
@@ -174,7 +183,14 @@ function MyLeaveTabContent({ viewer }: { viewer: LinkedLeaveViewer }) {
         compOffLots={snapshot.compOffLots}
       />
       <LeaveTableFilters searchId="my-leave-search" searchPlaceholder="Search requests" searchValue={search} onSearchChange={setSearch} selectId="my-leave-year" selectValue={year} selectOptions={[{ value: '2026', label: '2026' }, { value: '2025', label: '2025' }]} onSelectChange={setYear} showing={filtered.length} total={yearRows.length} />
-      <MyLeaveBalanceCards cards={cards} compOffLots={snapshot.compOffLots} employeeId={viewer.employeeId} />
+      {balanceError ? (
+        <LeaveErrorState
+          message={balanceError}
+          onRetry={() => void serverBalance.refetch()}
+        />
+      ) : (
+        <MyLeaveBalanceCards cards={cards} compOffLots={snapshot.compOffLots} employeeId={viewer.employeeId} />
+      )}
       <MyRequestsTable rows={filtered} onView={setDetail} onCancel={(row) => (row.status === 'Approved' ? setCancelTarget(row) : void submitCancel(row))} canCancel={(row) => permissions.canCancel && canCancel(row)} onApply={permissions.canCreate ? () => setApplyOpen(true) : undefined} />
       <RequestDetailDialog open={Boolean(detail)} request={detail} balanceBefore={detailBalance} balanceAfter={detail && detailBalance !== null ? detailBalance - detail.days : null} onOpenChange={(open) => !open && setDetail(null)} />
       <ApplyLeaveDialog open={applyOpen} onOpenChange={setApplyOpen} employee={employee} settings={snapshot.settings} ledger={snapshot.ledger} existing={snapshot.requests} employees={snapshot.employees} saving={saving} serverBalances={serverBalances} onSubmit={submitApply} />

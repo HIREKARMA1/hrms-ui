@@ -14,6 +14,17 @@ function isStringArray(value: unknown): value is string[] {
   return Array.isArray(value) && value.every((item) => typeof item === 'string')
 }
 
+/** Linked HRMS employee uuid when the auth account is tied to an Employee row. */
+function readOptionalEmployeeId(value: unknown): string | undefined {
+  if (typeof value !== 'string') return undefined
+  const trimmed = value.trim()
+  return trimmed ? trimmed : undefined
+}
+
+function withOptionalEmployeeId(base: Omit<AuthUser, 'employeeId'>, employeeId: string | undefined): AuthUser {
+  return employeeId ? { ...base, employeeId } : base
+}
+
 /**
  * Defensive view of the persisted/backend user.
  * Returns null when identity fields are missing (unusable session). Malformed
@@ -26,14 +37,17 @@ export function normalizeAuthUser(user: unknown): AuthUser | null {
   if (typeof u.id !== 'string' || !u.id) return null
   if (typeof u.role !== 'string' || !u.role) return null
 
-  return {
-    id: u.id,
-    email: typeof u.email === 'string' ? u.email : '',
-    role: u.role,
-    roles: toStringArray(u.roles),
-    permissions: toStringArray(u.permissions),
-    isActive: u.isActive === true,
-  }
+  return withOptionalEmployeeId(
+    {
+      id: u.id,
+      email: typeof u.email === 'string' ? u.email : '',
+      role: u.role,
+      roles: toStringArray(u.roles),
+      permissions: toStringArray(u.permissions),
+      isActive: u.isActive === true,
+    },
+    readOptionalEmployeeId(u.employeeId),
+  )
 }
 
 /**
@@ -49,7 +63,10 @@ export function parseAuthUserStrict(value: unknown): AuthUser | null {
   if (typeof role !== 'string' || !role) return null
   if (!isStringArray(roles) || !isStringArray(permissions)) return null
   if (typeof isActive !== 'boolean') return null
-  return { id, email, role, roles: [...roles], permissions: [...permissions], isActive }
+  return withOptionalEmployeeId(
+    { id, email, role, roles: [...roles], permissions: [...permissions], isActive },
+    readOptionalEmployeeId(value.employeeId),
+  )
 }
 
 /** `{ success: true, data: { user } }` from GET /auth/me, or null for anything else (incl. empty 304 bodies). */
@@ -88,7 +105,10 @@ export function resolveRefreshedUser(
   const refreshed = parseAuthUserStrict(incoming)
   if (!current) return refreshed
   if (refreshed && refreshed.id !== current.id) return null
-  return refreshed ?? current
+  if (refreshed) {
+    return { ...refreshed, employeeId: refreshed.employeeId ?? current.employeeId }
+  }
+  return current
 }
 
 /**

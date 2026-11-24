@@ -148,6 +148,12 @@ describe('demo personas', () => {
         source: 'authenticated',
       })
     }
+    const linked = resolveLeaveViewer({
+      user: { ...MULTI_ROLE_USER, employeeId: 'emp-uuid-9' },
+      workspaceRole: 'EMPLOYEE',
+      demoRole: 'HR_ADMIN',
+    })
+    expect(linked.employeeId).toBe('emp-uuid-9')
   })
 
   it('are only used when nobody is signed in', () => {

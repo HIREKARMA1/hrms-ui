@@ -1,22 +1,26 @@
 /**
- * Employee profile photo upload via the verified POST /uploads endpoint.
+ * Employee profile photo upload via POST /uploads.
  *
- * Opt-in: disabled unless VITE_EMPLOYEE_PHOTO_UPLOAD_ENABLED=true. When
- * disabled it returns `missing_api` and never fakes a successful upload.
- * The returned `assetUrl` is not yet saved on the employee record: the
- * Employee pages still use mock data (PATCH /employees/:id `photoUrl` is the
- * backend field for that).
+ * All employee photos use the same folder (`employees/photos`). Enable with
+ * `VITE_EMPLOYEE_PHOTO_UPLOAD_ENABLED=true`. The returned `assetUrl` must be
+ * stored on the employee as `photoUrl` (create multipart or PATCH).
  */
 
 import { env } from '@/config/env'
 import { getApiErrorMessage } from '@/services/api/errors'
 import {
   MAX_UPLOAD_BYTES,
+  UPLOAD_FOLDER_PATTERN,
   type UploadedAsset,
   type UploadFileRequest,
 } from '@/services/api/uploadsApi'
 
+/** Shared S3/local folder for every employee profile picture. */
 export const EMPLOYEE_PHOTO_FOLDER = 'employees/photos'
+
+if (!UPLOAD_FOLDER_PATTERN.test(EMPLOYEE_PHOTO_FOLDER)) {
+  throw new Error(`Invalid EMPLOYEE_PHOTO_FOLDER: ${EMPLOYEE_PHOTO_FOLDER}`)
+}
 
 export type ProfilePhotoUploadResult =
   | {
@@ -48,25 +52,18 @@ function isNetworkError(error: unknown) {
 }
 
 /**
- * Uploads a profile photo. Returns a clear `missing_api` result when uploads
- * are not enabled.
+ * Uploads a profile photo into `employees/photos`.
+ * `employeeId` is optional (registration may not have a server id yet) and is
+ * only used to build a clearer file name.
  */
 export async function uploadEmployeeProfilePhoto(
   input: {
-    employeeId: string
+    employeeId?: string
     file: Blob
     fileName: string
   },
   upload: UploadFileFn,
 ): Promise<ProfilePhotoUploadResult> {
-  if (!input.employeeId.trim()) {
-    return {
-      ok: false,
-      code: 'invalid',
-      message: 'Employee ID is required before uploading a profile photo.',
-    }
-  }
-
   if (!isEmployeePhotoUploadConfigured()) {
     return {
       ok: false,
@@ -84,10 +81,14 @@ export async function uploadEmployeeProfilePhoto(
     }
   }
 
+  const safeName =
+    input.fileName.trim() ||
+    `photo-${(input.employeeId ?? 'employee').trim() || 'employee'}-${Date.now()}.jpg`
+
   try {
     const asset = await upload({
       file: input.file,
-      fileName: input.fileName,
+      fileName: safeName,
       folder: EMPLOYEE_PHOTO_FOLDER,
     })
     if (!asset?.assetUrl) {
@@ -101,7 +102,7 @@ export async function uploadEmployeeProfilePhoto(
     return {
       ok: true,
       url: asset.assetUrl,
-      fileName: asset.originalName || input.fileName,
+      fileName: asset.originalName || safeName,
     }
   } catch (error) {
     if (isNetworkError(error)) {

@@ -29,10 +29,11 @@ function rowIssues(raw: unknown): HolidayImportRowIssue[] {
       : typeof errorsRaw === 'string'
         ? [errorsRaw]
         : []
-    rows.push({
-      row: Number(record.row ?? record.rowNumber ?? record.excelRow) || undefined,
-      errors: errors.length ? errors : undefined,
-    })
+    const rowNumber = Number(record.row ?? record.rowNumber ?? record.excelRow)
+    const issue: HolidayImportRowIssue = {}
+    if (rowNumber) issue.row = rowNumber
+    if (errors.length) issue.errors = errors
+    rows.push(issue)
   }
   return rows
 }
