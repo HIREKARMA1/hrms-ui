@@ -280,7 +280,7 @@ const hrAdminNav: RoleNavItem[] = [
       },
       {
         title: 'Add Employee',
-        path: '/admin/employees/add',
+        path: '/hradmin/employees/add',
         feature: 'employee.registration.edit',
       },
     ],
@@ -296,6 +296,13 @@ const hrAdminNav: RoleNavItem[] = [
     path: '/hradmin/designations',
     iconName: 'BadgeCheck',
     feature: 'employee.organization.view',
+  },
+  {
+    title: 'Recruitment & ATS',
+    path: '/hradmin/recruitment',
+    iconName: 'Briefcase',
+    feature: 'recruitment.overview',
+    children: recruitmentChildren('/hradmin'),
   },
   {
     title: 'Employee Documents',

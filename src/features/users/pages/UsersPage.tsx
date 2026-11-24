@@ -32,6 +32,7 @@ import type { BackendUser, BackendUserRole } from '../api/usersApi.types'
 import { CreateUserDialog } from '../components/CreateUserDialog'
 import { DeactivateUserDialog } from '../components/DeactivateUserDialog'
 import { UserDetailDialog } from '../components/UserDetailDialog'
+import { formatUserDisplayName } from '../utils/userDisplayName'
 
 const SEARCH_DEBOUNCE_MS = 350
 const ALL = '__all__'
@@ -204,7 +205,8 @@ export function UsersPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Email</TableHead>
+                <TableHead className="min-w-[10rem]">Name</TableHead>
+                <TableHead className="min-w-[12rem]">Email</TableHead>
                 <TableHead>Legacy role</TableHead>
                 <TableHead>Roles</TableHead>
                 <TableHead>Status</TableHead>
@@ -212,54 +214,62 @@ export function UsersPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {items.map((row) => (
-                <TableRow key={row.id}>
-                  <TableCell className="font-medium text-navy">{row.email}</TableCell>
-                  <TableCell>{row.role}</TableCell>
-                  <TableCell>
-                    <div className="flex flex-wrap gap-1">
-                      {row.roles.length === 0 ? (
-                        <span className="text-slate-400">—</span>
-                      ) : (
-                        row.roles.map((assigned) => (
-                          <Badge key={assigned.id} variant="secondary">
-                            {assigned.code}
-                          </Badge>
-                        ))
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={row.isActive ? 'success' : 'secondary'}>
-                      {row.isActive ? 'Active' : 'Inactive'}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-1">
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        aria-label={`View ${row.email}`}
-                        onClick={() => setDetailId(row.id)}
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      <Feature name="users.deactivate">
+              {items.map((row) => {
+                const displayName = formatUserDisplayName(row)
+                return (
+                  <TableRow key={row.id}>
+                    <TableCell className="min-w-[10rem] font-medium text-navy">
+                      {displayName}
+                    </TableCell>
+                    <TableCell className="max-w-[18rem] truncate text-slate-700" title={row.email}>
+                      {row.email}
+                    </TableCell>
+                    <TableCell>{row.role}</TableCell>
+                    <TableCell>
+                      <div className="flex flex-wrap gap-1">
+                        {row.roles.length === 0 ? (
+                          <span className="text-slate-400">—</span>
+                        ) : (
+                          row.roles.map((assigned) => (
+                            <Badge key={assigned.id} variant="secondary">
+                              {assigned.code}
+                            </Badge>
+                          ))
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={row.isActive ? 'success' : 'secondary'}>
+                        {row.isActive ? 'Active' : 'Inactive'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-1">
                         <Button
                           type="button"
                           variant="ghost"
                           size="icon"
-                          aria-label={`Deactivate ${row.email}`}
-                          onClick={() => setDeactivateTarget(row)}
+                          aria-label={`View ${row.email}`}
+                          onClick={() => setDetailId(row.id)}
                         >
-                          <UserX className="h-4 w-4" />
+                          <Eye className="h-4 w-4" />
                         </Button>
-                      </Feature>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
+                        <Feature name="users.deactivate">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            aria-label={`Deactivate ${row.email}`}
+                            onClick={() => setDeactivateTarget(row)}
+                          >
+                            <UserX className="h-4 w-4" />
+                          </Button>
+                        </Feature>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                )
+              })}
             </TableBody>
           </Table>
         )}

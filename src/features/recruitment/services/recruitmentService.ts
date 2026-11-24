@@ -81,7 +81,7 @@ export function transitionCandidateStage(
 ): { ok: true; candidates: Candidate[] } | { ok: false; reason: string } {
   const current = list.find((c) => c.id === candidateId)
   if (!current) return { ok: false, reason: 'Candidate not found' }
-  if (!canTransition(current.stage, nextStage)) {
+  if (!canTransition(current.stage as never, nextStage as never)) {
     return {
       ok: false,
       reason: `Invalid transition from ${current.stage} to ${nextStage}`,

@@ -256,7 +256,7 @@ export function createOrgRoleModuleRoutes(prefix: RolePrefix): ReactElement[] {
         </RequireAccess>
       }
     />,
-    ...(prefix === 'superadmin' || prefix === 'manager'
+    ...(prefix === 'superadmin' || prefix === 'manager' || prefix === 'hradmin'
       ? [createRecruitmentModuleRoutes(prefix)]
       : []),
     ...(prefix === 'manager' ? [createSupportModuleRoutes()] : []),

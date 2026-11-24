@@ -16,6 +16,7 @@ import { Link, useLocation } from 'react-router-dom'
 
 import { Feature } from '@/features/rbac/components/Feature'
 import { useOptionalFeatureAccess } from '@/features/rbac/hooks/useFeatureAccess'
+import { useListDepartmentsQuery } from '@/features/organization/api/departmentsApi'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -87,7 +88,15 @@ export function JobPostingsPage() {
   const [employmentType, setEmploymentType] = useState(ALL)
   const [workMode, setWorkMode] = useState(ALL)
   const [isActive, setIsActive] = useState(ALL)
-  const [departmentId, setDepartmentId] = useState('')
+  const [departmentId, setDepartmentId] = useState(ALL)
+
+  const departmentsQuery = useListDepartmentsQuery({
+    isActive: true,
+    limit: 100,
+    page: 1,
+    sortBy: 'name',
+    sortOrder: 'asc',
+  })
 
   const [formOpen, setFormOpen] = useState(false)
   const [formMode, setFormMode] = useState<'create' | 'edit'>('create')
@@ -115,7 +124,7 @@ export function JobPostingsPage() {
       : {}),
     ...(workMode !== ALL ? { workMode: workMode as JobWorkMode } : {}),
     ...(isActive === 'true' ? { isActive: true } : isActive === 'false' ? { isActive: false } : {}),
-    ...(departmentId.trim() ? { departmentId: departmentId.trim() } : {}),
+    ...(departmentId !== ALL ? { departmentId } : {}),
     sortBy: 'createdAt',
     sortOrder: 'desc',
   })
@@ -262,15 +271,25 @@ export function JobPostingsPage() {
             <SelectItem value="false">Inactive</SelectItem>
           </SelectContent>
         </Select>
-        <Input
-          className="w-full lg:w-48"
-          placeholder="Department id"
+        <Select
           value={departmentId}
-          onChange={(e) => {
-            setDepartmentId(e.target.value)
+          onValueChange={(value) => {
+            setDepartmentId(value)
             setPage(1)
           }}
-        />
+        >
+          <SelectTrigger className="w-full lg:w-52">
+            <SelectValue placeholder="Department" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={ALL}>All departments</SelectItem>
+            {(departmentsQuery.data?.items ?? []).map((dept) => (
+              <SelectItem key={dept.id} value={dept.id}>
+                {dept.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       <div className="overflow-hidden rounded-2xl border border-border-soft bg-white shadow-sm">

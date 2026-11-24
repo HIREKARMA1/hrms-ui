@@ -130,9 +130,12 @@ afterEach(() => {
 })
 
 describe('RBAC', () => {
-  it('keeps recruitment.jobs / recruitment.manage on role matrix until OpenAPI codes exist', () => {
+  it('keeps recruitment view/manage on role matrix until OpenAPI codes exist', () => {
     expect(canAccessFeature('recruitment.jobs', 'MANAGER', [])).toBe(true)
     expect(canAccessFeature('recruitment.manage', 'MANAGER', [])).toBe(true)
+    expect(canAccessFeature('recruitment.manage', 'HR_ADMIN', [])).toBe(true)
+    expect(canAccessFeature('recruitment.jobs', 'SUPER_ADMIN', [])).toBe(true)
+    expect(canAccessFeature('recruitment.manage', 'SUPER_ADMIN', [])).toBe(false)
     expect(canAccessFeature('recruitment.jobs', 'EMPLOYEE', [])).toBe(false)
   })
 })
@@ -152,12 +155,26 @@ describe('create job', () => {
     expect(calls[0].headers.get('Authorization')).toBe('Bearer access-token')
     expect(await calls[0].json()).toMatchObject({
       title: 'Frontend Engineer',
+      departmentId: 'dept-1',
       employmentType: 'FULL_TIME',
       location: 'Hyderabad',
       workMode: 'HYBRID',
       description: 'Build HRMS UI',
       skills: ['React', 'TypeScript'],
     })
+  })
+
+  it('omits departmentId from the create body when the field is empty', () => {
+    const body = buildCreateJobBody({ ...baseForm, departmentId: '  ' })
+    expect(body.departmentId).toBeUndefined()
+  })
+
+  it('serializes the selected department id into the create body', () => {
+    const body = buildCreateJobBody({
+      ...baseForm,
+      departmentId: 'clxyz_real_department_id',
+    })
+    expect(body.departmentId).toBe('clxyz_real_department_id')
   })
 
   it('rejects invalid required fields without calling the server', async () => {

@@ -14,9 +14,9 @@ import { RecruitmentProviderLayout } from '@/features/recruitment/context/Recrui
 
 import { RequireAccess } from '../components/RequireAccess'
 
-type RecruitmentPrefix = 'superadmin' | 'manager'
+type RecruitmentPrefix = 'superadmin' | 'manager' | 'hradmin'
 
-/** Recruitment & ATS on Super Admin and Manager workspaces. */
+/** Recruitment & ATS on Super Admin, HR Admin, and Manager workspaces. */
 export function createRecruitmentModuleRoutes(
   prefix: RecruitmentPrefix,
 ): ReactElement {

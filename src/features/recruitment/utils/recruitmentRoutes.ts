@@ -1,8 +1,17 @@
-/** Recruitment workspace prefix from current URL (/hr or /superadmin). */
-export function recruitmentRoutePrefix(pathname: string): 'hr' | 'superadmin' {
-  return pathname.startsWith('/superadmin') ? 'superadmin' : 'hr'
+/** Recruitment workspace prefix from the current URL. */
+export type RecruitmentWorkspacePrefix = 'superadmin' | 'manager' | 'hradmin'
+
+export function recruitmentRoutePrefix(
+  pathname: string,
+): RecruitmentWorkspacePrefix {
+  if (pathname.startsWith('/superadmin')) return 'superadmin'
+  if (pathname.startsWith('/hradmin')) return 'hradmin'
+  return 'manager'
 }
 
-export function jobHiringDeskPath(prefix: 'hr' | 'superadmin', jobId: string) {
-  return `/${prefix}/recruitment/jobs/${jobId}/hiring`
+export function jobHiringDeskPath(
+  prefix: RecruitmentWorkspacePrefix,
+  jobId: string,
+) {
+  return `/${prefix}/recruitment/jobs/${encodeURIComponent(jobId)}/hiring`
 }

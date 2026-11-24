@@ -17,6 +17,11 @@ export const API_TAGS = [
   'Lead',
   'Dashboard',
   'RecruitmentJob',
+  'RecruitmentCandidate',
+  'RecruitmentApplication',
+  'RecruitmentInterview',
+  'RecruitmentOffer',
+  'RecruitmentAnalytics',
 ] as const
 
 export type ApiTag = (typeof API_TAGS)[number]

@@ -1,9 +1,10 @@
 /**
  * Create / edit job posting using production DTOs.
  * Edit excludes description (use JobDescriptionDialog).
+ * Department options come from GET /departments (real IDs only).
  */
 import { Loader2 } from 'lucide-react'
-import { useState, type FormEvent } from 'react'
+import { useMemo, useState, type FormEvent } from 'react'
 
 import { Button } from '@/components/ui/button'
 import {
@@ -24,6 +25,8 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
+import { useListDepartmentsQuery } from '@/features/organization/api/departmentsApi'
+import { getApiErrorMessage } from '@/services/api/errors'
 
 import { useCreateJobMutation, useUpdateJobMutation } from '../../api/jobsApi'
 import type {
@@ -48,6 +51,8 @@ const EMPLOYMENT_TYPES: JobEmploymentType[] = [
 ]
 const WORK_MODES: JobWorkMode[] = ['ONSITE', 'REMOTE', 'HYBRID']
 const STATUSES: JobPostingStatus[] = ['DRAFT', 'PUBLISHED', 'CLOSED', 'CANCELLED']
+/** Select sentinel — OpenAPI treats departmentId as optional. */
+const NO_DEPARTMENT = '__none__'
 
 function emptyValues(): JobFormValues {
   return {
@@ -112,6 +117,13 @@ function JobFormFields({
 }) {
   const [createJob] = useCreateJobMutation()
   const [updateJob] = useUpdateJobMutation()
+  const departmentsQuery = useListDepartmentsQuery({
+    isActive: true,
+    limit: 100,
+    page: 1,
+    sortBy: 'name',
+    sortOrder: 'asc',
+  })
   const [values, setValues] = useState<JobFormValues>(() =>
     mode === 'edit' && job ? valuesFromJob(job) : emptyValues(),
   )
@@ -119,6 +131,25 @@ function JobFormFields({
   const [formError, setFormError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [guard] = useState(() => createSubmitGuard())
+
+  const departmentOptions = useMemo(() => {
+    const items = departmentsQuery.data?.items ?? []
+    const byId = new Map(items.map((d) => [d.id, d]))
+    // Keep the job's current department visible even if it is inactive / not in page 1.
+    if (job?.departmentId && job.department && !byId.has(job.departmentId)) {
+      byId.set(job.departmentId, {
+        id: job.departmentId,
+        code: '',
+        name: job.department.name,
+        description: null,
+        isActive: true,
+        employeeCount: 0,
+        createdAt: '',
+        updatedAt: '',
+      })
+    }
+    return Array.from(byId.values()).sort((a, b) => a.name.localeCompare(b.name))
+  }, [departmentsQuery.data?.items, job?.department, job?.departmentId])
 
   const setField = <K extends keyof JobFormValues>(key: K, value: JobFormValues[K]) => {
     setValues((prev) => ({ ...prev, [key]: value }))
@@ -177,14 +208,54 @@ function JobFormFields({
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="job-department">Department ID (optional)</Label>
-          <Input
-            id="job-department"
-            value={values.departmentId}
-            onChange={(e) => setField('departmentId', e.target.value)}
-            disabled={submitting}
-            placeholder="Server department id"
-          />
+          <Label htmlFor="job-department">Department (optional)</Label>
+          <Select
+            value={values.departmentId.trim() ? values.departmentId : NO_DEPARTMENT}
+            onValueChange={(value) =>
+              setField('departmentId', value === NO_DEPARTMENT ? '' : value)
+            }
+            disabled={submitting || departmentsQuery.isLoading}
+          >
+            <SelectTrigger id="job-department">
+              <SelectValue
+                placeholder={
+                  departmentsQuery.isLoading
+                    ? 'Loading departments…'
+                    : 'Select department'
+                }
+              />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={NO_DEPARTMENT}>No department</SelectItem>
+              {departmentOptions.map((dept) => (
+                <SelectItem key={dept.id} value={dept.id}>
+                  {dept.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {departmentsQuery.isError ? (
+            <p className="text-xs text-red-500">
+              {getApiErrorMessage(
+                departmentsQuery.error,
+                'Could not load departments.',
+              )}{' '}
+              <button
+                type="button"
+                className="underline"
+                onClick={() => void departmentsQuery.refetch()}
+              >
+                Retry
+              </button>
+            </p>
+          ) : null}
+          {!departmentsQuery.isLoading &&
+          !departmentsQuery.isError &&
+          departmentOptions.length === 0 ? (
+            <p className="text-xs text-text-secondary">
+              No active departments available from the server.
+            </p>
+          ) : null}
         </div>
 
         <div className="space-y-2">
