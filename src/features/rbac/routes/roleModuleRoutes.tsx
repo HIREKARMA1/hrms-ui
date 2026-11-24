@@ -17,6 +17,8 @@ import { EmployeeOverviewPage } from '@/features/employees/pages/EmployeeOvervie
 import { EmployeeProfilePage } from '@/features/employees/pages/EmployeeProfilePage'
 import { EmployeeRegistrationPage } from '@/features/employees/pages/EmployeeRegistrationPage'
 import { OrganizationDepartmentsPage } from '@/features/organization/pages/OrganizationDepartmentsPage'
+import { OrganisationOnboardingDetailPage } from '@/features/organisation-onboarding/pages/OrganisationOnboardingDetailPage'
+import { OrganisationOnboardingPage } from '@/features/organisation-onboarding/pages/OrganisationOnboardingPage'
 import { PermissionsPage } from '@/features/permissions/pages/PermissionsPage'
 import { RolesPage } from '@/features/roles/pages/RolesPage'
 import { UsersPage } from '@/features/users/pages/UsersPage'
@@ -160,6 +162,34 @@ export function createOrgRoleModuleRoutes(prefix: RolePrefix): ReactElement[] {
         </RequireAccess>
       }
     />,
+    ...(prefix === 'hradmin' || prefix === 'superadmin'
+      ? [
+          <Route
+            key={`${prefix}-organisation-onboarding`}
+            path={`/${prefix}/organisation-onboarding`}
+            element={
+              <RequireAccess
+                feature="onboarding.list"
+                featureLabel="Organisation Onboarding"
+              >
+                <OrganisationOnboardingPage />
+              </RequireAccess>
+            }
+          />,
+          <Route
+            key={`${prefix}-organisation-onboarding-detail`}
+            path={`/${prefix}/organisation-onboarding/:onboardingId`}
+            element={
+              <RequireAccess
+                feature="onboarding.list"
+                featureLabel="Organisation Onboarding"
+              >
+                <OrganisationOnboardingDetailPage />
+              </RequireAccess>
+            }
+          />,
+        ]
+      : []),
     <Route
       key={`${prefix}-attendance`}
       path={`/${prefix}/attendance`}

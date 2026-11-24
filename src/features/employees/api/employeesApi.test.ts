@@ -161,6 +161,7 @@ function validCreateForm() {
     state: 'TN',
     pinCode: '600001',
     country: 'India',
+    profilePictureUrl: 'https://cdn.example.test/p/new.png',
   }
 }
 
@@ -542,7 +543,7 @@ describe('create payload (POST /employees multipart)', () => {
         'Aadhaar must be 12 digits.',
         'PAN must look like ABCDE1234F.',
         'Date of Joining is required.',
-        'A photo URL (http or https) is required.',
+        'Profile Photo is required. Upload a photo first.',
         'Permanent Address is required.',
         'IFSC must look like SBIN0001234.',
       ]),
@@ -593,11 +594,18 @@ describe('create payload (POST /employees multipart)', () => {
 })
 
 describe('delete and device sync', () => {
-  it('DELETE returns the deleted name and device outcome', async () => {
+  it('DELETE returns the deleted name when API omits sync (current backend)', async () => {
     const calls = stubFetch(() =>
       jsonResponse(200, {
-        employee: { id: 'emp-uuid-1', employeeCode: 'EMP001', firstName: 'Asha', lastName: 'Rao', designation: 'Engineer', email: 'a@x.test' },
-        sync: { database: { status: 'success' }, device: { status: 'skipped', message: 'No device linked' } },
+        message: 'Employee deleted from HRMS database (TimeWatch device data is not changed)',
+        employee: {
+          id: 'emp-uuid-1',
+          employeeCode: 'EMP001',
+          firstName: 'Asha',
+          lastName: 'Rao',
+          designation: 'Engineer',
+          email: 'a@x.test',
+        },
       }),
     )
     const store = makeStore()
@@ -606,8 +614,33 @@ describe('delete and device sync', () => {
     expect(result).toEqual({
       employeeId: 'emp-uuid-1',
       name: 'Asha Rao',
-      deviceSync: { status: 'skipped', message: 'No device linked' },
+      deviceSync: {
+        status: 'skipped',
+        message: 'Employee deleted from HRMS database (TimeWatch device data is not changed)',
+      },
     })
+  })
+
+  it('DELETE still accepts a sync.device payload when present', async () => {
+    stubFetch(() =>
+      jsonResponse(200, {
+        employee: {
+          id: 'emp-uuid-1',
+          employeeCode: 'EMP001',
+          firstName: 'Asha',
+          lastName: 'Rao',
+          designation: 'Engineer',
+          email: 'a@x.test',
+        },
+        sync: {
+          database: { status: 'success' },
+          device: { status: 'skipped', message: 'No device linked' },
+        },
+      }),
+    )
+    const store = makeStore()
+    const result = await store.dispatch(employeesApi.endpoints.deleteEmployee.initiate('emp-uuid-1')).unwrap()
+    expect(result.deviceSync).toEqual({ status: 'skipped', message: 'No device linked' })
   })
 
   it('sync-device sends mode (and verify only for link)', async () => {

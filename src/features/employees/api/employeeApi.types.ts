@@ -121,13 +121,15 @@ export interface BackendEmployeeWithSync {
   }
 }
 
-/** DELETE /employees/:id. */
+/** DELETE /employees/:id — HRMS DB only; TimeWatch is not modified. */
 export interface BackendDeleteEmployeeResult {
+  message?: string
   employee: Pick<
     BackendEmployee,
     'id' | 'employeeCode' | 'firstName' | 'lastName' | 'designation' | 'email'
   >
-  sync: {
+  /** Older/openapi drafts included sync; current API omits it. */
+  sync?: {
     database: { status: 'success'; message?: string }
     device: DeviceSyncOutcome
   }
