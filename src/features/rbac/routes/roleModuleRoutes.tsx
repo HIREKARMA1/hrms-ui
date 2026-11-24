@@ -17,6 +17,8 @@ import { EmployeeOverviewPage } from '@/features/employees/pages/EmployeeOvervie
 import { EmployeeProfilePage } from '@/features/employees/pages/EmployeeProfilePage'
 import { EmployeeRegistrationPage } from '@/features/employees/pages/EmployeeRegistrationPage'
 import { OrganizationDepartmentsPage } from '@/features/organization/pages/OrganizationDepartmentsPage'
+import { PermissionManagementPage } from '@/features/permissions/pages/PermissionManagementPage'
+import { RoleManagementPage } from '@/features/roles/pages/RoleManagementPage'
 import { RequireAccess } from '../components/RequireAccess'
 
 import { createLeavePayrollRoutes } from './leavePayrollModuleRoutes'
@@ -123,6 +125,31 @@ export function createOrgRoleModuleRoutes(prefix: RolePrefix): ReactElement[] {
         </RequireAccess>
       }
     />,
+    ...(prefix === 'superadmin'
+      ? [
+          <Route
+            key={`${prefix}-roles`}
+            path={`/${prefix}/roles`}
+            element={
+              <RequireAccess feature="module.roles" featureLabel="Role Management">
+                <RoleManagementPage />
+              </RequireAccess>
+            }
+          />,
+          <Route
+            key={`${prefix}-permissions`}
+            path={`/${prefix}/permissions`}
+            element={
+              <RequireAccess
+                feature="module.permissions"
+                featureLabel="Permission Management"
+              >
+                <PermissionManagementPage />
+              </RequireAccess>
+            }
+          />,
+        ]
+      : []),
     <Route
       key={`${prefix}-attendance`}
       path={`/${prefix}/attendance`}

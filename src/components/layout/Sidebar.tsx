@@ -1,7 +1,12 @@
 import { ChevronDown, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
 
 import { HireKarmaMark } from '@/components/brand/HireKarmaMark'
-import { useEffect, useState } from 'react'
+import {
+  useEffect,
+  useState,
+  type ReactElement,
+  type ReactNode,
+} from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 
 import { Button } from '@/components/ui/button'
@@ -93,6 +98,43 @@ function toSidebarNavItems(
   }))
 }
 
+function SidebarLabel({
+  collapsed,
+  children,
+  className,
+}: {
+  collapsed: boolean
+  children: ReactNode
+  className?: string
+}) {
+  return (
+    <span
+      className={cn(
+        'overflow-hidden whitespace-nowrap transition-[max-width,opacity,margin] duration-300 ease-in-out',
+        collapsed ? 'ml-0 max-w-0 opacity-0' : 'max-w-[160px] opacity-100',
+        className,
+      )}
+      aria-hidden={collapsed}
+    >
+      {children}
+    </span>
+  )
+}
+
+function withTooltip(
+  collapsed: boolean,
+  label: string,
+  node: ReactElement,
+) {
+  if (!collapsed) return node
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>{node}</TooltipTrigger>
+      <TooltipContent side="right">{label}</TooltipContent>
+    </Tooltip>
+  )
+}
+
 function SidebarNavItem({
   item,
   collapsed,
@@ -116,129 +158,115 @@ function SidebarNavItem({
     if (childActive) setOpen(true)
   }, [childActive])
 
+  // Close nested menus while the rail is collapsed so height eases with width.
+  const submenuOpen = open && !collapsed
   const Icon = item.icon
 
   const linkClass = (active: boolean) =>
     cn(
-      'group flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors',
+      'group flex h-10 w-full items-center rounded-xl text-sm font-medium transition-[background-color,color,padding,gap] duration-300 ease-in-out',
       active
         ? 'bg-brand-500 text-white shadow-sm'
         : 'text-slate-300 hover:bg-white/10 hover:text-white',
-      collapsed && 'justify-center px-0',
+      collapsed ? 'justify-center gap-0 px-0' : 'gap-3 px-3',
     )
 
   if (!hasChildren) {
-    const content = (
+    const link = (
       <NavLink
         to={item.path}
         onClick={onNavigate}
-        className={({ isActive }) => linkClass(isActive || parentActive)}
+        className={linkClass(parentActive)}
       >
         <Icon className="h-4 w-4 shrink-0" strokeWidth={1.9} />
-        {!collapsed ? <span className="truncate">{item.title}</span> : null}
+        <SidebarLabel collapsed={collapsed}>{item.title}</SidebarLabel>
       </NavLink>
     )
 
-    if (!collapsed) return content
-
-    return (
-      <Tooltip>
-        <TooltipTrigger asChild>{content}</TooltipTrigger>
-        <TooltipContent side="right">{item.title}</TooltipContent>
-      </Tooltip>
-    )
+    return withTooltip(collapsed, item.title, link)
   }
 
-  const trigger = (
+  const firstChildPath =
+    item.children!.find((c) => !c.isSectionLabel)?.path ??
+    item.children![0].path
+
+  const parentControl = collapsed ? (
+    <NavLink
+      to={firstChildPath}
+      onClick={onNavigate}
+      className={linkClass(Boolean(parentActive))}
+    >
+      <Icon className="h-4 w-4 shrink-0" strokeWidth={1.9} />
+      <SidebarLabel collapsed={collapsed}>{item.title}</SidebarLabel>
+    </NavLink>
+  ) : (
     <button
       type="button"
-      onClick={() => {
-        if (collapsed) return
-        setOpen((prev) => !prev)
-      }}
+      onClick={() => setOpen((prev) => !prev)}
       className={linkClass(
         Boolean(parentActive && !childActive) ||
           Boolean(childActive && collapsed),
       )}
-      aria-expanded={open}
+      aria-expanded={submenuOpen}
     >
       <Icon className="h-4 w-4 shrink-0" strokeWidth={1.9} />
-      {!collapsed ? (
-        <>
-          <span className="flex-1 truncate text-left">{item.title}</span>
-          <ChevronDown
-            className={cn(
-              'h-4 w-4 shrink-0 transition-transform duration-200',
-              open && 'rotate-180',
-            )}
-          />
-        </>
-      ) : null}
+      <SidebarLabel collapsed={collapsed} className="flex-1 text-left">
+        {item.title}
+      </SidebarLabel>
+      <ChevronDown
+        className={cn(
+          'h-4 w-4 shrink-0 transition-[transform,opacity,max-width] duration-300 ease-in-out',
+          submenuOpen && 'rotate-180',
+          collapsed ? 'max-w-0 opacity-0' : 'max-w-4 opacity-100',
+        )}
+      />
     </button>
   )
 
   return (
     <div>
-      {collapsed ? (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <NavLink
-              to={
-                item.children!.find((c) => !c.isSectionLabel)?.path ??
-                item.children![0].path
-              }
-              onClick={onNavigate}
-              className={linkClass(Boolean(parentActive))}
-            >
-              <Icon className="h-4 w-4 shrink-0" strokeWidth={1.9} />
-            </NavLink>
-          </TooltipTrigger>
-          <TooltipContent side="right">{item.title}</TooltipContent>
-        </Tooltip>
-      ) : (
-        trigger
-      )}
+      {withTooltip(collapsed, item.title, parentControl)}
 
-      {!collapsed ? (
-        <div
-          className={cn(
-            'grid transition-[grid-template-rows] duration-200 ease-out',
-            open ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]',
-          )}
-        >
-          <div className="overflow-hidden">
-            <ul className="mt-1 ml-4 space-y-1 border-l border-white/10 pl-3">
-              {item.children?.map((child) =>
-                child.isSectionLabel ? (
-                  <li key={`${child.title}-label`} className="pt-2 first:pt-0">
-                    <p className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
-                      {child.title}
-                    </p>
-                  </li>
-                ) : (
-                  <li key={child.path + child.title}>
-                    <NavLink
-                      to={child.path}
-                      end={EXACT_ONLY_PATHS.has(child.path)}
-                      onClick={onNavigate}
-                      className={() =>
-                        cn(
-                          'block rounded-lg px-3 py-2 text-sm transition-colors',
-                          isPathActive(location.pathname, child.path)
-                            ? 'bg-white/15 font-medium text-white'
-                            : 'text-slate-400 hover:bg-white/5 hover:text-white',
-                        )
-                      }
-                    >
-                      {child.title}
-                    </NavLink>
-                  </li>
-                ),
-              )}
-            </ul>
-          </div>
+      <div
+        className={cn(
+          'grid transition-[grid-template-rows,opacity] duration-300 ease-in-out',
+          submenuOpen
+            ? 'grid-rows-[1fr] opacity-100'
+            : 'grid-rows-[0fr] opacity-0',
+        )}
+      >
+        <div className="overflow-hidden">
+          <ul className="mt-1 ml-4 space-y-1 border-l border-white/10 pl-3">
+            {item.children?.map((child) =>
+              child.isSectionLabel ? (
+                <li key={`${child.title}-label`} className="pt-2 first:pt-0">
+                  <p className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+                    {child.title}
+                  </p>
+                </li>
+              ) : (
+                <li key={child.path + child.title}>
+                  <NavLink
+                    to={child.path}
+                    end={EXACT_ONLY_PATHS.has(child.path)}
+                    onClick={onNavigate}
+                    className={() =>
+                      cn(
+                        'block rounded-lg px-3 py-2 text-sm transition-colors',
+                        isPathActive(location.pathname, child.path)
+                          ? 'bg-white/15 font-medium text-white'
+                          : 'text-slate-400 hover:bg-white/5 hover:text-white',
+                      )
+                    }
+                  >
+                    {child.title}
+                  </NavLink>
+                </li>
+              ),
+            )}
+          </ul>
         </div>
-      ) : null}
+      </div>
     </div>
   )
 }
@@ -260,34 +288,37 @@ export function Sidebar({ variant = 'desktop', onNavigate }: SidebarProps) {
     <TooltipProvider delayDuration={0}>
       <aside
         className={cn(
-          'flex h-full flex-col bg-navy text-white',
+          'flex h-full min-w-0 flex-col overflow-hidden bg-navy text-white',
           variant === 'desktop' &&
-            'fixed inset-y-0 left-0 z-30 hidden border-r border-white/5 transition-[width] duration-200 lg:flex',
-          variant === 'desktop' && (isCollapsed ? 'w-[84px]' : 'w-[260px]'),
+            'fixed inset-y-0 left-0 z-30 hidden w-[var(--app-sidebar-width)] border-r border-white/5 transition-[width] duration-300 ease-in-out will-change-[width] lg:flex',
           variant === 'mobile' && 'w-full',
         )}
       >
         <div
           className={cn(
-            'flex items-start gap-3 border-b border-white/10 px-4 py-5',
-            isCollapsed && 'justify-center px-2',
+            'flex shrink-0 items-center gap-3 border-b border-white/10 py-5 transition-[padding] duration-300 ease-in-out',
+            isCollapsed ? 'justify-center px-2' : 'px-4',
           )}
         >
-          <HireKarmaMark />
-          {!isCollapsed ? (
-            <div className="min-w-0 pt-0.5">
-              <p className="text-base font-bold tracking-tight">HRMS</p>
-              <p className="text-[11px] leading-snug text-slate-400">
-                {rbac
-                  ? `${rbac.roleLabel} workspace`
-                  : 'Human Resources Management System'}
-              </p>
-            </div>
-          ) : null}
+          <HireKarmaMark size={isCollapsed ? 'sm' : 'md'} />
+          <div
+            className={cn(
+              'min-w-0 overflow-hidden whitespace-nowrap transition-[max-width,opacity] duration-300 ease-in-out',
+              isCollapsed ? 'max-w-0 opacity-0' : 'max-w-[180px] opacity-100',
+            )}
+            aria-hidden={isCollapsed}
+          >
+            <p className="text-base font-bold tracking-tight">HRMS</p>
+            <p className="text-[11px] leading-snug text-slate-400">
+              {rbac
+                ? `${rbac.roleLabel} workspace`
+                : 'Human Resources Management System'}
+            </p>
+          </div>
         </div>
 
-        <ScrollArea className="flex-1 px-3 py-4">
-          <nav className="space-y-1.5 pr-2">
+        <ScrollArea className="min-w-0 flex-1 px-2 py-4">
+          <nav className="space-y-1.5">
             {items.map((item) => (
               <SidebarNavItem
                 key={`${item.path}-${item.title}`}
@@ -300,25 +331,24 @@ export function Sidebar({ variant = 'desktop', onNavigate }: SidebarProps) {
         </ScrollArea>
 
         {variant === 'desktop' ? (
-          <div className="border-t border-white/10 p-3">
+          <div className="shrink-0 border-t border-white/10 p-2">
             <Button
               type="button"
               variant="ghost"
               className={cn(
-                'h-10 w-full justify-start gap-3 text-slate-300 hover:bg-white/10 hover:text-white',
-                isCollapsed && 'justify-center px-0',
+                'h-10 w-full gap-3 text-slate-300 transition-[padding,gap] duration-300 ease-in-out hover:bg-white/10 hover:text-white',
+                isCollapsed ? 'justify-center px-0' : 'justify-start px-3',
               )}
               onClick={toggleCollapsed}
               aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+              aria-expanded={!isCollapsed}
             >
               {isCollapsed ? (
-                <PanelLeftOpen className="h-4 w-4" />
+                <PanelLeftOpen className="h-4 w-4 shrink-0" />
               ) : (
-                <>
-                  <PanelLeftClose className="h-4 w-4" />
-                  <span>Collapse</span>
-                </>
+                <PanelLeftClose className="h-4 w-4 shrink-0" />
               )}
+              <SidebarLabel collapsed={isCollapsed}>Collapse</SidebarLabel>
             </Button>
           </div>
         ) : null}

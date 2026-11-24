@@ -8,9 +8,14 @@ import {
   type ReactNode,
 } from 'react'
 
+/** Desktop sidebar widths — keep MainLayout padding in sync with Sidebar. */
+export const SIDEBAR_WIDTH_EXPANDED_PX = 260
+export const SIDEBAR_WIDTH_COLLAPSED_PX = 84
+
 type LayoutContextValue = {
   collapsed: boolean
   mobileOpen: boolean
+  sidebarWidthPx: number
   toggleCollapsed: () => void
   setCollapsed: (value: boolean) => void
   setMobileOpen: (value: boolean) => void
@@ -37,15 +42,20 @@ export function LayoutProvider({ children }: { children: ReactNode }) {
     setCollapsed((prev) => !prev)
   }, [])
 
+  const sidebarWidthPx = collapsed
+    ? SIDEBAR_WIDTH_COLLAPSED_PX
+    : SIDEBAR_WIDTH_EXPANDED_PX
+
   const value = useMemo(
     () => ({
       collapsed,
       mobileOpen,
+      sidebarWidthPx,
       toggleCollapsed,
       setCollapsed,
       setMobileOpen,
     }),
-    [collapsed, mobileOpen, toggleCollapsed],
+    [collapsed, mobileOpen, sidebarWidthPx, toggleCollapsed],
   )
 
   return (
