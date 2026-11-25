@@ -28,7 +28,7 @@ import type {
 import { mapPermissionsToModules } from '../utils/mapPermissionsToModules'
 import { toManagedRole, toRoleCode } from '../utils/toManagedRole'
 
-const PAGE_SIZE = 6
+const PAGE_SIZE = 5
 const SEARCH_DEBOUNCE_MS = 350
 const CREATE_DRAFT_KEY = '__create__'
 const EMPTY_FORM: RoleFormValues = {
@@ -314,7 +314,7 @@ export function RoleManagementPage() {
   }
 
   const confirmDelete = async () => {
-    if (!deleteRole || deleteRole.isSystem) return
+    if (!deleteRole || deleteRole.isSystem || deleteRole.userCount > 0) return
     try {
       await deleteRoleMutation(deleteRole.id).unwrap()
       setPermissionCache((prev) => {
@@ -374,16 +374,21 @@ export function RoleManagementPage() {
         customRoles={summary.custom}
       />
 
-      <div className="space-y-4">
-        <RolesFilterBar
-          search={search}
-          onSearchChange={setSearch}
-          typeFilter={typeFilter}
-          onTypeFilterChange={handleTypeFilterChange}
-        />
+      <div className="overflow-hidden rounded-2xl border border-border-soft bg-white shadow-sm">
+        <div className="flex flex-col gap-4 border-b border-border-soft px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+          <div>
+            <h2 className="text-base font-semibold text-navy">All Roles</h2>
+          </div>
+          <RolesFilterBar
+            search={search}
+            onSearchChange={setSearch}
+            typeFilter={typeFilter}
+            onTypeFilterChange={handleTypeFilterChange}
+          />
+        </div>
 
         {listError ? (
-          <div className="flex flex-col items-center gap-3 rounded-2xl border border-border-soft bg-white px-6 py-10 text-center shadow-sm">
+          <div className="flex flex-col items-center gap-3 px-6 py-10 text-center">
             <p className="text-sm text-rose-700">{listError}</p>
             <Button
               type="button"
@@ -395,31 +400,26 @@ export function RoleManagementPage() {
               Retry
             </Button>
           </div>
-        ) : rolesQuery.isLoading ? (
-          <div className="rounded-2xl border border-border-soft bg-white px-6 py-12 text-center text-sm text-text-secondary shadow-sm">
+        ) : rolesQuery.isLoading && !rolesQuery.data ? (
+          <div className="px-6 py-12 text-center text-sm text-text-secondary">
             Loading roles…
           </div>
         ) : (
-          <>
-            <RolesTable
-              roles={roles}
-              page={safePage}
-              pageSize={PAGE_SIZE}
-              total={total}
-              onPageChange={setPage}
-              onView={(role) =>
-                setViewRole({
-                  ...role,
-                  permissionIds: permissionCache[role.id] ?? role.permissionIds,
-                })
-              }
-              onEdit={openEdit}
-              onDelete={setDeleteRole}
-            />
-            {rolesQuery.isFetching ? (
-              <p className="text-sm text-text-secondary">Updating…</p>
-            ) : null}
-          </>
+          <RolesTable
+            roles={roles}
+            page={safePage}
+            pageSize={PAGE_SIZE}
+            total={total}
+            onPageChange={setPage}
+            onView={(role) =>
+              setViewRole({
+                ...role,
+                permissionIds: permissionCache[role.id] ?? role.permissionIds,
+              })
+            }
+            onEdit={openEdit}
+            onDelete={setDeleteRole}
+          />
         )}
       </div>
 

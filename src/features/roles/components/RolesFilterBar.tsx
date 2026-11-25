@@ -25,8 +25,8 @@ export function RolesFilterBar({
   onTypeFilterChange,
 }: RolesFilterBarProps) {
   return (
-    <div className="flex flex-col gap-3 rounded-2xl border border-border-soft bg-white p-4 shadow-sm sm:flex-row sm:items-center">
-      <div className="relative flex-1">
+    <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center">
+      <div className="relative w-full sm:w-64 md:w-72">
         <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-text-secondary" />
         <Input
           className="pl-9"
@@ -39,7 +39,7 @@ export function RolesFilterBar({
         value={typeFilter}
         onValueChange={(value) => onTypeFilterChange(value as RoleTypeFilter)}
       >
-        <SelectTrigger className="w-full sm:w-44">
+        <SelectTrigger className="w-full sm:w-40">
           <SelectValue placeholder="All Types" />
         </SelectTrigger>
         <SelectContent>

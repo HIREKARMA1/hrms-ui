@@ -17,10 +17,10 @@ import { EmployeeOverviewPage } from '@/features/employees/pages/EmployeeOvervie
 import { EmployeeProfilePage } from '@/features/employees/pages/EmployeeProfilePage'
 import { EmployeeRegistrationPage } from '@/features/employees/pages/EmployeeRegistrationPage'
 import { OrganizationDepartmentsPage } from '@/features/organization/pages/OrganizationDepartmentsPage'
+import { PermissionManagementPage } from '@/features/permissions/pages/PermissionManagementPage'
+import { RoleManagementPage } from '@/features/roles/pages/RoleManagementPage'
 import { OrganisationOnboardingDetailPage } from '@/features/organisation-onboarding/pages/OrganisationOnboardingDetailPage'
 import { OrganisationOnboardingPage } from '@/features/organisation-onboarding/pages/OrganisationOnboardingPage'
-import { PermissionsPage } from '@/features/permissions/pages/PermissionsPage'
-import { RolesPage } from '@/features/roles/pages/RolesPage'
 import { UsersPage } from '@/features/users/pages/UsersPage'
 import { RequireAccess } from '../components/RequireAccess'
 
@@ -38,31 +38,6 @@ type RolePrefix = 'superadmin' | 'hradmin' | 'manager'
  */
 export function createOrgRoleModuleRoutes(prefix: RolePrefix): ReactElement[] {
   return [
-    ...(prefix === 'superadmin'
-      ? [
-          <Route
-            key={`${prefix}-roles`}
-            path={`/${prefix}/roles`}
-            element={
-              <RequireAccess feature="module.roles" featureLabel="Role Management">
-                <RolesPage />
-              </RequireAccess>
-            }
-          />,
-          <Route
-            key={`${prefix}-permissions`}
-            path={`/${prefix}/permissions`}
-            element={
-              <RequireAccess
-                feature="module.permissions"
-                featureLabel="Permission Management"
-              >
-                <PermissionsPage />
-              </RequireAccess>
-            }
-          />,
-        ]
-      : []),
     <Route
       key={`${prefix}-users`}
       path={`/${prefix}/users`}
@@ -162,6 +137,31 @@ export function createOrgRoleModuleRoutes(prefix: RolePrefix): ReactElement[] {
         </RequireAccess>
       }
     />,
+    ...(prefix === 'superadmin'
+      ? [
+          <Route
+            key={`${prefix}-roles`}
+            path={`/${prefix}/roles`}
+            element={
+              <RequireAccess feature="module.roles" featureLabel="Role Management">
+                <RoleManagementPage />
+              </RequireAccess>
+            }
+          />,
+          <Route
+            key={`${prefix}-permissions`}
+            path={`/${prefix}/permissions`}
+            element={
+              <RequireAccess
+                feature="module.permissions"
+                featureLabel="Permission Management"
+              >
+                <PermissionManagementPage />
+              </RequireAccess>
+            }
+          />,
+        ]
+      : []),
     ...(prefix === 'hradmin' || prefix === 'superadmin'
       ? [
           <Route

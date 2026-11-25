@@ -91,7 +91,7 @@ export function RoleFormDrawer({
             </Label>
             <Input
               id="role-name"
-              placeholder="e.g. Team Lead"
+              placeholder="e.g. TEAM_LEAD"
               value={values.name}
               disabled={nameReadOnly || submitting}
               onChange={(event) =>
@@ -103,7 +103,11 @@ export function RoleFormDrawer({
                 System role codes cannot be changed. Display name edits are
                 limited for system roles.
               </p>
-            ) : null}
+            ) : (
+              <p className="text-xs text-text-secondary">
+                Saved as an UPPER_SNAKE_CASE code (e.g. TEAM_LEAD).
+              </p>
+            )}
           </div>
 
           <div className="space-y-2">

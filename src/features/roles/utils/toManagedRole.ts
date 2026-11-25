@@ -13,6 +13,7 @@ export function toManagedRole(
     type: role.isSystem ? 'system' : 'custom',
     isSystem: role.isSystem,
     permissionCount: role.permissionCount,
+    userCount: role.userCount,
     permissionIds,
   }
 }

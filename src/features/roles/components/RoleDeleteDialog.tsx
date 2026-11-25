@@ -26,6 +26,8 @@ export function RoleDeleteDialog({
   onConfirm,
 }: RoleDeleteDialogProps) {
   const displayName = role?.name?.trim() || role?.code || 'this role'
+  const blocked =
+    Boolean(role?.isSystem) || Boolean(role && role.userCount > 0)
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -48,9 +50,17 @@ export function RoleDeleteDialog({
                       {role.code}
                     </p>
                   ) : null}
-                  <p>
-                    System roles and roles with assigned users cannot be deleted.
-                  </p>
+                  {role.isSystem ? (
+                    <p>System roles cannot be deleted.</p>
+                  ) : role.userCount > 0 ? (
+                    <p>
+                      This role is assigned to {role.userCount} user
+                      {role.userCount === 1 ? '' : 's'} and cannot be deleted
+                      until those assignments are removed.
+                    </p>
+                  ) : (
+                    <p>This action cannot be undone.</p>
+                  )}
                 </>
               ) : (
                 <p>This action cannot be undone.</p>
@@ -71,7 +81,7 @@ export function RoleDeleteDialog({
           <Button
             type="button"
             className="w-full bg-rose-600 text-white hover:bg-rose-700 sm:w-auto"
-            disabled={submitting}
+            disabled={submitting || blocked}
             onClick={onConfirm}
           >
             {submitting ? 'Deleting…' : 'Delete Role'}

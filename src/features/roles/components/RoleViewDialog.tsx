@@ -66,6 +66,20 @@ export function RoleViewDialog({
           <DialogDescription className="text-sm break-words text-text-secondary">
             {role.description || 'No description provided.'}
           </DialogDescription>
+          <div className="flex flex-wrap gap-3 pt-1 text-xs text-text-secondary">
+            <span>
+              Permissions:{' '}
+              <span className="font-medium tabular-nums text-navy">
+                {role.permissionCount}
+              </span>
+            </span>
+            <span>
+              Users:{' '}
+              <span className="font-medium tabular-nums text-navy">
+                {role.userCount}
+              </span>
+            </span>
+          </div>
         </DialogHeader>
 
         <div className="max-h-[55vh] space-y-3 overflow-y-auto px-4 py-5 sm:px-6">

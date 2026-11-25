@@ -8,8 +8,11 @@ import {
 } from './departmentFilters'
 
 describe('filterDepartments', () => {
-  it('searches by department name or head', () => {
+  it('searches by department name, code, or head', () => {
     expect(filterDepartments(departmentsMock, 'engine', EMPTY_DEPARTMENT_FILTERS)).toHaveLength(1)
+    expect(filterDepartments(departmentsMock, 'fin', EMPTY_DEPARTMENT_FILTERS)[0]?.name).toBe(
+      'Finance',
+    )
     expect(filterDepartments(departmentsMock, 'meera', EMPTY_DEPARTMENT_FILTERS)[0]?.name).toBe(
       'HR',
     )
@@ -50,7 +53,9 @@ describe('filterDepartments', () => {
     expect(result.every((d) => d.status === 'Active')).toBe(true)
     expect(result.every((d) => d.employeeCount >= 20)).toBe(true)
     expect(
-      result.every((d) => `${d.name} ${d.headName}`.toLowerCase().includes('a')),
+      result.every((d) =>
+        `${d.name} ${d.code} ${d.headName}`.toLowerCase().includes('a'),
+      ),
     ).toBe(true)
   })
 })

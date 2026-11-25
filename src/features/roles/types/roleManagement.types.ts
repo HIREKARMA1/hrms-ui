@@ -10,6 +10,7 @@ export type ManagedRole = {
   type: RoleType
   isSystem: boolean
   permissionCount: number
+  userCount: number
   /** Known permission UUIDs from assign response cache (may be empty before assign). */
   permissionIds: RolePermissionId[]
 }

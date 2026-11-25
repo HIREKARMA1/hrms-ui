@@ -47,9 +47,12 @@ export function PermissionGroupList({
   useEffect(() => {
     setExpanded((prev) => {
       const next = { ...prev }
-      for (const module of modules) {
-        if (next[module.id] === undefined) next[module.id] = true
-      }
+      modules.forEach((module, index) => {
+        if (next[module.id] === undefined) {
+          // Expand the first module by default; keep the rest collapsed.
+          next[module.id] = index === 0
+        }
+      })
       return next
     })
   }, [modules])
@@ -125,7 +128,7 @@ export function PermissionGroupList({
           </Label>
         </div>
         <span className="text-xs text-text-secondary tabular-nums">
-          {selectedIds.length}/{allIds.length}
+          {selectedIds.length} / {allIds.length} selected
         </span>
       </div>
 

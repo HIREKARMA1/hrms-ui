@@ -162,24 +162,19 @@ export function PermissionManagementPage() {
               Retry
             </Button>
           </div>
-        ) : listQuery.isLoading ? (
+        ) : listQuery.isLoading && !listQuery.data ? (
           <div className="rounded-2xl border border-border-soft bg-white px-6 py-12 text-center text-sm text-text-secondary shadow-sm">
             Loading permissions…
           </div>
         ) : (
-          <>
-            <PermissionsTable
-              permissions={permissions}
-              page={safePage}
-              pageSize={PAGE_SIZE}
-              total={total}
-              onPageChange={setPage}
-              onView={setSelectedPermission}
-            />
-            {listQuery.isFetching ? (
-              <p className="text-sm text-text-secondary">Updating…</p>
-            ) : null}
-          </>
+          <PermissionsTable
+            permissions={permissions}
+            page={safePage}
+            pageSize={PAGE_SIZE}
+            total={total}
+            onPageChange={setPage}
+            onView={setSelectedPermission}
+          />
         )}
       </div>
 
