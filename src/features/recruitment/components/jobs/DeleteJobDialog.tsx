@@ -11,6 +11,8 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 
+import { useOptionalFeatureAccess } from '@/features/rbac/hooks/useFeatureAccess'
+
 import { useDeleteJobMutation } from '../../api/jobsApi'
 import type { BackendJob } from '../../api/jobsApi.types'
 import { createSubmitGuard, submitDeleteJob } from '../../utils/jobMutations'
@@ -22,6 +24,8 @@ type DeleteJobDialogProps = {
 }
 
 export function DeleteJobDialog({ job, onOpenChange, onDeleted }: DeleteJobDialogProps) {
+  const { canAccess } = useOptionalFeatureAccess()
+  const canManage = canAccess('recruitment.manage')
   const [deleteJob] = useDeleteJobMutation()
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
@@ -29,6 +33,10 @@ export function DeleteJobDialog({ job, onOpenChange, onDeleted }: DeleteJobDialo
 
   const handleConfirm = async () => {
     if (!job) return
+    if (!canManage) {
+      setError('You do not have permission to deactivate job postings.')
+      return
+    }
     setError(null)
     setSubmitting(true)
     const outcome = await submitDeleteJob({

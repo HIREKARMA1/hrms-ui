@@ -217,7 +217,10 @@ export function UsersPage() {
             <TableBody>
               {items.map((row) => (
                 <TableRow key={row.id}>
-                  <TableCell className="font-medium text-navy">{row.email}</TableCell>
+                  <TableCell className="font-medium text-navy">
+                    {formatUserDisplayName(row)}
+                  </TableCell>
+                  <TableCell>{row.email}</TableCell>
                   <TableCell>{row.role}</TableCell>
                   <TableCell>
                     <div className="flex flex-wrap gap-1">

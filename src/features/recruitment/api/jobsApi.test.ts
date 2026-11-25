@@ -43,6 +43,8 @@ const JOB: BackendJob = {
   requirements: 'React',
   skills: ['React', 'TypeScript'],
   applicationDeadline: '2026-12-31',
+  referenceName: 'Priya Sharma',
+  referenceEmail: 'priya.sharma@hirekarma.in',
   status: 'DRAFT',
   isActive: true,
   applicationCount: 0,
@@ -106,6 +108,8 @@ function makeStore() {
 
 const baseForm = {
   title: 'Frontend Engineer',
+  referenceName: 'Priya Sharma',
+  referenceEmail: 'priya.sharma@hirekarma.in',
   departmentId: 'dept-1',
   employmentType: 'FULL_TIME' as const,
   location: 'Hyderabad',
@@ -130,13 +134,14 @@ afterEach(() => {
 })
 
 describe('RBAC', () => {
-  it('keeps recruitment view/manage on role matrix until OpenAPI codes exist', () => {
+  it('gives SA/HR manage; Manager/Employee board view only', () => {
     expect(canAccessFeature('recruitment.jobs', 'MANAGER', [])).toBe(true)
-    expect(canAccessFeature('recruitment.manage', 'MANAGER', [])).toBe(true)
+    expect(canAccessFeature('recruitment.manage', 'MANAGER', [])).toBe(false)
     expect(canAccessFeature('recruitment.manage', 'HR_ADMIN', [])).toBe(true)
     expect(canAccessFeature('recruitment.jobs', 'SUPER_ADMIN', [])).toBe(true)
-    expect(canAccessFeature('recruitment.manage', 'SUPER_ADMIN', [])).toBe(false)
-    expect(canAccessFeature('recruitment.jobs', 'EMPLOYEE', [])).toBe(false)
+    expect(canAccessFeature('recruitment.manage', 'SUPER_ADMIN', [])).toBe(true)
+    expect(canAccessFeature('recruitment.jobs', 'EMPLOYEE', [])).toBe(true)
+    expect(canAccessFeature('recruitment.manage', 'EMPLOYEE', [])).toBe(false)
   })
 })
 
@@ -161,7 +166,30 @@ describe('create job', () => {
       workMode: 'HYBRID',
       description: 'Build HRMS UI',
       skills: ['React', 'TypeScript'],
+      referenceName: 'Priya Sharma',
+      referenceEmail: 'priya.sharma@hirekarma.in',
     })
+  })
+
+  it('includes reference fields in the serialized create body', () => {
+    const body = buildCreateJobBody(baseForm)
+    expect(body.referenceName).toBe('Priya Sharma')
+    expect(body.referenceEmail).toBe('priya.sharma@hirekarma.in')
+  })
+
+  it('rejects missing or invalid reference fields without calling the server', async () => {
+    const calls = stubFetch(() => jsonResponse(201, envelope(JOB)))
+    const missing = await submitCreateJob({
+      values: { ...baseForm, referenceName: '', referenceEmail: 'not-an-email' },
+      guard: createSubmitGuard(),
+      send: () => ({ unwrap: async () => JOB }),
+    })
+    expect(missing.status).toBe('invalid')
+    if (missing.status === 'invalid') {
+      expect(missing.errors.referenceName).toBeTruthy()
+      expect(missing.errors.referenceEmail).toBeTruthy()
+    }
+    expect(calls).toHaveLength(0)
   })
 
   it('omits departmentId from the create body when the field is empty', () => {

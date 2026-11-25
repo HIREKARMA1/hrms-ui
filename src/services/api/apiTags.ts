@@ -22,6 +22,7 @@ export const API_TAGS = [
   'RecruitmentInterview',
   'RecruitmentOffer',
   'RecruitmentAnalytics',
+  'OrganisationOnboarding',
 ] as const
 
 export type ApiTag = (typeof API_TAGS)[number]

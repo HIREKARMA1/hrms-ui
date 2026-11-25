@@ -237,6 +237,7 @@ export const applicationsApi = baseApi.injectEndpoints({
         normalizeApplicationEnvelope(response),
       invalidatesTags: [
         LIST_TAG,
+        { type: 'RecruitmentJob', id: 'LIST' },
         { type: 'RecruitmentAnalytics', id: 'PIPELINE' },
         { type: 'RecruitmentAnalytics', id: 'OVERVIEW' },
       ],

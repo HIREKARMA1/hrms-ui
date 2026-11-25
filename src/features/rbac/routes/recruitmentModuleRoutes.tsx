@@ -1,12 +1,14 @@
 import type { ReactElement } from 'react'
-import { Route } from 'react-router-dom'
+import { Navigate, Route } from 'react-router-dom'
 
 import { ApplicationPipelinePage } from '@/features/recruitment/pages/ApplicationPipelinePage'
 import { CandidatesPage } from '@/features/recruitment/pages/CandidatesPage'
+import { InternalJobBoardPage } from '@/features/recruitment/pages/InternalJobBoardPage'
 import { InterviewFeedbackPage } from '@/features/recruitment/pages/InterviewFeedbackPage'
 import { InterviewSchedulingPage } from '@/features/recruitment/pages/InterviewSchedulingPage'
 import { JobHiringDeskPage } from '@/features/recruitment/pages/JobHiringDeskPage'
 import { JobPostingsPage } from '@/features/recruitment/pages/JobPostingsPage'
+import { MyApplicationsPage } from '@/features/recruitment/pages/MyApplicationsPage'
 import { OffersPage } from '@/features/recruitment/pages/OffersPage'
 import { RecruitmentAnalyticsPage } from '@/features/recruitment/pages/RecruitmentAnalyticsPage'
 import { RecruitmentOverviewPage } from '@/features/recruitment/pages/RecruitmentOverviewPage'
@@ -14,12 +16,14 @@ import { RecruitmentProviderLayout } from '@/features/recruitment/context/Recrui
 
 import { RequireAccess } from '../components/RequireAccess'
 
-type RecruitmentPrefix = 'superadmin' | 'manager' | 'hradmin'
+type AtsPrefix = 'superadmin' | 'hradmin'
 
-/** Recruitment & ATS on Super Admin, HR Admin, and Manager workspaces. */
-export function createRecruitmentModuleRoutes(
-  prefix: RecruitmentPrefix,
-): ReactElement {
+/** Full Recruitment & ATS for Super Admin and HR Admin. */
+export function createRecruitmentModuleRoutes(prefix: AtsPrefix | 'manager'): ReactElement {
+  if (prefix === 'manager') {
+    return createManagerInternalJobsRoutes()
+  }
+
   return (
     <Route
       key={`${prefix}-recruitment-layout`}
@@ -55,7 +59,6 @@ export function createRecruitmentModuleRoutes(
           </RequireAccess>
         }
       />
-      {/* Job Descriptions route hidden — JobDescriptionsPage.tsx retained */}
       <Route
         path={`/${prefix}/recruitment/candidates`}
         element={
@@ -101,9 +104,9 @@ export function createRecruitmentModuleRoutes(
         path={`/${prefix}/recruitment/offers`}
         element={
           <RequireAccess
-          feature="recruitment.offers"
-          featureLabel="Offers & offer letters"
-        >
+            feature="recruitment.offers"
+            featureLabel="Offers & offer letters"
+          >
             <OffersPage />
           </RequireAccess>
         }
@@ -116,6 +119,68 @@ export function createRecruitmentModuleRoutes(
             featureLabel="Recruitment Analytics"
           >
             <RecruitmentAnalyticsPage />
+          </RequireAccess>
+        }
+      />
+    </Route>
+  )
+}
+
+/** Manager: internal job board + own applications only (no job management). */
+function createManagerInternalJobsRoutes(): ReactElement {
+  return (
+    <Route
+      key="manager-recruitment-layout"
+      element={<RecruitmentProviderLayout />}
+    >
+      <Route
+        path="/manager/recruitment"
+        element={<Navigate to="/manager/recruitment/jobs" replace />}
+      />
+      <Route
+        path="/manager/recruitment/jobs"
+        element={
+          <RequireAccess feature="recruitment.jobs" featureLabel="Internal Jobs">
+            <InternalJobBoardPage />
+          </RequireAccess>
+        }
+      />
+      <Route
+        path="/manager/recruitment/applications"
+        element={
+          <RequireAccess feature="recruitment.jobs" featureLabel="My Applications">
+            <MyApplicationsPage />
+          </RequireAccess>
+        }
+      />
+    </Route>
+  )
+}
+
+/** Employee: internal job board + own applications. */
+export function createEmployeeRecruitmentRoutes(): ReactElement {
+  return (
+    <Route
+      key="employee-recruitment-layout"
+      element={<RecruitmentProviderLayout />}
+    >
+      <Route
+        path="/employee/recruitment"
+        element={<Navigate to="/employee/recruitment/jobs" replace />}
+      />
+      <Route
+        path="/employee/recruitment/jobs"
+        element={
+          <RequireAccess feature="recruitment.jobs" featureLabel="Internal Jobs">
+            <InternalJobBoardPage />
+          </RequireAccess>
+        }
+      />
+      <Route
+        path="/employee/recruitment/applications"
+        element={
+          <RequireAccess feature="recruitment.jobs" featureLabel="My Applications">
+            <MyApplicationsPage />
           </RequireAccess>
         }
       />

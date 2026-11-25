@@ -13,6 +13,8 @@ import {
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 
+import { useOptionalFeatureAccess } from '@/features/rbac/hooks/useFeatureAccess'
+
 import { useUpdateJobDescriptionMutation } from '../../api/jobsApi'
 import type { BackendJob } from '../../api/jobsApi.types'
 import { createSubmitGuard, submitUpdateJobDescription } from '../../utils/jobMutations'
@@ -32,6 +34,8 @@ function DescriptionForm({
   onOpenChange: (open: boolean) => void
   onSaved: (job: BackendJob) => void
 }) {
+  const { canAccess } = useOptionalFeatureAccess()
+  const canManage = canAccess('recruitment.manage')
   const [updateDescription] = useUpdateJobDescriptionMutation()
   const [description, setDescription] = useState(job.description)
   const [error, setError] = useState<string | null>(null)
@@ -40,6 +44,10 @@ function DescriptionForm({
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault()
+    if (!canManage) {
+      setError('You do not have permission to edit job descriptions.')
+      return
+    }
     setError(null)
     setSubmitting(true)
     const outcome = await submitUpdateJobDescription({

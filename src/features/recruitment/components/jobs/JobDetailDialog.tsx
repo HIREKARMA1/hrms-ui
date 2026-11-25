@@ -96,6 +96,16 @@ export function JobDetailDialog({
 
             <dl className="grid gap-3 text-sm sm:grid-cols-2">
               <div>
+                <dt className="text-xs uppercase tracking-wide text-slate-400">Reference Name</dt>
+                <dd>{job.referenceName?.trim() ? job.referenceName : '—'}</dd>
+              </div>
+              <div>
+                <dt className="text-xs uppercase tracking-wide text-slate-400">Reference Email</dt>
+                <dd className="break-all">
+                  {job.referenceEmail?.trim() ? job.referenceEmail : '—'}
+                </dd>
+              </div>
+              <div>
                 <dt className="text-xs uppercase tracking-wide text-slate-400">Department</dt>
                 <dd>{job.department?.name ?? job.departmentId ?? '—'}</dd>
               </div>

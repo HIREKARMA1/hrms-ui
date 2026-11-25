@@ -25,6 +25,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
+import { useOptionalFeatureAccess } from '@/features/rbac/hooks/useFeatureAccess'
 import { useListDepartmentsQuery } from '@/features/organization/api/departmentsApi'
 import { getApiErrorMessage } from '@/services/api/errors'
 
@@ -35,7 +36,11 @@ import type {
   JobPostingStatus,
   JobWorkMode,
 } from '../../api/jobsApi.types'
-import type { JobFormErrors, JobFormValues } from '../../utils/jobFormValidation'
+import {
+  JOB_REFERENCE_FIELDS_IN_OPENAPI,
+  type JobFormErrors,
+  type JobFormValues,
+} from '../../utils/jobFormValidation'
 import {
   createSubmitGuard,
   submitCreateJob,
@@ -57,6 +62,8 @@ const NO_DEPARTMENT = '__none__'
 function emptyValues(): JobFormValues {
   return {
     title: '',
+    referenceName: '',
+    referenceEmail: '',
     departmentId: '',
     employmentType: 'FULL_TIME',
     location: '',
@@ -78,6 +85,8 @@ function emptyValues(): JobFormValues {
 function valuesFromJob(job: BackendJob): JobFormValues {
   return {
     title: job.title,
+    referenceName: job.referenceName ?? '',
+    referenceEmail: job.referenceEmail ?? '',
     departmentId: job.departmentId ?? '',
     employmentType: job.employmentType,
     location: job.location,
@@ -115,6 +124,8 @@ function JobFormFields({
   onOpenChange: (open: boolean) => void
   onSaved: (job: BackendJob, mode: 'create' | 'edit') => void
 }) {
+  const { canAccess } = useOptionalFeatureAccess()
+  const canManage = canAccess('recruitment.manage')
   const [createJob] = useCreateJobMutation()
   const [updateJob] = useUpdateJobMutation()
   const departmentsQuery = useListDepartmentsQuery({
@@ -149,7 +160,7 @@ function JobFormFields({
       })
     }
     return Array.from(byId.values()).sort((a, b) => a.name.localeCompare(b.name))
-  }, [departmentsQuery.data?.items, job?.department, job?.departmentId])
+  }, [departmentsQuery.data?.items, job])
 
   const setField = <K extends keyof JobFormValues>(key: K, value: JobFormValues[K]) => {
     setValues((prev) => ({ ...prev, [key]: value }))
@@ -158,6 +169,10 @@ function JobFormFields({
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault()
     setFormError(null)
+    if (!canManage) {
+      setFormError('You do not have permission to create or edit job postings.')
+      return
+    }
     setSubmitting(true)
 
     const outcome =
@@ -195,16 +210,60 @@ function JobFormFields({
 
   return (
     <form className="space-y-4" onSubmit={(event) => void handleSubmit(event)} noValidate>
+      {!JOB_REFERENCE_FIELDS_IN_OPENAPI ? (
+        <p
+          role="status"
+          className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900"
+        >
+          Reference Name and Reference Email ID are required in this form and are included in the
+          create/update request body. Production OpenAPI for POST/PATCH{' '}
+          <code className="font-mono">/recruitment/jobs</code> does not yet document these fields,
+          so the API may ignore or reject them until the backend contract is extended.
+        </p>
+      ) : null}
+
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2 sm:col-span-2">
-          <Label htmlFor="job-title">Title</Label>
+          <Label htmlFor="job-title">Job Title</Label>
           <Input
             id="job-title"
             value={values.title}
             onChange={(e) => setField('title', e.target.value)}
+            placeholder="Enter job title"
             disabled={submitting}
           />
           {errors.title ? <p className="text-xs text-red-500">{errors.title}</p> : null}
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="job-reference-name">Reference Name</Label>
+          <Input
+            id="job-reference-name"
+            value={values.referenceName}
+            onChange={(e) => setField('referenceName', e.target.value)}
+            placeholder="Enter reference person's name"
+            disabled={submitting}
+            autoComplete="name"
+          />
+          {errors.referenceName ? (
+            <p className="text-xs text-red-500">{errors.referenceName}</p>
+          ) : null}
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="job-reference-email">Reference Email ID</Label>
+          <Input
+            id="job-reference-email"
+            type="email"
+            value={values.referenceEmail}
+            onChange={(e) => setField('referenceEmail', e.target.value)}
+            placeholder="Enter reference person's email address"
+            disabled={submitting}
+            autoComplete="email"
+          />
+          {errors.referenceEmail ? (
+            <p className="text-xs text-red-500">{errors.referenceEmail}</p>
+          ) : null}
         </div>
 
         <div className="space-y-2">
@@ -475,7 +534,7 @@ function JobFormFields({
         >
           Cancel
         </Button>
-        <Button type="submit" disabled={submitting}>
+        <Button type="submit" disabled={submitting || !canManage}>
           {submitting ? (
             <>
               <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
