@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 
 import { Button } from '@/components/ui/button'
 import {
@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { TablePagination } from '@/components/ui/table-pagination'
 import { ToastBanner, useToast } from '@/hooks/useToast'
 
 import {
@@ -100,20 +101,21 @@ export function DailyAttendancePage() {
   }, [filters, records])
 
   const totalPages = Math.max(1, Math.ceil(filteredRecords.length / pageSize))
+  const [filtersKey, setFiltersKey] = useState(filters)
+  if (filters !== filtersKey) {
+    setFiltersKey(filters)
+    if (page !== 1) setPage(1)
+  }
+
   const safePage = Math.min(page, totalPages)
+  if (page !== safePage) {
+    setPage(safePage)
+  }
 
   const pageRecords = useMemo(() => {
     const start = (safePage - 1) * pageSize
     return filteredRecords.slice(start, start + pageSize)
   }, [filteredRecords, safePage])
-
-  useEffect(() => {
-    setPage(1)
-  }, [filters])
-
-  useEffect(() => {
-    if (page > totalPages) setPage(totalPages)
-  }, [page, totalPages])
 
   const visibleIds = pageRecords.map((record) => record.id)
 
@@ -165,15 +167,16 @@ export function DailyAttendancePage() {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-navy">
-          Daily Attendance
-        </h1>
-        <p className="mt-1 text-sm text-text-secondary">
-          Live API lookup by employee code or ID. The table below still uses mock daily records.
+    <div className="mx-auto w-full max-w-[1280px] px-7 pb-8 font-[Inter,system-ui,sans-serif]">
+      <ToastBanner message={message} />
+
+      <header className="mb-6">
+        <h1 className="text-[26px] font-bold tracking-[-0.4px] text-[#17213A]">Daily Attendance</h1>
+        <p className="mt-1 text-sm text-[#667085]">
+          Employee roster, code or ID lookup, and date range from the live API — check-in, check-out, and
+          status by day.
         </p>
-      </div>
+      </header>
 
       <HrAttendanceLiveReport title="Daily employee attendance (live API)" />
 
@@ -194,36 +197,16 @@ export function DailyAttendancePage() {
         onEdit={openEdit}
       />
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-sm text-text-secondary">
-          Showing {(safePage - 1) * pageSize + (pageRecords.length ? 1 : 0)}–
-          {(safePage - 1) * pageSize + pageRecords.length} of{' '}
-          {filteredRecords.length} records
-        </p>
-        <div className="flex items-center gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            className="h-9"
-            disabled={safePage <= 1}
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-          >
-            Prev
-          </Button>
-          <span className="min-w-[88px] text-center text-sm text-text-secondary">
-            Page {safePage} of {totalPages}
-          </span>
-          <Button
-            type="button"
-            variant="outline"
-            className="h-9"
-            disabled={safePage >= totalPages}
-            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-          >
-            Next
-          </Button>
-        </div>
-      </div>
+      <TablePagination
+        page={safePage}
+        totalPages={totalPages}
+        total={filteredRecords.length}
+        itemLabel="records"
+        summary={`Showing ${(safePage - 1) * pageSize + (pageRecords.length ? 1 : 0)}–${
+          (safePage - 1) * pageSize + pageRecords.length
+        } of ${filteredRecords.length} records`}
+        onPageChange={setPage}
+      />
 
       <Dialog
         open={viewRecord !== null}
@@ -351,8 +334,6 @@ export function DailyAttendancePage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      <ToastBanner message={message} />
     </div>
   )
 }

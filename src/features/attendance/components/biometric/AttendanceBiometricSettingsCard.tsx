@@ -59,10 +59,13 @@ export function AttendanceBiometricSettingsCard({ toast }: AttendanceBiometricSe
           items={items}
           loading={bio.devices.isLoading || bio.devices.isFetching}
           canUpdate={bio.perms.canConfigureDevices}
+          canDelete={bio.perms.canDeleteDevices}
           canSync={bio.canSync}
           syncLoading={bio.syncLoading}
+          deleteLoading={bio.deleteLoading}
           syncingDeviceCode={ui.syncingDeviceCode}
           onEdit={ui.openEdit}
+          onDelete={(device) => void bio.submitDelete(device)}
           onSyncDevice={(device) => void ui.openSyncReport(device.deviceCode)}
         />
 

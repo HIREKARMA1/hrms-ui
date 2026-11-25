@@ -8,7 +8,7 @@ import { useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
-import { getLeaveErrorMessage, useGetLeaveBalanceQuery } from '../../api/leaveApi'
+import { LEAVE_MAX_LIMIT, getLeaveErrorMessage, useGetLeaveBalanceQuery, useGetLeaveHistoryQuery } from '../../api/leaveApi'
 import { availableByTypeCode, mapLeaveBalanceRows } from '../../api/leaveMappers'
 import { useLeave } from '../../hooks/useLeave'
 import { useLeaveToast } from '../../hooks/useLeaveToast'
@@ -81,6 +81,14 @@ function MyLeaveTabContent({ viewer }: { viewer: LinkedLeaveViewer }) {
     () => (api && serverBalance.data ? mapLeaveBalanceRows(serverBalance.data, api.leaveTypes) : null),
     [api, serverBalance.data],
   )
+  const leaveHistory = useGetLeaveHistoryQuery(
+    { employeeId: viewer.employeeId, page: 1, limit: LEAVE_MAX_LIMIT, year: Number(year) },
+    { skip: !api },
+  )
+  const historyError =
+    api && leaveHistory.isError && !leaveHistory.data
+      ? getLeaveErrorMessage(leaveHistory.error, 'Could not load your leave history.')
+      : null
   const balanceError =
     api && serverBalance.isError && !serverBalance.data
       ? getLeaveErrorMessage(serverBalance.error, 'Could not load your leave balances.')
@@ -114,7 +122,10 @@ function MyLeaveTabContent({ viewer }: { viewer: LinkedLeaveViewer }) {
     }
     return rows
   }, [serverRows, snapshot, viewer.employeeId, year])
-  const yearRows = useMemo(() => requests.filter((item) => item.fromDate.startsWith(year)), [requests, year])
+  const yearRows = useMemo(() => {
+    if (api && leaveHistory.data) return leaveHistory.data.items
+    return requests.filter((item) => item.fromDate.startsWith(year))
+  }, [api, leaveHistory.data, requests, year])
   const filtered = useMemo(
     () =>
       yearRows.filter(
@@ -191,7 +202,17 @@ function MyLeaveTabContent({ viewer }: { viewer: LinkedLeaveViewer }) {
       ) : (
         <MyLeaveBalanceCards cards={cards} compOffLots={snapshot.compOffLots} employeeId={viewer.employeeId} />
       )}
-      <MyRequestsTable rows={filtered} onView={setDetail} onCancel={(row) => (row.status === 'Approved' ? setCancelTarget(row) : void submitCancel(row))} canCancel={(row) => permissions.canCancel && canCancel(row)} onApply={permissions.canCreate ? () => setApplyOpen(true) : undefined} />
+      {historyError ? (
+        <LeaveErrorState message={historyError} onRetry={() => void leaveHistory.refetch()} />
+      ) : (
+        <MyRequestsTable
+          rows={filtered}
+          onView={setDetail}
+          onCancel={(row) => (row.status === 'Approved' ? setCancelTarget(row) : void submitCancel(row))}
+          canCancel={(row) => permissions.canCancel && canCancel(row)}
+          onApply={permissions.canCreate ? () => setApplyOpen(true) : undefined}
+        />
+      )}
       <RequestDetailDialog open={Boolean(detail)} request={detail} balanceBefore={detailBalance} balanceAfter={detail && detailBalance !== null ? detailBalance - detail.days : null} onOpenChange={(open) => !open && setDetail(null)} />
       <ApplyLeaveDialog open={applyOpen} onOpenChange={setApplyOpen} employee={employee} settings={snapshot.settings} ledger={snapshot.ledger} existing={snapshot.requests} employees={snapshot.employees} saving={saving} serverBalances={serverBalances} onSubmit={submitApply} />
       <EarnCompOffDialog open={compOpen} onOpenChange={setCompOpen} onSubmit={() => showToast('Comp-off credit submitted.')} />

@@ -5,11 +5,14 @@
  * This catalogue is informational only — it does not grant access. Session
  * authorization continues to use `/auth/me` (and login) permission codes.
  */
+import type { FetchBaseQueryError } from '@reduxjs/toolkit/query'
+
 import { baseApi } from '@/services/api/baseApi'
 
 import type {
   BackendPermission,
   ListPermissionsArgs,
+  PermissionRelatedRole,
   PermissionsPage,
   PermissionsPagination,
 } from './permissionsApi.types'
@@ -76,17 +79,41 @@ export function normalizePermission(raw: unknown): BackendPermission | null {
       : readString(descriptionRaw)
 
   const countBag = asRecord(row._count)
+  const relatedRoles = normalizeRelatedRoles(row.relatedRoles)
   const roleCount = readCount(
-    row.roleCount !== undefined ? row.roleCount : countBag?.roles,
+    row.roleCount !== undefined
+      ? row.roleCount
+      : (countBag?.roles ?? relatedRoles.length),
   )
+
+  const createdAt = readString(row.createdAt) ?? ''
+  const updatedAt = readString(row.updatedAt) ?? ''
 
   return {
     id,
     code,
     module: moduleName,
     description,
+    createdAt,
+    updatedAt,
     roleCount,
+    relatedRoles,
   }
+}
+
+function normalizeRelatedRoles(raw: unknown): PermissionRelatedRole[] {
+  if (!Array.isArray(raw)) return []
+  const roles: PermissionRelatedRole[] = []
+  for (const entry of raw) {
+    const row = asRecord(entry)
+    if (!row) continue
+    const id = readString(row.id)
+    const code = readString(row.code)
+    const name = readString(row.name)
+    if (!id || !code || !name) continue
+    roles.push({ id, code, name })
+  }
+  return roles
 }
 
 function normalizePagination(raw: unknown, itemCount: number): PermissionsPagination {
@@ -137,7 +164,39 @@ export const permissionsApi = baseApi.injectEndpoints({
       transformResponse: (response: unknown) => normalizePermissionsPage(response),
       providesTags: (result) => pageTags(result),
     }),
+
+    /**
+     * Full permission catalogue aggregated client-side across pages.
+     * Used for module filters and summary cards on Permission Management.
+     */
+    listPermissionsCatalog: build.query<BackendPermission[], void>({
+      async queryFn(_arg, _api, _extraOptions, baseQuery) {
+        const collected: BackendPermission[] = []
+        let page = 1
+        let totalPages = 1
+
+        do {
+          const result = await baseQuery({
+            url: '/permissions',
+            params: { page, limit: PERMISSIONS_MAX_LIMIT },
+          })
+
+          if (result.error) {
+            return { error: result.error as FetchBaseQueryError }
+          }
+
+          const normalized = normalizePermissionsPage(result.data)
+          collected.push(...normalized.items)
+          totalPages = Math.max(normalized.pagination.totalPages, 1)
+          page += 1
+        } while (page <= totalPages)
+
+        return { data: collected }
+      },
+      providesTags: [LIST_TAG],
+    }),
   }),
 })
 
-export const { useListPermissionsQuery } = permissionsApi
+export const { useListPermissionsQuery, useListPermissionsCatalogQuery } =
+  permissionsApi

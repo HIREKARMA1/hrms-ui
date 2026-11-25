@@ -1,4 +1,4 @@
-import { Loader2, Pencil, RefreshCw } from 'lucide-react'
+import { Loader2, Pencil, RefreshCw, Trash2 } from 'lucide-react'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -8,10 +8,14 @@ type BiometricDeviceTableProps = {
   items: BiometricDevice[]
   loading?: boolean
   canUpdate?: boolean
+  canDelete?: boolean
   canSync?: boolean
   syncLoading?: boolean
+  deleteLoading?: boolean
+  deletingDeviceId?: string | null
   syncingDeviceCode?: string | null
   onEdit: (device: BiometricDevice) => void
+  onDelete?: (device: BiometricDevice) => void
   onSyncDevice?: (device: BiometricDevice) => void
 }
 
@@ -19,13 +23,17 @@ export function BiometricDeviceTable({
   items,
   loading,
   canUpdate,
+  canDelete,
   canSync,
   syncLoading,
+  deleteLoading,
+  deletingDeviceId,
   syncingDeviceCode,
   onEdit,
+  onDelete,
   onSyncDevice,
 }: BiometricDeviceTableProps) {
-  const showActions = canUpdate || canSync
+  const showActions = canUpdate || canSync || canDelete
   if (loading && items.length === 0) {
     return (
       <p className="flex items-center gap-2 text-sm text-text-secondary">
@@ -96,6 +104,23 @@ export function BiometricDeviceTable({
                       >
                         <Pencil className="h-3.5 w-3.5" />
                         Edit
+                      </Button>
+                    ) : null}
+                    {canDelete && onDelete ? (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="gap-1 text-rose-600 hover:text-rose-700"
+                        disabled={deleteLoading && deletingDeviceId === device.id}
+                        onClick={() => onDelete(device)}
+                      >
+                        {deleteLoading && deletingDeviceId === device.id ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-3.5 w-3.5" />
+                        )}
+                        Delete
                       </Button>
                     ) : null}
                   </div>

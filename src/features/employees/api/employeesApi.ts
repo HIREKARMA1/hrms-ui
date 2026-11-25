@@ -147,11 +147,22 @@ export const employeesApi = baseApi.injectEndpoints({
      */
     deleteEmployee: build.mutation<EmployeeDeleteResult, string>({
       query: (id) => ({ url: `/employees/${encodeURIComponent(id)}`, method: 'DELETE' }),
-      transformResponse: (response: BackendDeleteEmployeeResult) => ({
-        employeeId: response.employee.id,
-        name: `${response.employee.firstName} ${response.employee.lastName}`.trim(),
-        deviceSync: response.sync.device,
-      }),
+      transformResponse: (response: BackendDeleteEmployeeResult) => {
+        const employee = response?.employee
+        if (!employee?.id) {
+          throw new Error('Delete succeeded but response was missing employee details')
+        }
+        return {
+          employeeId: employee.id,
+          name: `${employee.firstName ?? ''} ${employee.lastName ?? ''}`.trim() || 'Employee',
+          deviceSync: response.sync?.device ?? {
+            status: 'skipped' as const,
+            message:
+              response.message ??
+              'TimeWatch device punch data is not changed',
+          },
+        }
+      },
       invalidatesTags: (_result, _error, id) => [{ type: 'Employee', id }, LIST_TAG, SUMMARY_TAG],
     }),
 

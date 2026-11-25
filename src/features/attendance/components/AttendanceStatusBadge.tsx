@@ -13,6 +13,7 @@ const attendanceVariant: Record<
   'On Leave': 'default',
   Holiday: 'outline',
   'Weekly Off': 'outline',
+  'In Progress': 'warning',
 }
 
 const approvalVariant: Record<

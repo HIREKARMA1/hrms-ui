@@ -49,7 +49,6 @@ export function isAuthResponseError(error: unknown, code: AuthResponseErrorCode)
 
 export const authApi = baseApi.injectEndpoints({
   endpoints: (build) => ({
-    /** POST /auth/login. `rememberMe` is client-only and is not sent. */
     login: build.mutation<LoginResponseData, LoginRequest>({
       async queryFn({ email, password }, _api, _extraOptions, baseQuery) {
         const result = await baseQuery({

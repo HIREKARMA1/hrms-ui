@@ -13,8 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { BIOMETRIC_ATTENDANCE_SOURCE_OPTIONS } from '@/features/biometric/components/biometricAttendanceUi'
-
+import { ATTENDANCE_REPORT_SOURCE_OPTIONS } from '../../constants/attendanceReportSourceOptions'
 import type { AttendanceReportSource } from '../../constants/attendanceApiAccess'
 import type { AttendanceReportRangeState } from '../../hooks/useAttendanceReportRangeState'
 
@@ -66,7 +65,7 @@ export function AttendanceReportRangeControls({
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {BIOMETRIC_ATTENDANCE_SOURCE_OPTIONS.map((option) => (
+            {ATTENDANCE_REPORT_SOURCE_OPTIONS.map((option) => (
               <SelectItem key={option.value} value={option.value}>
                 {option.label}
               </SelectItem>

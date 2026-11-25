@@ -6,6 +6,16 @@ export const PUBLIC_PATHS = [
   '/contact-administrator',
 ]
 
+/** Public path prefixes (e.g. candidate onboarding form). */
+export const PUBLIC_PATH_PREFIXES = ['/organisation-onboarding'] as const
+
+export function isPublicPath(pathname: string): boolean {
+  if (PUBLIC_PATHS.includes(pathname)) return true
+  return PUBLIC_PATH_PREFIXES.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
+  )
+}
+
 /** Reset screen the emailed link opens (`/reset-password?token=...`). */
 export const RESET_PASSWORD_PATH = '/reset-password'
 
@@ -21,6 +31,6 @@ export const LOGIN_PATH = '/'
  */
 export function redirectToLogin(): void {
   if (typeof window === 'undefined') return
-  if (PUBLIC_PATHS.includes(window.location.pathname)) return
+  if (isPublicPath(window.location.pathname)) return
   window.location.replace(LOGIN_PATH)
 }

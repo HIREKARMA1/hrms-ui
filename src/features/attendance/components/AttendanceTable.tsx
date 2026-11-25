@@ -49,13 +49,13 @@ export function AttendanceTable({
             <th className="px-3 py-3 font-medium">Working Hours</th>
             <th className="px-3 py-3 font-medium">Overtime</th>
             <th className="px-3 py-3 font-medium">Status</th>
-            <th className="px-3 py-3 font-medium">Actions</th>
+            <th className="px-3 py-3 text-center font-medium">Actions</th>
           </tr>
         </thead>
         <tbody>
           {records.map((record) => (
             <tr key={record.id} className="border-t border-border-soft">
-              <td className="px-4 py-3">
+              <td className="px-4 py-3 align-middle">
                 <Checkbox
                   checked={selectedIds.includes(record.id)}
                   onCheckedChange={(checked) =>
@@ -64,27 +64,41 @@ export function AttendanceTable({
                   aria-label={`Select ${record.employeeName}`}
                 />
               </td>
-              <td className="px-3 py-3 font-medium text-navy">
+              <td className="px-3 py-3 align-middle font-medium text-navy">
                 {record.employeeName}
               </td>
-              <td className="px-3 py-3 text-text-secondary">{record.employeeId}</td>
-              <td className="px-3 py-3 text-text-secondary">{record.department}</td>
-              <td className="px-3 py-3 text-text-secondary">{record.designation}</td>
-              <td className="px-3 py-3 text-text-secondary">{record.date}</td>
-              <td className="px-3 py-3 text-text-secondary">{record.checkIn}</td>
-              <td className="px-3 py-3 text-text-secondary">{record.checkOut}</td>
-              <td className="px-3 py-3 text-text-secondary">
+              <td className="px-3 py-3 align-middle text-text-secondary">
+                {record.employeeId}
+              </td>
+              <td className="px-3 py-3 align-middle text-text-secondary">
+                {record.department}
+              </td>
+              <td className="px-3 py-3 align-middle text-text-secondary">
+                {record.designation}
+              </td>
+              <td className="px-3 py-3 align-middle text-text-secondary">
+                {record.date}
+              </td>
+              <td className="px-3 py-3 align-middle text-text-secondary">
+                {record.checkIn}
+              </td>
+              <td className="px-3 py-3 align-middle text-text-secondary">
+                {record.checkOut}
+              </td>
+              <td className="px-3 py-3 align-middle text-text-secondary">
                 {record.breakDuration}
               </td>
-              <td className="px-3 py-3 text-text-secondary">
+              <td className="px-3 py-3 align-middle text-text-secondary">
                 {record.workingHours}
               </td>
-              <td className="px-3 py-3 text-text-secondary">{record.overtime}</td>
-              <td className="px-3 py-3">
+              <td className="px-3 py-3 align-middle text-text-secondary">
+                {record.overtime}
+              </td>
+              <td className="px-3 py-3 align-middle">
                 <AttendanceStatusBadge status={record.status} />
               </td>
-              <td className="px-3 py-3">
-                <div className="flex items-center gap-1">
+              <td className="px-3 py-3 text-center align-middle">
+                <div className="inline-flex items-center justify-center gap-1">
                   <Button
                     type="button"
                     variant="ghost"

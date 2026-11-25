@@ -25,6 +25,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { TablePagination } from '@/components/ui/table-pagination'
 import { getApiErrorMessage } from '@/services/api/errors'
 
 import { USERS_PAGE_SIZE, useListUsersQuery } from '../api/usersApi'
@@ -210,95 +211,72 @@ export function UsersPage() {
                 <TableHead>Legacy role</TableHead>
                 <TableHead>Roles</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead className="text-center">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {items.map((row) => {
-                const displayName = formatUserDisplayName(row)
-                return (
-                  <TableRow key={row.id}>
-                    <TableCell className="min-w-[10rem] font-medium text-navy">
-                      {displayName}
-                    </TableCell>
-                    <TableCell className="max-w-[18rem] truncate text-slate-700" title={row.email}>
-                      {row.email}
-                    </TableCell>
-                    <TableCell>{row.role}</TableCell>
-                    <TableCell>
-                      <div className="flex flex-wrap gap-1">
-                        {row.roles.length === 0 ? (
-                          <span className="text-slate-400">—</span>
-                        ) : (
-                          row.roles.map((assigned) => (
-                            <Badge key={assigned.id} variant="secondary">
-                              {assigned.code}
-                            </Badge>
-                          ))
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={row.isActive ? 'success' : 'secondary'}>
-                        {row.isActive ? 'Active' : 'Inactive'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-1">
+              {items.map((row) => (
+                <TableRow key={row.id}>
+                  <TableCell className="font-medium text-navy">{row.email}</TableCell>
+                  <TableCell>{row.role}</TableCell>
+                  <TableCell>
+                    <div className="flex flex-wrap gap-1">
+                      {row.roles.length === 0 ? (
+                        <span className="text-slate-400">—</span>
+                      ) : (
+                        row.roles.map((assigned) => (
+                          <Badge key={assigned.id} variant="secondary">
+                            {assigned.code}
+                          </Badge>
+                        ))
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={row.isActive ? 'success' : 'secondary'}>
+                      {row.isActive ? 'Active' : 'Inactive'}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex justify-end gap-1">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        aria-label={`View ${row.email}`}
+                        onClick={() => setDetailId(row.id)}
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      <Feature name="users.deactivate">
                         <Button
                           type="button"
                           variant="ghost"
                           size="icon"
-                          aria-label={`View ${row.email}`}
-                          onClick={() => setDetailId(row.id)}
+                          aria-label={`Deactivate ${row.email}`}
+                          onClick={() => setDeactivateTarget(row)}
                         >
-                          <Eye className="h-4 w-4" />
+                          <UserX className="h-4 w-4" />
                         </Button>
-                        <Feature name="users.deactivate">
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            aria-label={`Deactivate ${row.email}`}
-                            onClick={() => setDeactivateTarget(row)}
-                          >
-                            <UserX className="h-4 w-4" />
-                          </Button>
-                        </Feature>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                )
-              })}
+                      </Feature>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
             </TableBody>
           </Table>
         )}
       </div>
 
       {pagination && totalPages > 0 ? (
-        <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-slate-600">
-          <p>
-            Page {pagination.page} of {totalPages} · {pagination.total} users
-          </p>
-          <div className="flex gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              disabled={page <= 1 || list.isFetching}
-              onClick={() => setPage((current) => Math.max(1, current - 1))}
-            >
-              Previous
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              disabled={page >= totalPages || list.isFetching}
-              onClick={() => setPage((current) => current + 1)}
-            >
-              Next
-            </Button>
-          </div>
-        </div>
+        <TablePagination
+          page={page}
+          totalPages={totalPages}
+          total={pagination.total}
+          itemLabel="users"
+          disabled={list.isFetching}
+          onPageChange={setPage}
+        />
       ) : null}
 
       <CreateUserDialog

@@ -41,7 +41,7 @@ export function filterDepartments(
 
   return departments.filter((dept) => {
     if (q) {
-      const haystack = `${dept.name} ${dept.headName}`.toLowerCase()
+      const haystack = `${dept.name} ${dept.code} ${dept.headName}`.toLowerCase()
       if (!haystack.includes(q)) return false
     }
     if (filters.headName !== 'All' && dept.headName !== filters.headName) {

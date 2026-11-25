@@ -6,6 +6,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useBiometricDeviceList } from '@/features/biometric/hooks/useBiometricDevices'
+import { useBiometricPermissions } from '@/features/biometric/hooks/useBiometricPermissions'
 
 type BiometricDeviceSelectProps = {
   value: string
@@ -27,12 +28,28 @@ export function BiometricDeviceSelect({
   id,
   allowEmpty = false,
 }: BiometricDeviceSelectProps) {
-  const { data, isLoading, isError, error } = useBiometricDeviceList({
+  const { canListDevices } = useBiometricPermissions()
+  const { data, isLoading, isError, error, isUninitialized } = useBiometricDeviceList({
     isActive: true,
     limit: 100,
     page: 1,
   })
   const items = data?.items ?? []
+
+  if (!canListDevices || isUninitialized) {
+    return (
+      <div className="space-y-1">
+        <Select disabled value={value || undefined}>
+          <SelectTrigger id={id}>
+            <SelectValue placeholder="Device list unavailable" />
+          </SelectTrigger>
+        </Select>
+        <p className="text-xs text-amber-700">
+          Enter the Device ID manually above. Listing devices needs biometric:manage_devices.
+        </p>
+      </div>
+    )
+  }
 
   if (isLoading) {
     return (
@@ -54,8 +71,8 @@ export function BiometricDeviceSelect({
         </Select>
         <p className="text-xs text-destructive">
           {error && 'status' in error
-            ? 'Failed to load biometric devices. Check biometric:manage_devices permission.'
-            : 'Failed to load biometric devices.'}
+            ? 'Failed to load biometric devices. Enter Device ID manually, or check biometric:manage_devices.'
+            : 'Failed to load biometric devices. Enter Device ID manually.'}
         </p>
       </div>
     )
@@ -70,7 +87,8 @@ export function BiometricDeviceSelect({
           </SelectTrigger>
         </Select>
         <p className="text-xs text-amber-700">
-          Register a device under Attendance → Biometric settings first.
+          No onboarded devices found. Type the Device ID above, or register a device under Attendance
+          → Biometric settings.
         </p>
       </div>
     )
