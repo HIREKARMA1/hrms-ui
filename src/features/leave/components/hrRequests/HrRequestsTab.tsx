@@ -17,8 +17,13 @@ import type { LeaveSnapshot } from '../../services/leaveService'
 import type { LeaveViewer } from '../../types/viewer'
 import type { LeaveRequest } from '../../types/leaveRequest'
 import { activeEmployees } from '../../utils/employmentStatus'
-import { filterHrRequests } from '../../utils/hrRequestsFilters'
-import { isHrActionRequest } from '../../utils/attentionHrQueue'
+import { filterHrRequests, mergeHrActionLeaveQueue } from '../../utils/hrRequestsFilters'
+import { useApprovalsPendingLeave } from '../../hooks/useApprovalsPendingLeave'
+import {
+  canUserActOnLeaveRequest,
+  hrActionableLeaveRequestIds,
+  mergeLeaveRequestForWorkflowAction,
+} from '../../utils/leaveWorkflowApproval'
 import { approveRequest, rejectRequest } from '../../services/leaveService'
 import { LeaveTabHeader } from '../LeaveTabHeader'
 import { LeaveSegmentedControl } from '../shared/LeaveSegmentedControl'
@@ -26,11 +31,13 @@ import { LeaveTableFilters } from '../shared/LeaveTableFilters'
 import { LeaveEmptyState } from '../shared/LeaveEmptyState'
 import { ApproveRejectDialog } from '../dialogs/ApproveRejectDialog'
 import { RequestDetailDialog } from '../dialogs/RequestDetailDialog'
-import { ApprovalsEncashmentTable } from '../approvals/ApprovalsEncashmentTable'
+import { HrEncashmentRequestsLiveSection } from './HrEncashmentRequestsLiveSection'
 import { ledgerBalanceForType } from '../../utils/calculateBalance'
 import { HrRequestsTable } from './HrRequestsTable'
 import { HrApplyOnBehalfDialog } from './HrApplyOnBehalfDialog'
 import { HrCancelRequestDialog } from './HrCancelRequestDialog'
+import { LeaveErrorState } from '../LeaveErrorState'
+import { WorkflowApproverQueueNotice } from '../shared/WorkflowApproverQueueNotice'
 
 const SEGMENTS = [
   { value: 'action' as const, label: 'Needs my action' },
@@ -57,6 +64,7 @@ export function HrRequestsTab({
   const permissions = useLeavePermissions()
   const [segment, setSegment] = useState<HrRequestsSegment>(initialSegment)
   const [search, setSearch] = useState(initialSearch)
+  const [encashmentSearch, setEncashmentSearch] = useState('')
   const [detail, setDetail] = useState<LeaveRequest | null>(null)
   const [applyOpen, setApplyOpen] = useState(false)
   const [action, setAction] = useState<ReviewAction | null>(null)
@@ -65,7 +73,39 @@ export function HrRequestsTab({
   const [applying, setApplying] = useState(false)
 
   const employees = useMemo(() => activeEmployees(snapshot?.employees ?? []), [snapshot?.employees])
-  const leaveRows = useMemo(() => (snapshot ? filterHrRequests(snapshot, employees, segment, search) : []), [employees, search, segment, snapshot])
+  const actionQueueMock = useMemo(
+    () => (snapshot ? filterHrRequests(snapshot, employees, 'action', '') : []),
+    [employees, snapshot],
+  )
+  const pendingLeaveApi = useApprovalsPendingLeave(actionQueueMock)
+  const leaveRows = useMemo(() => {
+    if (!snapshot) return []
+    if (segment === 'action' && snapshot.api?.access.requests) {
+      if (pendingLeaveApi.blockingError || pendingLeaveApi.skippedNoEmployeeLink) {
+        const hrSingle = filterHrRequests(snapshot, employees, 'action', search).filter((row) => !row.multiLevelWorkflow)
+        return hrSingle
+      }
+      if (pendingLeaveApi.useLiveApi) {
+        return mergeHrActionLeaveQueue(snapshot, employees, pendingLeaveApi.rows, search)
+      }
+    }
+    return filterHrRequests(snapshot, employees, segment, search)
+  }, [
+    employees,
+    pendingLeaveApi.blockingError,
+    pendingLeaveApi.skippedNoEmployeeLink,
+    pendingLeaveApi.rows,
+    pendingLeaveApi.useLiveApi,
+    search,
+    segment,
+    snapshot,
+  ])
+
+  const actionableLeaveIds = useMemo(() => {
+    if (!snapshot || segment !== 'action') return new Set<string>()
+    const useLive = Boolean(snapshot.api?.access.requests && pendingLeaveApi.useLiveApi)
+    return hrActionableLeaveRequestIds(snapshot, employees, pendingLeaveApi.rows, useLive)
+  }, [employees, pendingLeaveApi.rows, pendingLeaveApi.useLiveApi, segment, snapshot])
 
   if (!snapshot) return null
   const api = snapshot.api
@@ -80,6 +120,7 @@ export function HrRequestsTab({
           ? await server.approve(current.request, comment)
           : await server.reject(current.request, comment)
       report(result, current.mode === 'approve' ? 'Request approved.' : 'Request rejected.')
+      if (result.ok) await reload()
     } else {
       if (current.mode === 'approve') {
         approveRequest(current.request.id, viewer.actorId, viewer.displayName, 'HR')
@@ -111,13 +152,13 @@ export function HrRequestsTab({
       <LeaveSegmentedControl options={SEGMENTS} value={segment} onChange={setSegment} ariaLabel="Request queues" />
       {segment === 'encashment' ? (
         api?.access.encashments ? (
-          <ApprovalsEncashmentTable
-            rows={snapshot.encashments.filter((item) => item.status === 'Pending approval')}
+          <HrEncashmentRequestsLiveSection
+            search={encashmentSearch}
+            onSearchChange={setEncashmentSearch}
             employeeName={nameFor}
             onApprove={(id) => void decideEncashment(id, 'approve')}
             onReject={(id) => void decideEncashment(id, 'reject')}
             busyId={busyId}
-            emptyMessage="No encashment requests are waiting for approval."
           />
         ) : (
           <LeaveEmptyState message={api ? 'You do not have permission to review encashment requests across the organisation.' : 'Switch to Needs my action or All requests for leave queues.'} />
@@ -128,11 +169,54 @@ export function HrRequestsTab({
         <LeaveEmptyState message="You do not have permission to view leave requests across the organisation." />
       ) : (
         <>
-          <LeaveTableFilters searchId="hr-req-search" searchPlaceholder="Search employee or type" searchValue={search} onSearchChange={setSearch} showing={leaveRows.length} total={api ? api.requestTotal : snapshot.requests.length} />
+          <LeaveTableFilters
+            searchId="hr-req-search"
+            searchPlaceholder="Search employee or type"
+            searchValue={search}
+            onSearchChange={setSearch}
+            showing={leaveRows.length}
+            total={
+              segment === 'action' && pendingLeaveApi.useLiveApi
+                ? pendingLeaveApi.rows.length + actionQueueMock.filter((row) => !row.multiLevelWorkflow).length
+                : api
+                  ? api.requestTotal
+                  : snapshot.requests.length
+            }
+          />
+          {segment === 'action' && pendingLeaveApi.skippedNoEmployeeLink ? <WorkflowApproverQueueNotice /> : null}
+          {segment === 'action' && pendingLeaveApi.isFetching ? (
+            <p className="text-xs text-hrms-text-muted">Loading workflow approvals…</p>
+          ) : null}
+          {segment === 'action' && pendingLeaveApi.errorMessage ? (
+            <LeaveErrorState
+              message={pendingLeaveApi.errorMessage}
+              onRetry={pendingLeaveApi.refetch}
+            />
+          ) : null}
           {truncated ? (
             <p className="text-xs text-hrms-text-secondary">Showing the {snapshot.requests.length} most recent of {api.requestTotal} requests.</p>
           ) : null}
-          {leaveRows.length === 0 ? <LeaveEmptyState message="No requests match this filter." /> : <HrRequestsTable rows={leaveRows} employees={snapshot.employees} requests={snapshot.requests} onView={setDetail} onApprove={(id) => pickAction(snapshot, id, 'approve', setAction)} onReject={(id) => pickAction(snapshot, id, 'reject', setAction)} onCancel={setCancelTarget} busyId={busyId} />}
+          {leaveRows.length === 0 ? (
+            <LeaveEmptyState
+              message={
+                segment === 'action' && pendingLeaveApi.skippedNoEmployeeLink
+                  ? 'No single-level requests need your action. Switch to All requests for the full organisation queue.'
+                  : 'No requests match this filter.'
+              }
+            />
+          ) : (
+            <HrRequestsTable
+              rows={leaveRows}
+              employees={snapshot.employees}
+              requests={snapshot.requests}
+              actionableRequestIds={actionableLeaveIds}
+              onView={setDetail}
+              onApprove={(id) => pickAction(leaveRows, snapshot, id, 'approve', setAction)}
+              onReject={(id) => pickAction(leaveRows, snapshot, id, 'reject', setAction)}
+              onCancel={setCancelTarget}
+              busyId={busyId}
+            />
+          )}
         </>
       )}
       <HrApplyOnBehalfDialog
@@ -158,10 +242,16 @@ export function HrRequestsTab({
         balanceBefore={detailBalance}
         balanceAfter={detail && detailBalance !== null ? detailBalance - detail.days : null}
         onOpenChange={(open) => !open && setDetail(null)}
-        canApprove={permissions.canApprove && detail ? isHrActionRequest(snapshot, detail) : false}
-        canReject={permissions.canApprove && detail ? isHrActionRequest(snapshot, detail) : false}
-        onApprove={() => detail && pickAction(snapshot, detail.id, 'approve', setAction)}
-        onReject={() => detail && pickAction(snapshot, detail.id, 'reject', setAction)}
+        canApprove={
+          permissions.canApprove && detail ? canUserActOnLeaveRequest(detail, actionableLeaveIds) : false
+        }
+        canReject={
+          permissions.canApprove && detail ? canUserActOnLeaveRequest(detail, actionableLeaveIds) : false
+        }
+        onApprove={() => detail && pickAction(leaveRows, snapshot, detail.id, 'approve', setAction)}
+        onReject={() => detail && pickAction(leaveRows, snapshot, detail.id, 'reject', setAction)}
+        useLiveApi={Boolean(api)}
+        useLiveApprovalHistory={Boolean(api)}
       />
       <ApproveRejectDialog open={Boolean(action)} mode={action?.mode ?? 'approve'} request={action?.request ?? null} employeeName={action ? nameFor(action.request.employeeId) : ''} onOpenChange={(open) => !open && setAction(null)} onConfirm={(comment) => action && void confirmAction(action, comment)} />
       <HrCancelRequestDialog request={cancelTarget} employeeName={cancelTarget ? nameFor(cancelTarget.employeeId) : ''} onOpenChange={(open) => !open && setCancelTarget(null)} onConfirm={async (reason) => { if (!cancelTarget) return; const result = await hrCancel(cancelTarget.id, reason); report(result, 'Request cancelled.'); setCancelTarget(null) }} />
@@ -169,7 +259,13 @@ export function HrRequestsTab({
   )
 }
 
-function pickAction(snapshot: LeaveSnapshot, id: string, mode: 'approve' | 'reject', setAction: (value: ReviewAction) => void) {
-  const row = snapshot.requests.find((item) => item.id === id)
-  if (row) setAction({ mode, request: row })
+function pickAction(
+  rows: LeaveRequest[],
+  snapshot: LeaveSnapshot,
+  id: string,
+  mode: 'approve' | 'reject',
+  setAction: (value: ReviewAction) => void,
+) {
+  const row = rows.find((item) => item.id === id) ?? snapshot.requests.find((item) => item.id === id)
+  if (row) setAction({ mode, request: mergeLeaveRequestForWorkflowAction(row, snapshot.requests) })
 }

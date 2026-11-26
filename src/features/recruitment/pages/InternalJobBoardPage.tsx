@@ -25,9 +25,9 @@ import { getApiErrorMessage } from '@/services/api/errors'
 
 import {
   useCreateApplicationMutation,
-  useListApplicationsQuery,
+  useListMyApplicationsQuery,
 } from '../api/applicationsApi'
-import { useSearchCandidatesQuery } from '../api/candidatesApi'
+import { useGetMyCandidateQuery } from '../api/candidatesApi'
 import { JOBS_PAGE_SIZE, useListJobsQuery } from '../api/jobsApi'
 import type {
   BackendJob,
@@ -41,11 +41,12 @@ import {
   formatEmploymentType,
   formatExperience,
   formatPostedDate,
+  formatSalary,
   formatWorkMode,
 } from '../utils/jobFormat'
 import {
   createSubmitGuard,
-  resolveCandidateFromSearch,
+  resolveCandidateFromMe,
   submitInternalApplication,
 } from '../utils/internalApply'
 import { internalApplicationsPath, recruitmentWorkspacePrefix } from '../utils/recruitmentRoutes'
@@ -76,7 +77,10 @@ export function InternalJobBoardPage() {
   const [departmentId, setDepartmentId] = useState(ALL)
   const [locationFilter, setLocationFilter] = useState('')
   const [selected, setSelected] = useState<BackendJob | null>(null)
+  const [referenceName, setReferenceName] = useState('')
+  const [referenceEmail, setReferenceEmail] = useState('')
   const [coverLetter, setCoverLetter] = useState('')
+  const [applyError, setApplyError] = useState<string | null>(null)
   const [notice, setNotice] = useState<Notice | null>(null)
   const [applying, setApplying] = useState(false)
   const [guard] = useState(() => createSubmitGuard())
@@ -113,25 +117,22 @@ export function InternalJobBoardPage() {
   })
 
   const email = user?.email?.trim() ?? ''
-  const candidateSearch = useSearchCandidatesQuery(
-    { q: email, limit: 20, isActive: true },
-    { skip: !email },
-  )
+  const myCandidate = useGetMyCandidateQuery(undefined, { skip: !email })
   const candidateResolution = useMemo(
     () =>
-      resolveCandidateFromSearch({
+      resolveCandidateFromMe({
         email,
-        page: candidateSearch.data,
-        searchError: candidateSearch.isError ? candidateSearch.error : undefined,
+        candidate: myCandidate.data,
+        fetchError: myCandidate.isError ? myCandidate.error : undefined,
+        is404:
+          myCandidate.isError &&
+          (myCandidate.error as { status?: unknown })?.status === 404,
       }),
-    [email, candidateSearch.data, candidateSearch.isError, candidateSearch.error],
+    [email, myCandidate.data, myCandidate.isError, myCandidate.error],
   )
-  const candidateId =
-    candidateResolution.status === 'resolved' ? candidateResolution.candidateId : null
-
-  const myApplications = useListApplicationsQuery(
-    { candidateId: candidateId ?? undefined, limit: 100, page: 1 },
-    { skip: !candidateId },
+  const myApplications = useListMyApplicationsQuery(
+    { limit: 100, page: 1 },
+    { skip: !email },
   )
   const appliedJobIds = useMemo(() => {
     const ids = new Set<string>()
@@ -157,6 +158,7 @@ export function InternalJobBoardPage() {
 
   const handleApply = async (job: BackendJob) => {
     setNotice(null)
+    setApplyError(null)
     if (candidateResolution.status !== 'resolved') {
       setNotice({
         tone: 'error',
@@ -171,17 +173,25 @@ export function InternalJobBoardPage() {
     const outcome = await submitInternalApplication({
       jobPostingId: job.id,
       candidateId: candidateResolution.candidateId,
+      referenceName,
+      referenceEmail,
       coverLetter,
       guard,
       send: (body) => createApplication(body),
     })
     setApplying(false)
     if (outcome.status === 'busy') return
+    if (outcome.status === 'blocked') {
+      setApplyError(outcome.message)
+      return
+    }
     if (outcome.status === 'success') {
       setNotice({
         tone: 'success',
         text: `Application submitted for “${job.title}”.`,
       })
+      setReferenceName('')
+      setReferenceEmail('')
       setCoverLetter('')
       setSelected(null)
       return
@@ -365,15 +375,16 @@ export function InternalJobBoardPage() {
                   <p className="text-xs text-[#667085]">
                     Deadline: {job.applicationDeadline ?? 'Open'} · Posted{' '}
                     {formatPostedDate(job.createdAt)}
-                    {job.referenceName?.trim()
-                      ? ` · Ref: ${job.referenceName.trim()}`
-                      : ''}
                   </p>
-                  {job.referenceEmail?.trim() ? (
-                    <p className="text-xs text-[#667085] break-all">{job.referenceEmail.trim()}</p>
-                  ) : null}
                   <div className="flex flex-wrap gap-2 pt-1">
-                    <Button type="button" variant="outline" onClick={() => setSelected(job)}>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        setApplyError(null)
+                        setSelected(job)
+                      }}
+                    >
                       View details
                     </Button>
                     <Button
@@ -441,6 +452,16 @@ export function InternalJobBoardPage() {
                 </dd>
               </div>
               <div>
+                <dt className="text-xs uppercase tracking-wide text-slate-400">Salary</dt>
+                <dd>
+                  {formatSalary(
+                    selected.salaryMin,
+                    selected.salaryMax,
+                    selected.salaryCurrency,
+                  )}
+                </dd>
+              </div>
+              <div>
                 <dt className="text-xs uppercase tracking-wide text-slate-400">Openings</dt>
                 <dd>{selected.openings}</dd>
               </div>
@@ -452,16 +473,6 @@ export function InternalJobBoardPage() {
                 <dt className="text-xs uppercase tracking-wide text-slate-400">Skills</dt>
                 <dd>{selected.skills.length ? selected.skills.join(', ') : '—'}</dd>
               </div>
-              <div>
-                <dt className="text-xs uppercase tracking-wide text-slate-400">Reference Name</dt>
-                <dd>{selected.referenceName?.trim() ? selected.referenceName : '—'}</dd>
-              </div>
-              <div>
-                <dt className="text-xs uppercase tracking-wide text-slate-400">Reference Email</dt>
-                <dd className="break-all">
-                  {selected.referenceEmail?.trim() ? selected.referenceEmail : '—'}
-                </dd>
-              </div>
             </dl>
             <p className="mb-3 whitespace-pre-wrap text-sm text-slate-700">{selected.description}</p>
             {selected.requirements ? (
@@ -470,18 +481,68 @@ export function InternalJobBoardPage() {
                 {selected.requirements}
               </p>
             ) : null}
+            <div className="mb-3 grid gap-3 sm:grid-cols-2">
+              <div>
+                <label
+                  className="mb-2 block text-sm font-medium text-[#17213A]"
+                  htmlFor="apply-reference-name"
+                >
+                  Reference Name
+                </label>
+                <input
+                  id="apply-reference-name"
+                  className="w-full rounded-xl border border-[#E2E6EF] px-3 py-2 text-sm"
+                  value={referenceName}
+                  onChange={(e) => setReferenceName(e.target.value)}
+                  placeholder="Enter reference person's name"
+                  autoComplete="name"
+                  disabled={applying}
+                />
+              </div>
+              <div>
+                <label
+                  className="mb-2 block text-sm font-medium text-[#17213A]"
+                  htmlFor="apply-reference-email"
+                >
+                  Reference Email ID
+                </label>
+                <input
+                  id="apply-reference-email"
+                  type="email"
+                  className="w-full rounded-xl border border-[#E2E6EF] px-3 py-2 text-sm"
+                  value={referenceEmail}
+                  onChange={(e) => setReferenceEmail(e.target.value)}
+                  placeholder="Enter reference person's email"
+                  autoComplete="email"
+                  disabled={applying}
+                />
+              </div>
+            </div>
             <label className="mb-2 block text-sm font-medium text-[#17213A]" htmlFor="cover-letter">
               Cover letter (optional)
             </label>
             <textarea
               id="cover-letter"
-              className="mb-4 min-h-24 w-full rounded-xl border border-[#E2E6EF] px-3 py-2 text-sm"
+              className="mb-3 min-h-24 w-full rounded-xl border border-[#E2E6EF] px-3 py-2 text-sm"
               value={coverLetter}
               onChange={(e) => setCoverLetter(e.target.value)}
               placeholder="Add a short note for HR..."
+              disabled={applying}
             />
+            {applyError ? (
+              <p role="alert" className="mb-3 text-sm text-red-600">
+                {applyError}
+              </p>
+            ) : null}
             <div className="flex flex-wrap justify-end gap-2">
-              <Button type="button" variant="outline" onClick={() => setSelected(null)}>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setApplyError(null)
+                  setSelected(null)
+                }}
+              >
                 Cancel
               </Button>
               <Button

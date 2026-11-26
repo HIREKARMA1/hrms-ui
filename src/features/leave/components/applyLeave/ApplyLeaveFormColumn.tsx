@@ -3,15 +3,20 @@
  */
 
 import { Paperclip } from 'lucide-react'
+import { useMemo } from 'react'
 
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
 import { LEAVE_TYPE_LABELS } from '../../constants/leaveTypeCodes'
+import type { ApplyLeaveTypeOption } from '../../utils/applyLeaveTypeOptionsFromBalance'
+import { ApplyLeaveTypeSelect } from './ApplyLeaveTypeSelect'
 import type { LeaveSettings, LeaveTypePolicy } from '../../types/leaveSettings'
 import type { HalfDayPortion } from '../../types/leaveRequest'
 import type { LeaveValidationResult } from '../../utils/validateLeaveRequest'
+import { applyLeavePolicyDisplayHint } from '../../utils/applyLeavePolicyDisplayHint'
 import { leaveTodayIso } from '../../utils/leaveToday'
+import { ApplyLeaveBalanceStrip } from './ApplyLeaveBalanceStrip'
 import { LeaveDialogField } from '../shared/LeaveDialogField'
 import { LEAVE_DIALOG_INPUT, LEAVE_DIALOG_SELECT, LEAVE_DIALOG_TEXTAREA } from '../shared/leaveUi'
 import { ApplyLeaveSectionTitle } from './ApplyLeaveSectionTitle'
@@ -41,43 +46,58 @@ type ApplyLeaveFormColumnProps = {
   setTouched: (fn: (t: Record<string, boolean>) => Record<string, boolean>) => void
   compactAttachment?: boolean
   onBehalf?: boolean
+  /** From GET leave balance; `null`/`undefined` = demo settings list */
+  balanceTypeOptions?: ApplyLeaveTypeOption[] | null
+  balanceTypesLoading?: boolean
 }
 
 export function ApplyLeaveFormColumn(props: ApplyLeaveFormColumnProps) {
-  const enabled = props.settings.leaveTypes.filter((item) => item.enabled)
-  const policyHint = props.policy
-    ? `Max ${props.policy.maxConsecutiveDays ?? '—'} consecutive days · ${props.policy.minNoticeDays} day(s) notice`
-    : ''
+  const balanceOptions = props.balanceTypeOptions
+  const demoOptions = useMemo(() => {
+    if (balanceOptions) return undefined
+    return props.settings.leaveTypes
+      .filter((item) => item.enabled)
+      .map((item) => ({
+        code: item.code,
+        label: LEAVE_TYPE_LABELS[item.code as keyof typeof LEAVE_TYPE_LABELS] ?? item.label,
+        available: props.balanceFor(item.code),
+      }))
+  }, [balanceOptions, props.balanceFor, props.settings.leaveTypes])
+
+  const typeSelectDisabled = Boolean(
+    props.balanceTypesLoading && balanceOptions && balanceOptions.length === 0,
+  )
+  const policyHint = applyLeavePolicyDisplayHint(props.policy)
+  const selectedBalanceRow = balanceOptions?.find((row) => row.code === props.leaveTypeCode)
+  const selectedAvail = props.balanceFor(props.leaveTypeCode)
   const needCert =
     props.policy?.medicalCertificateAfterDays !== null &&
     (props.preview?.daysCounted ?? 0) >= (props.policy?.medicalCertificateAfterDays ?? 999)
 
   return (
-    <div className="flex flex-col gap-6 px-6 py-5">
-      <section className="space-y-3">
+    <div className="flex flex-col gap-4 px-6 py-4">
+      <section className="space-y-2.5">
         <ApplyLeaveSectionTitle>Leave details</ApplyLeaveSectionTitle>
         <LeaveDialogField label="Leave type" htmlFor="leave-type" required>
-          <select
+          <ApplyLeaveTypeSelect
             id="leave-type"
-            className={LEAVE_DIALOG_SELECT}
             value={props.leaveTypeCode}
-            onChange={(e) => props.setLeaveTypeCode(e.target.value)}
-          >
-            {enabled.map((item) => {
-              const bal = props.balanceFor(item.code)
-              return (
-                <option key={item.code} value={item.code}>
-                  {LEAVE_TYPE_LABELS[item.code as keyof typeof LEAVE_TYPE_LABELS] ?? item.label}
-                  {bal === null ? '' : ` (${bal}d)`}
-                </option>
-              )
-            })}
-          </select>
+            options={balanceOptions ?? []}
+            demoOptions={demoOptions}
+            loading={Boolean(props.balanceTypesLoading && balanceOptions && balanceOptions.length === 0)}
+            disabled={typeSelectDisabled}
+            onChange={props.setLeaveTypeCode}
+          />
         </LeaveDialogField>
-        {policyHint ? <p className="text-xs text-hrms-text-secondary">{policyHint}</p> : null}
+        <ApplyLeaveBalanceStrip
+          available={selectedAvail}
+          used={selectedBalanceRow?.used}
+          pending={selectedBalanceRow?.pending}
+        />
+        {policyHint ? <p className="text-xs text-hrms-text-muted">{policyHint}</p> : null}
       </section>
 
-      <section className="space-y-3">
+      <section className="space-y-2.5">
         <ApplyLeaveSectionTitle>Dates</ApplyLeaveSectionTitle>
         <div className="grid gap-3 grid-cols-2">
           <LeaveDialogField label="From" htmlFor="from-date" required>
@@ -121,7 +141,7 @@ export function ApplyLeaveFormColumn(props: ApplyLeaveFormColumnProps) {
         ) : null}
       </section>
 
-      <section className="space-y-3">
+      <section className="space-y-2.5">
         <ApplyLeaveSectionTitle>Notes</ApplyLeaveSectionTitle>
         <LeaveDialogField
           label="Reason"

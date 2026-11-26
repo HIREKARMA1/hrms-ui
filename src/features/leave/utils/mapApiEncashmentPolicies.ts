@@ -3,6 +3,7 @@ import type {
   EncashmentPolicyTableRow,
   LeaveEncashmentPoliciesData,
 } from '../types/api/leaveEncashmentPolicies.types'
+import { formatPolicyEffectiveRange } from './formatPolicyDateRange'
 
 function resolveCode(item: ApiLeaveEncashmentPolicyItem): string {
   return (item.leaveType?.code ?? item.leaveTypeCode ?? '—').trim().toUpperCase()
@@ -14,36 +15,41 @@ function resolveName(item: ApiLeaveEncashmentPolicyItem, code: string): string {
   return code === '—' ? 'Company default' : code
 }
 
-function resolveMinBalance(item: ApiLeaveEncashmentPolicyItem): string {
+function resolveMinDays(item: ApiLeaveEncashmentPolicyItem): string {
   const days =
+    item.minDays ??
     item.minimumBalanceDays ??
     item.minBalanceDays ??
     item.minBalanceAfterEncashment
-  if (typeof days === 'number') {
-    return `Keep at least ${days} day(s)`
-  }
+  if (typeof days === 'number') return `${days} day${days === 1 ? '' : 's'}`
   return '—'
+}
+
+function resolveRate(item: ApiLeaveEncashmentPolicyItem): string {
+  if (typeof item.ratePerDay !== 'number') return '—'
+  const currency = (item.currency ?? 'INR').trim().toUpperCase()
+  const amount = item.ratePerDay.toLocaleString(undefined, { maximumFractionDigits: 2 })
+  return `${currency} ${amount} / day`
+}
+
+function resolveMaxPerRequest(item: ApiLeaveEncashmentPolicyItem): string {
+  if (typeof item.maxDaysPerRequest !== 'number') return '—'
+  const days = item.maxDaysPerRequest
+  return `${days} day${days === 1 ? '' : 's'}`
 }
 
 function resolveMaxPerYear(item: ApiLeaveEncashmentPolicyItem): string {
   const days =
-    item.maximumDaysPerYear ??
     item.maxDaysPerYear ??
+    item.maximumDaysPerYear ??
     item.maxEncashmentDaysPerYear
-  if (typeof days === 'number') {
-    return `${days} day(s) / year`
-  }
+  if (typeof days === 'number') return `${days} day${days === 1 ? '' : 's'} / year`
+  if (item.maxDaysPerYear === null) return 'No limit'
   return '—'
 }
 
-function resolveAllowed(item: ApiLeaveEncashmentPolicyItem): string {
-  if (typeof item.encashable === 'boolean') {
-    return item.encashable ? 'Yes' : 'No'
-  }
-  if (typeof item.allowEncashment === 'boolean') {
-    return item.allowEncashment ? 'Yes' : 'No'
-  }
-  return '—'
+function resolveEffective(item: ApiLeaveEncashmentPolicyItem): string {
+  return formatPolicyEffectiveRange(item.effectiveFrom, item.effectiveTo)
 }
 
 function resolveActive(item: ApiLeaveEncashmentPolicyItem): boolean {
@@ -61,9 +67,11 @@ export function mapApiEncashmentPoliciesToTableRows(
       id: item.id,
       leaveTypeCode,
       leaveTypeName: resolveName(item, leaveTypeCode),
-      minBalance: resolveMinBalance(item),
+      ratePerDay: resolveRate(item),
+      minDays: resolveMinDays(item),
+      maxPerRequest: resolveMaxPerRequest(item),
       maxPerYear: resolveMaxPerYear(item),
-      allowed: resolveAllowed(item),
+      effective: resolveEffective(item),
       active: resolveActive(item),
     }
   })

@@ -2,26 +2,45 @@
  * Form state and validation preview for ApplyLeaveDialog.
  */
 
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 
 import type { LeaveEmployee } from '../../types/employee'
 import type { LeaveSettings } from '../../types/leaveSettings'
 import type { LedgerEntry } from '../../types/ledger'
 import type { HalfDayPortion, LeaveRequest } from '../../types/leaveRequest'
+import type { ApplyLeaveTypeOption } from '../../utils/applyLeaveTypeOptionsFromBalance'
 import { ledgerBalanceForType, pendingDaysForType } from '../../utils/calculateBalance'
 import { getApprovalChain } from '../../utils/getApprovalChain'
 import { validateLeaveRequest } from '../../utils/validateLeaveRequest'
 
 const PREFERRED_TYPE = 'CL'
 
-function defaultTypeCode(settings: LeaveSettings): string {
+function defaultTypeCode(settings: LeaveSettings, balanceOptions: ApplyLeaveTypeOption[] | null | undefined): string {
+  if (balanceOptions?.length) {
+    const withBalance = balanceOptions.find((item) => item.available > 0)
+    return (withBalance ?? balanceOptions[0]).code
+  }
   const enabled = settings.leaveTypes.filter((item) => item.enabled)
   return enabled.some((item) => item.code === PREFERRED_TYPE) ? PREFERRED_TYPE : (enabled[0]?.code ?? '')
+}
+
+function resolveLeaveTypeCode(
+  selectedCode: string,
+  settings: LeaveSettings,
+  balanceOptions: ApplyLeaveTypeOption[] | null | undefined,
+): string {
+  if (balanceOptions?.length) {
+    if (balanceOptions.some((item) => item.code === selectedCode)) return selectedCode
+    return defaultTypeCode(settings, balanceOptions)
+  }
+  if (settings.leaveTypes.some((item) => item.enabled && item.code === selectedCode)) return selectedCode
+  return defaultTypeCode(settings, balanceOptions)
 }
 
 /**
  * `serverBalances` switches balances to the server: a code → available days
  * map, or null while unknown. Undefined keeps the demo ledger.
+ * `balanceTypeOptions` non-null → dropdown driven by GET leave balance rows.
  */
 export function useApplyLeaveDialogState(
   employee: LeaveEmployee,
@@ -30,8 +49,9 @@ export function useApplyLeaveDialogState(
   existing: LeaveRequest[],
   employees: LeaveEmployee[],
   serverBalances?: Record<string, number> | null,
+  balanceTypeOptions?: ApplyLeaveTypeOption[] | null,
 ) {
-  const [selectedCode, setLeaveTypeCode] = useState(() => defaultTypeCode(settings))
+  const [selectedCode, setLeaveTypeCode] = useState(() => defaultTypeCode(settings, balanceTypeOptions))
   const [fromDate, setFromDate] = useState('')
   const [toDate, setToDate] = useState('')
   const [portion, setPortion] = useState<HalfDayPortion>('full')
@@ -40,8 +60,12 @@ export function useApplyLeaveDialogState(
   const [convertLwp, setConvertLwp] = useState(false)
   const [touched, setTouched] = useState<Record<string, boolean>>({})
 
+  useEffect(() => {
+    setLeaveTypeCode(defaultTypeCode(settings, balanceTypeOptions))
+  }, [balanceTypeOptions, settings])
+
   const reset = useCallback(() => {
-    setLeaveTypeCode(defaultTypeCode(settings))
+    setLeaveTypeCode(defaultTypeCode(settings, balanceTypeOptions))
     setFromDate('')
     setToDate('')
     setPortion('full')
@@ -49,12 +73,10 @@ export function useApplyLeaveDialogState(
     setAttachmentName('')
     setConvertLwp(false)
     setTouched({})
-  }, [settings])
+  }, [balanceTypeOptions, settings])
 
   const serverMode = serverBalances !== undefined
-  const leaveTypeCode = settings.leaveTypes.some((item) => item.enabled && item.code === selectedCode)
-    ? selectedCode
-    : defaultTypeCode(settings)
+  const leaveTypeCode = resolveLeaveTypeCode(selectedCode, settings, balanceTypeOptions)
   const byId = useMemo(() => Object.fromEntries(employees.map((item) => [item.id, item])), [employees])
   const policy = settings.leaveTypes.find((item) => item.code === leaveTypeCode)
   const halfDayAvailable = Boolean(fromDate && fromDate === toDate && policy?.halfDayAllowed)

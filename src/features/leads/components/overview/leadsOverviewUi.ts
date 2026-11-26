@@ -27,9 +27,6 @@ export const OVERVIEW_FOCUS =
 export const OVERVIEW_MOTION =
   'transition-colors duration-150 motion-reduce:transition-none'
 
-export const OVERVIEW_DEMO_PILL =
-  'inline-flex max-w-full items-center gap-2 rounded-full bg-[#EFF6FF] px-3 py-1.5 text-[12.5px] font-medium text-[#1E40AF]'
-
 export const OVERVIEW_KPI_GRID =
   'grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-3.5 p-5'
 

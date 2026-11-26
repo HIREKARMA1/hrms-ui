@@ -38,7 +38,7 @@ export function getApprovalChain(
   const steps: ResolvedApprovalStep[] = []
   for (const level of levels) {
     const approver = resolveApprover(level, applicant, employeesById)
-    if (approver.id === applicant.id) {
+    if (!approver || approver.id === applicant.id) {
       continue
     }
     steps.push({
@@ -49,24 +49,30 @@ export function getApprovalChain(
     })
   }
   if (steps.length === 0) {
-    const hr = employeesById[HR_DEMO_USER_ID]
-    steps.push({
-      level: 'HR',
-      approverId: HR_DEMO_USER_ID,
-      approverName: hr?.name ?? 'HR',
-      label: 'HR',
-    })
+    steps.push(fallbackApprovalStep(employeesById))
   }
   return steps
+}
+
+function fallbackApprovalStep(employeesById: Record<string, LeaveEmployee>): ResolvedApprovalStep {
+  const hr = employeesById[HR_DEMO_USER_ID]
+  return {
+    level: 'HR',
+    approverId: hr?.id ?? '',
+    approverName: hr?.name ?? 'HR approval',
+    label: 'HR',
+  }
 }
 
 function resolveApprover(
   level: ApprovalLevel,
   applicant: LeaveEmployee,
   employeesById: Record<string, LeaveEmployee>,
-): LeaveEmployee {
+): LeaveEmployee | undefined {
   if (level === 'Manager' && applicant.managerId) {
-    return employeesById[applicant.managerId] ?? employeesById[HR_DEMO_USER_ID]
+    const manager = employeesById[applicant.managerId]
+    if (manager) return manager
   }
+  if (level === 'Manager') return undefined
   return employeesById[HR_DEMO_USER_ID]
 }

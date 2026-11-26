@@ -85,6 +85,8 @@ export type FeatureAccessKey =
   | 'leads.assign'
   | 'leads.notes'
   | 'leads.analytics'
+  | 'leads.sources.manage'
+  | 'leads.categories.manage'
   | 'calendar.overview'
   | 'calendar.view'
   | 'calendar.holidays'

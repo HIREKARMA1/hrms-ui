@@ -8,10 +8,13 @@ import { GitBranch } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { getApiErrorMessage } from '@/services/api/errors'
 
+import type { LeaveTypeOption } from '../../api/leaveMappers'
 import { useGetApprovalWorkflowByIdQuery } from '../../api/leaveApprovalApi'
 import { useShouldFetchLeaveList } from '../../hooks/useShouldFetchLeaveList'
+import type { LeaveEmployee } from '../../types/employee'
 import type { ApprovalWorkflowTableRow } from '../../types/api/leaveApprovalWorkflows.types'
-import { tableRowToApprovalWorkflowDetail } from '../../utils/mapApiApprovalWorkflows'
+import { enrichWorkflowStepViews, resolveLeaveTypeDisplayLabel } from '../../utils/approvalWorkflowStepLabels'
+import { resolveLeaveTypeCodeFromIds, tableRowToApprovalWorkflowDetail } from '../../utils/mapApiApprovalWorkflows'
 import { LeaveStatusPill } from '../LeaveStatusPill'
 import { LeaveTypeChip } from '../LeaveTypeChip'
 import {
@@ -23,10 +26,14 @@ import {
   LeaveDialogRoot,
 } from '../shared/LeaveDialog'
 import { LEAVE_SECONDARY_BUTTON } from '../shared/leaveUi'
+import { WorkflowSelfApprovalCallout } from '../shared/WorkflowSelfApprovalCallout'
+import { workflowDetailSelfApprovalHints } from '../../utils/workflowSelfApproval'
 
 type ApprovalWorkflowDetailDialogProps = {
   open: boolean
   row: ApprovalWorkflowTableRow | null
+  leaveTypes?: LeaveTypeOption[]
+  employees?: LeaveEmployee[]
   onOpenChange: (open: boolean) => void
   useLiveApi?: boolean
 }
@@ -34,6 +41,8 @@ type ApprovalWorkflowDetailDialogProps = {
 export function ApprovalWorkflowDetailDialog({
   open,
   row,
+  leaveTypes = [],
+  employees = [],
   onOpenChange,
   useLiveApi = false,
 }: ApprovalWorkflowDetailDialogProps) {
@@ -46,34 +55,61 @@ export function ApprovalWorkflowDetailDialog({
     isFetching: detailFetching,
   } = useGetApprovalWorkflowByIdQuery(row?.id ?? '', { skip: !shouldFetchDetail })
 
-  const display =
+  const baseDisplay =
     shouldFetchDetail && liveDetail && !detailIsError
       ? liveDetail
       : row
         ? tableRowToApprovalWorkflowDetail(row)
         : null
 
+  const displayRaw =
+    baseDisplay && liveDetail?.leaveTypeIds?.length
+      ? {
+          ...baseDisplay,
+          leaveTypeCode: resolveLeaveTypeCodeFromIds(liveDetail.leaveTypeIds, leaveTypes, {
+            leaveTypeCode: baseDisplay.leaveTypeCode,
+          }),
+        }
+      : baseDisplay
+
+  const display = displayRaw
+    ? {
+        ...displayRaw,
+        steps: enrichWorkflowStepViews(displayRaw.steps, employees),
+      }
+    : null
+
   if (!display) return null
+
+  const subtitle =
+    resolveLeaveTypeDisplayLabel(liveDetail?.leaveTypeIds, leaveTypes, display.leaveTypeCode) ??
+    'Approval workflow configuration'
+
+  const leaveTypeLabel = display.leaveTypeCode
+  const showTypeChip = leaveTypeLabel !== '—' && !leaveTypeLabel.includes(',')
 
   const detailErrorMessage =
     shouldFetchDetail && detailIsError
       ? getApiErrorMessage(detailError, 'Could not load full workflow. Showing list data.')
       : null
 
+  const selfApprovalHints = display ? workflowDetailSelfApprovalHints(display) : []
+
   return (
     <LeaveDialogRoot open={open} onOpenChange={onOpenChange}>
       <LeaveDialogContent size="md">
-        <LeaveDialogHeader
-          title={display.name}
-          subtitle={`Workflow ref ${display.id}`}
-          icon={GitBranch}
-        >
+        <LeaveDialogHeader title={display.name} subtitle={subtitle} icon={GitBranch}>
           <div className="mt-3 flex flex-wrap items-center gap-2">
-            {display.leaveTypeCode !== '—' ? (
-              <LeaveTypeChip code={display.leaveTypeCode} abbreviated />
+            {leaveTypeLabel !== '—' ? (
+              showTypeChip ? (
+                <LeaveTypeChip code={leaveTypeLabel} abbreviated />
+              ) : (
+                <span className="text-sm font-medium text-hrms-navy">{leaveTypeLabel}</span>
+              )
             ) : null}
             <LeaveStatusPill status={display.active ? 'Active' : 'Inactive'} />
           </div>
+          <p className="mt-2 text-xs text-hrms-text-muted">Ref {display.id}</p>
         </LeaveDialogHeader>
         <LeaveDialogBody className="space-y-4">
           {detailErrorMessage ? (
@@ -90,9 +126,10 @@ export function ApprovalWorkflowDetailDialog({
           {display.description ? (
             <p className="text-sm text-hrms-text-secondary">{display.description}</p>
           ) : null}
+          <WorkflowSelfApprovalCallout messages={selfApprovalHints} />
           <section className="rounded-xl border border-hrms-border bg-hrms-muted-bg/50 p-4">
             <h3 className="text-xs font-semibold uppercase tracking-wide text-hrms-text-muted">
-              Approval steps
+              Approval levels
             </h3>
             {display.steps.length === 0 ? (
               <p className="mt-2 text-sm text-hrms-text-secondary">No steps returned.</p>

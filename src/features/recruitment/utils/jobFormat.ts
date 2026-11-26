@@ -17,6 +17,18 @@ export function formatExperience(min: number | null, max: number | null): string
   return `Up to ${max} yrs`
 }
 
+export function formatSalary(
+  min: number | null,
+  max: number | null,
+  currency: string | null,
+): string {
+  if (min === null && max === null) return '—'
+  const prefix = currency?.trim() ? `${currency.trim()} ` : ''
+  if (min !== null && max !== null) return `${prefix}${min} – ${max}`
+  if (min !== null) return `${prefix}${min}+`
+  return `${prefix}up to ${max}`
+}
+
 export function formatPostedDate(value: string | null) {
   if (!value) return '—'
   const date = new Date(value)

@@ -8,7 +8,7 @@ import { Card, CardContent } from '@/components/ui/card'
 
 type LeaveErrorStateProps = {
   message: string
-  onRetry: () => void
+  onRetry?: () => void
 }
 
 export function LeaveErrorState({ message, onRetry }: LeaveErrorStateProps) {
@@ -16,9 +16,11 @@ export function LeaveErrorState({ message, onRetry }: LeaveErrorStateProps) {
     <Card>
       <CardContent className="flex flex-col items-start gap-3 p-6">
         <p className="text-sm text-hrms-danger">{message}</p>
-        <Button type="button" onClick={onRetry}>
-          Try again
-        </Button>
+        {onRetry ? (
+          <Button type="button" onClick={onRetry}>
+            Try again
+          </Button>
+        ) : null}
       </CardContent>
     </Card>
   )

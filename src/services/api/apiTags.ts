@@ -15,6 +15,8 @@ export const API_TAGS = [
   'CalendarEvent',
   'WeeklyOff',
   'Lead',
+  'LeadSource',
+  'LeadCategory',
   'Dashboard',
   'RecruitmentJob',
   'RecruitmentCandidate',

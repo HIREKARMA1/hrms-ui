@@ -59,6 +59,7 @@ export function LeadsPipelineTable({
             <th className="px-4 py-3 font-medium">Status</th>
             <th className="px-4 py-3 font-medium">Priority</th>
             <th className="px-4 py-3 font-medium">Owner</th>
+            <th className="px-4 py-3 font-medium">Assigned by</th>
             <th className="px-4 py-3 font-medium">Updated</th>
             {showActions ? <th className="px-4 py-3 text-right font-medium">Actions</th> : null}
           </tr>
@@ -87,6 +88,9 @@ export function LeadsPipelineTable({
               </td>
               <td className="px-4 py-3 text-hrms-text-secondary">
                 {lead.assignedEmployeeName ?? 'Unassigned'}
+              </td>
+              <td className="px-4 py-3 text-hrms-text-secondary">
+                {lead.assignedByEmployeeName ?? lead.createdByEmployeeName ?? '—'}
               </td>
               <td className="whitespace-nowrap px-4 py-3 text-xs text-hrms-text-secondary">
                 {formatLeadAge(lead.updatedAt)}

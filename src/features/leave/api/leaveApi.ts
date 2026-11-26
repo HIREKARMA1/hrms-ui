@@ -14,6 +14,8 @@ import type {
   BackendCarryForwardExpiryResult,
   BackendCarryForwardPolicy,
   BackendCarryForwardRunResult,
+  CreateAccrualPolicyBody,
+  CreateCarryForwardPolicyBody,
   BackendLeaveAdjustment,
   BackendLeaveBalance,
   BackendLeaveCalendar,
@@ -21,11 +23,15 @@ import type {
   ExpireCarryForwardBody,
   LeaveCalendarArgs,
   LeaveHistoryArgs,
+  CancelEncashmentBody,
+  CreateEncashmentBody,
   ListEncashmentsArgs,
   ListLeavesArgs,
+  CreateLeaveTypeBody,
   ListLeaveTypesArgs,
   RunAccrualBody,
   RunCarryForwardBody,
+  UpdateLeaveTypeBody,
 } from './leaveApi.types'
 import {
   leaveEmployeeFromEmbed,
@@ -264,6 +270,42 @@ export const leaveApi = baseApi.injectEndpoints({
       providesTags: [TYPES],
     }),
 
+    /** POST /leave-types (leave_types:create or leave_types:update). */
+    createLeaveType: build.mutation<LeaveTypeOption, CreateLeaveTypeBody>({
+      queryFn: (body, _api, _extra, baseQuery) =>
+        fetchEnvelope(baseQuery, { url: '/leave-types', method: 'POST', body }, mapLeaveType),
+      invalidatesTags: [TYPES],
+    }),
+
+    /** PATCH /leave-types/:id (leave_types:update). */
+    updateLeaveType: build.mutation<LeaveTypeOption, { id: string; body: UpdateLeaveTypeBody }>({
+      queryFn: ({ id: leaveTypeId, body }, _api, _extra, baseQuery) =>
+        fetchEnvelope(
+          baseQuery,
+          { url: `/leave-types/${id(leaveTypeId)}`, method: 'PATCH', body },
+          mapLeaveType,
+        ),
+      invalidatesTags: [TYPES],
+    }),
+
+    /** DELETE /leave-types/:id — deactivates when balances or requests exist. */
+    deleteLeaveType: build.mutation<void, string>({
+      queryFn: async (leaveTypeId, _api, _extra, baseQuery) => {
+        const result = (await baseQuery({
+          url: `/leave-types/${id(leaveTypeId)}`,
+          method: 'DELETE',
+        })) as QueryResult
+        if (result.error) {
+          const empty = result.error.status === 'CUSTOM_ERROR' && result.error.error === EMPTY_RESPONSE_ERROR
+          return { error: empty ? invalidResponse() : result.error }
+        }
+        const data = readEnvelopeData(result.data)
+        if (data != null && mapLeaveType(data) === null) return { error: invalidResponse() }
+        return { data: undefined }
+      },
+      invalidatesTags: [TYPES],
+    }),
+
     // ----- /leave-policies -------------------------------------------------
 
     /** GET /leave-policies/accrual (leave_policies:read). */
@@ -286,6 +328,28 @@ export const leaveApi = baseApi.injectEndpoints({
           (data) => readPage(data, readPolicy<BackendCarryForwardPolicy>),
         ),
       providesTags: [POLICIES],
+    }),
+
+    /** POST /leave-policies/accrual (leave_policies:run). */
+    createAccrualPolicy: build.mutation<BackendAccrualPolicy, CreateAccrualPolicyBody>({
+      queryFn: (body, _api, _extra, baseQuery) =>
+        fetchEnvelope(
+          baseQuery,
+          { url: '/leave-policies/accrual', method: 'POST', body },
+          (data) => readPolicy<BackendAccrualPolicy>(data),
+        ),
+      invalidatesTags: [POLICIES],
+    }),
+
+    /** POST /leave-policies/carry-forward (leave_policies:run). */
+    createCarryForwardPolicy: build.mutation<BackendCarryForwardPolicy, CreateCarryForwardPolicyBody>({
+      queryFn: (body, _api, _extra, baseQuery) =>
+        fetchEnvelope(
+          baseQuery,
+          { url: '/leave-policies/carry-forward', method: 'POST', body },
+          (data) => readPolicy<BackendCarryForwardPolicy>(data),
+        ),
+      invalidatesTags: [POLICIES],
     }),
 
     /** POST /leave-policies/accrual/run (leave_policies:run). */
@@ -338,6 +402,13 @@ export const leaveApi = baseApi.injectEndpoints({
       providesTags: [ENCASHMENTS],
     }),
 
+    /** POST /leave-encashments (leave_encashments:create). */
+    createEncashment: build.mutation<EncashmentRequest, CreateEncashmentBody>({
+      queryFn: (body, _api, _extra, baseQuery) =>
+        fetchEnvelope(baseQuery, { url: '/leave-encashments', method: 'POST', body }, readEncashment),
+      invalidatesTags: [ENCASHMENTS, BALANCE, { type: 'Leave', id: 'ENCASHMENT-LIST' }],
+    }),
+
     /** POST /leave-encashments/:id/approve (leave_encashments:approve). Deducts balance. */
     approveEncashment: build.mutation<EncashmentRequest, { id: string; note?: string }>({
       queryFn: ({ id: encashmentId, note }, _api, _extra, baseQuery) =>
@@ -346,7 +417,7 @@ export const leaveApi = baseApi.injectEndpoints({
           { url: `/leave-encashments/${id(encashmentId)}/approve`, method: 'POST', body: noteBody(note) },
           readEncashment,
         ),
-      invalidatesTags: [ENCASHMENTS, BALANCE],
+      invalidatesTags: [ENCASHMENTS, BALANCE, { type: 'Leave', id: 'ENCASHMENT-LIST' }],
     }),
 
     /** POST /leave-encashments/:id/reject (leave_encashments:reject). */
@@ -357,7 +428,22 @@ export const leaveApi = baseApi.injectEndpoints({
           { url: `/leave-encashments/${id(encashmentId)}/reject`, method: 'POST', body: noteBody(note) },
           readEncashment,
         ),
-      invalidatesTags: [ENCASHMENTS],
+      invalidatesTags: [ENCASHMENTS, { type: 'Leave', id: 'ENCASHMENT-LIST' }],
+    }),
+
+    /** POST /leave-encashments/:id/cancel (leave_encashments:cancel). */
+    cancelEncashment: build.mutation<EncashmentRequest, { id: string; reason?: string }>({
+      queryFn: ({ id: encashmentId, reason }, _api, _extra, baseQuery) => {
+        const body: CancelEncashmentBody = {}
+        const trimmed = reason?.trim()
+        if (trimmed) body.reason = trimmed
+        return fetchEnvelope(
+          baseQuery,
+          { url: `/leave-encashments/${id(encashmentId)}/cancel`, method: 'POST', body },
+          readEncashment,
+        )
+      },
+      invalidatesTags: [ENCASHMENTS, BALANCE, { type: 'Leave', id: 'ENCASHMENT-LIST' }],
     }),
 
     // ----- /employee-leave-policies ----------------------------------------
@@ -390,7 +476,12 @@ export const leaveApi = baseApi.injectEndpoints({
           { url: '/employee-leave-policies/adjustments', method: 'POST', body },
           (data) => (isObject(data) && typeof data.id === 'string' && typeof data.entitledDays === 'number' ? (data as BackendLeaveAdjustment) : null),
         ),
-      invalidatesTags: [BALANCE],
+      invalidatesTags: [
+        BALANCE,
+        { type: 'Leave', id: 'EMPLOYEE-POLICY-LIST' },
+        { type: 'Leave', id: 'EMPLOYEE-POLICY-HR-OVERVIEW' },
+        { type: 'Leave', id: 'EMPLOYEE-POLICY-DASHBOARD' },
+      ],
     }),
   }),
 })
@@ -435,14 +526,21 @@ export const {
   useRejectLeaveMutation,
   useCancelLeaveMutation,
   useListLeaveTypesQuery,
+  useCreateLeaveTypeMutation,
+  useUpdateLeaveTypeMutation,
+  useDeleteLeaveTypeMutation,
   useListAccrualPoliciesQuery,
   useListCarryForwardPoliciesQuery,
+  useCreateAccrualPolicyMutation,
+  useCreateCarryForwardPolicyMutation,
   useRunAccrualMutation,
   useRunCarryForwardMutation,
   useExpireCarryForwardMutation,
   useListEncashmentsQuery,
+  useCreateEncashmentMutation,
   useApproveEncashmentMutation,
   useRejectEncashmentMutation,
+  useCancelEncashmentMutation,
   useListLeavePolicyDefaultsQuery,
   useAdjustLeaveBalanceMutation,
 } = leaveApi

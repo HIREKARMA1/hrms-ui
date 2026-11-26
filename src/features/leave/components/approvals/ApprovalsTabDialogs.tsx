@@ -21,6 +21,8 @@ type ApprovalsTabDialogsProps = {
   busy: boolean
   onConfirmAction: (comment: string) => void
   viewerCanAct: boolean
+  /** True when the open request is in the manager pending queue. */
+  detailCanAct: boolean
   onApproveFromDetail: () => void
   onRejectFromDetail: () => void
   useLiveRequestDetail?: boolean
@@ -50,8 +52,8 @@ export function ApprovalsTabDialogs(props: ApprovalsTabDialogsProps) {
         balanceBefore={req ? ledgerBalanceForType(props.snapshot.ledger, req.employeeId, req.leaveTypeCode) : 0}
         balanceAfter={req ? ledgerBalanceForType(props.snapshot.ledger, req.employeeId, req.leaveTypeCode) - req.days : 0}
         onOpenChange={(open) => !open && props.setDetail(null)}
-        canApprove={props.allowApproveReject !== false && props.viewerCanAct}
-        canReject={props.allowApproveReject !== false && props.viewerCanAct}
+        canApprove={props.allowApproveReject !== false && props.viewerCanAct && props.detailCanAct}
+        canReject={props.allowApproveReject !== false && props.viewerCanAct && props.detailCanAct}
         onApprove={props.onApproveFromDetail}
         onReject={props.onRejectFromDetail}
         useLiveApi={props.useLiveRequestDetail}

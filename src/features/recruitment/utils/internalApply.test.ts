@@ -2,11 +2,14 @@ import { describe, expect, it, vi } from 'vitest'
 
 import type { CandidatesPage } from '../api/candidatesApi.types'
 import {
+  buildApplicationCoverLetter,
   createSubmitGuard,
   findCandidateIdByEmail,
   isJobEligibleForInternalApply,
+  resolveCandidateFromMe,
   resolveCandidateFromSearch,
   submitInternalApplication,
+  validateApplyReference,
 } from './internalApply'
 
 const PAGE: CandidatesPage = {
@@ -72,7 +75,50 @@ describe('internalApply', () => {
     expect(missing.status).toBe('missing')
   })
 
-  it('submits application with required jobPostingId + candidateId', async () => {
+  it('resolves own candidate from /candidates/me without inventing ids', () => {
+    expect(
+      resolveCandidateFromMe({
+        email: 'ada@hirekarma.in',
+        candidate: PAGE.items[0],
+      }),
+    ).toEqual({ status: 'resolved', candidateId: 'cand-1' })
+    expect(
+      resolveCandidateFromMe({
+        email: 'ada@hirekarma.in',
+        candidate: undefined,
+        is404: true,
+      }).status,
+    ).toBe('missing')
+  })
+
+  it('requires reference name and email when applying', () => {
+    expect(
+      validateApplyReference({ referenceName: '', referenceEmail: 'ref@hirekarma.in' }),
+    ).toBeTruthy()
+    expect(
+      validateApplyReference({ referenceName: 'Asha', referenceEmail: 'bad' }),
+    ).toBeTruthy()
+    expect(
+      validateApplyReference({
+        referenceName: 'Asha Rao',
+        referenceEmail: 'asha.rao@hirekarma.in',
+      }),
+    ).toBeNull()
+  })
+
+  it('embeds referral details in the cover letter payload', () => {
+    expect(
+      buildApplicationCoverLetter({
+        referenceName: 'Asha Rao',
+        referenceEmail: 'asha.rao@hirekarma.in',
+        coverLetter: 'Interested in the role',
+      }),
+    ).toBe(
+      'Referral reference: Asha Rao <asha.rao@hirekarma.in>\n\nInterested in the role',
+    )
+  })
+
+  it('submits application with required job, candidate, and referral reference', async () => {
     const guard = createSubmitGuard()
     const send = vi.fn().mockReturnValue({
       unwrap: async () => ({
@@ -80,8 +126,8 @@ describe('internalApply', () => {
         jobPostingId: 'job-1',
         candidateId: 'cand-1',
         status: 'APPLIED',
-        source: 'OTHER',
-        coverLetter: null,
+        source: 'REFERRAL',
+        coverLetter: 'Referral reference: Asha Rao <asha.rao@hirekarma.in>',
         appliedAt: null,
         createdAt: null,
         updatedAt: null,
@@ -92,6 +138,8 @@ describe('internalApply', () => {
     const outcome = await submitInternalApplication({
       jobPostingId: 'job-1',
       candidateId: 'cand-1',
+      referenceName: 'Asha Rao',
+      referenceEmail: 'asha.rao@hirekarma.in',
       guard,
       send,
     })
@@ -99,7 +147,8 @@ describe('internalApply', () => {
     expect(send).toHaveBeenCalledWith({
       jobPostingId: 'job-1',
       candidateId: 'cand-1',
-      source: 'OTHER',
+      source: 'REFERRAL',
+      coverLetter: 'Referral reference: Asha Rao <asha.rao@hirekarma.in>',
     })
   })
 })

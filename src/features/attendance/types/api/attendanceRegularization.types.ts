@@ -1,17 +1,18 @@
-import type { AttendanceRegularizationType } from '../../constants/attendanceApiAccess'
+import type { AttendanceRegularizationPostType } from '../../constants/attendanceRegularizationPostTypes'
 
 export type AttendanceRegularizationListQuery = {
   employeeId?: string
   fromDate?: string
   toDate?: string
-  type?: AttendanceRegularizationType
+  type?: AttendanceRegularizationPostType | string
   includeRevoked?: boolean
   page?: number
   limit?: number
 }
 
 export type CreateAttendanceRegularizationRequest = {
-  type: AttendanceRegularizationType
+  /** Attendance report issue code for the selected date (e.g. OVERTIME, MISSED_OUT_PUNCH). */
+  type: string
   dates: string[]
   reason: string
 }
@@ -24,7 +25,7 @@ export type AttendanceRegularizationRecord = {
   id: string
   employeeId?: string
   employeeCode?: string
-  type?: AttendanceRegularizationType | string
+  type?: AttendanceRegularizationPostType | string
   dates: string[]
   reason?: string
   createdAt?: string

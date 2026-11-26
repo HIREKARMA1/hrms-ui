@@ -23,6 +23,7 @@ import { OnBehalfDialogFooterBar, OnBehalfDialogShell } from './onBehalf/OnBehal
 import { OnBehalfEmployeeSection } from './onBehalf/OnBehalfEmployeeSection'
 import { OnBehalfLeaveForm } from './onBehalf/OnBehalfLeaveForm'
 import { OnBehalfSummaryPanel } from './onBehalf/OnBehalfSummaryPanel'
+import type { ApplyLeaveTypeOption } from '../../utils/applyLeaveTypeOptionsFromBalance'
 import { useApplyLeaveDialogState } from './useApplyLeaveDialogState'
 
 type ApplyLeaveDialogProps = {
@@ -37,6 +38,9 @@ type ApplyLeaveDialogProps = {
   submitterName?: string
   /** Server balances (code → available days, null while unknown). Omit to use the demo ledger. */
   serverBalances?: Record<string, number> | null
+  /** From GET leave balance rows; omit in demo mode */
+  balanceTypeOptions?: ApplyLeaveTypeOption[] | null
+  balanceTypesLoading?: boolean
   /** Resolve `false` to keep the dialog open with its input (e.g. the server rejected the request). */
   onSubmit: (input: ApplyLeaveSubmitInput) => ApplyLeaveSubmitOutcome
   hrEmployeePicker?: {
@@ -59,10 +63,32 @@ export type ApplyLeaveSubmitInput = {
 export type ApplyLeaveSubmitOutcome = void | boolean | Promise<void | boolean>
 
 export function ApplyLeaveDialog(props: ApplyLeaveDialogProps) {
-  const { open, onOpenChange, employee, settings, ledger, existing, employees, saving, onSubmit, hrEmployeePicker, submitterName, serverBalances } =
-    props
+  const {
+    open,
+    onOpenChange,
+    employee,
+    settings,
+    ledger,
+    existing,
+    employees,
+    saving,
+    onSubmit,
+    hrEmployeePicker,
+    submitterName,
+    serverBalances,
+    balanceTypeOptions,
+    balanceTypesLoading,
+  } = props
   const onBehalf = Boolean(hrEmployeePicker)
-  const state = useApplyLeaveDialogState(employee, settings, ledger, existing, employees, serverBalances)
+  const state = useApplyLeaveDialogState(
+    employee,
+    settings,
+    ledger,
+    existing,
+    employees,
+    serverBalances,
+    balanceTypeOptions,
+  )
 
   const handleOpenChange = (next: boolean) => {
     if (!next) state.reset()
@@ -101,6 +127,8 @@ export function ApplyLeaveDialog(props: ApplyLeaveDialogProps) {
       setConvertLwp: state.setConvertLwp,
       touched: state.touched,
       setTouched: state.setTouched,
+      balanceTypeOptions,
+      balanceTypesLoading,
     }
 
     return (
@@ -150,7 +178,7 @@ export function ApplyLeaveDialog(props: ApplyLeaveDialogProps) {
       <LeaveDialogContent size="lg" describedBy="apply-leave-subtitle" className="max-h-[calc(100dvh-2rem)]">
         <LeaveDialogHeader
           title="Apply for leave"
-          subtitle="Choose the leave type and dates. We will show your balance and approvers."
+          subtitle="Choose a type from your balance, add dates, and review the preview before you submit."
           subtitleId="apply-leave-subtitle"
           icon={CalendarPlus}
         />
@@ -179,6 +207,9 @@ export function ApplyLeaveDialog(props: ApplyLeaveDialogProps) {
                 setConvertLwp={state.setConvertLwp}
                 touched={state.touched}
                 setTouched={state.setTouched}
+                balanceTypeOptions={balanceTypeOptions}
+                balanceTypesLoading={balanceTypesLoading}
+                compactAttachment
               />
             </div>
             <div className="flex min-w-0 flex-col bg-hrms-muted-bg/30 p-5">
@@ -197,12 +228,12 @@ export function ApplyLeaveDialog(props: ApplyLeaveDialogProps) {
           <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-xs text-hrms-text-muted">
               {state.preview && state.preview.errors.length > 0
-                ? 'Fix the issues in the preview panel to continue.'
-                : !state.reason.trim()
-                  ? 'Reason is required.'
-                  : !state.hasDates
-                    ? 'Select from and to dates.'
-                    : 'Ready to submit when details are complete.'}
+                ? 'Fix the issues shown in the preview.'
+                : !state.hasDates
+                  ? 'Choose from and to dates.'
+                  : !state.reason.trim()
+                    ? 'Enter a reason above to enable submit.'
+                    : 'Ready to submit.'}
             </p>
             <LeaveDialogFooterActions
               primaryLabel="Submit request"
