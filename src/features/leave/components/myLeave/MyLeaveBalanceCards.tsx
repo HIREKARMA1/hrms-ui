@@ -12,7 +12,8 @@ import { addDays } from '../../utils/leaveDates'
 import { leaveTodayIso } from '../../utils/leaveToday'
 
 export type BalanceCardModel = {
-  code: LeaveTypeCode
+  code: string
+  name?: string
   available: number
   used: number
   pending: number
@@ -41,7 +42,9 @@ export function MyLeaveBalanceCards({ cards, compOffLots, employeeId }: MyLeaveB
       {cards.map((card) => (
         <Card key={card.code} className="h-fit">
           <CardContent className="space-y-1 p-4 text-sm">
-            <p className="font-semibold text-hrms-navy">{LEAVE_TYPE_LABELS[card.code]}</p>
+            <p className="font-semibold text-hrms-navy">
+              {card.name ?? LEAVE_TYPE_LABELS[card.code as LeaveTypeCode] ?? card.code}
+            </p>
             <p>Available: {card.available}</p>
             <p>Used: {card.used}</p>
             <p>Pending approval: {card.pending}</p>

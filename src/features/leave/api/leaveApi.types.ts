@@ -185,6 +185,25 @@ export type ListLeaveTypesArgs = {
   isPaid?: boolean
 }
 
+/** POST /leave-types body (createLeaveTypeSchema, strict). */
+export type CreateLeaveTypeBody = {
+  code: string
+  name: string
+  description?: string
+  isPaid: boolean
+  isActive?: boolean
+  maxAllowedDays?: number
+}
+
+/** PATCH /leave-types/:id body (updateLeaveTypeSchema, strict). */
+export type UpdateLeaveTypeBody = {
+  name?: string
+  description?: string
+  isPaid?: boolean
+  isActive?: boolean
+  maxAllowedDays?: number
+}
+
 // ---------------------------------------------------------------------------
 // /leave-policies
 // ---------------------------------------------------------------------------
@@ -219,6 +238,28 @@ export type BackendCarryForwardPolicy = {
   createdAt: string
   updatedAt: string
   leaveType: BackendLeaveTypeRef | null
+}
+
+/** POST /leave-policies/accrual body (createAccrualPolicySchema, strict). */
+export type CreateAccrualPolicyBody = {
+  leaveTypeId: string
+  frequency: BackendAccrualFrequency
+  accrualAmount: number
+  effectiveFrom: string
+  effectiveTo?: string | null
+  annualAllocationLimit?: number | null
+  maxAccumulatedBalance?: number | null
+  isActive?: boolean
+}
+
+/** POST /leave-policies/carry-forward body (createCarryForwardPolicySchema, strict). */
+export type CreateCarryForwardPolicyBody = {
+  leaveTypeId: string
+  enabled: boolean
+  maxCarryForwardDays: number
+  effectiveYear: number
+  expiryMonths?: number | null
+  isActive?: boolean
 }
 
 /** POST /leave-policies/accrual/run body (runAccrualSchema, strict). */
@@ -332,6 +373,19 @@ export type BackendEncashmentPolicy = {
   createdAt: string
   updatedAt: string
   leaveType: BackendLeaveTypeRef | null
+}
+
+/** POST /leave-encashments/policies body (createEncashmentPolicySchema, strict). */
+export type CreateEncashmentPolicyBody = {
+  leaveTypeId: string
+  ratePerDay: number
+  currency: string
+  minDays: number
+  maxDaysPerRequest: number
+  maxDaysPerYear?: number | null
+  effectiveFrom: string
+  effectiveTo?: string | null
+  isActive?: boolean
 }
 
 // ---------------------------------------------------------------------------

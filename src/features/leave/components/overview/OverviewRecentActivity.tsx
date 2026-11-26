@@ -145,6 +145,8 @@ export function OverviewRecentActivity({ snapshot, loading, error, onRetry, onVi
         balanceBefore={detail ? ledgerBalanceForType(snapshot.ledger, detail.employeeId, detail.leaveTypeCode) : 0}
         balanceAfter={detail ? ledgerBalanceForType(snapshot.ledger, detail.employeeId, detail.leaveTypeCode) - detail.days : 0}
         onOpenChange={(open) => !open && setDetail(null)}
+        useLiveApi={Boolean(snapshot.api)}
+        useLiveApprovalHistory={Boolean(snapshot.api)}
       />
 
     </OverviewCard>

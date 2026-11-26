@@ -6,7 +6,9 @@
 import { useMemo, useState } from 'react'
 
 import { useGetLeaveBalanceQuery } from '../../api/leaveApi'
+import { useEmployeeLeaveRequestsForValidation } from '../../hooks/useEmployeeLeaveRequestsForValidation'
 import { availableByTypeCode, mapLeaveBalanceRows } from '../../api/leaveMappers'
+import { applyLeaveTypeOptionsFromBalance } from '../../utils/applyLeaveTypeOptionsFromBalance'
 import type { LeaveSnapshot } from '../../services/leaveService'
 import { activeEmployees } from '../../utils/employmentStatus'
 import { ApplyLeaveDialog, type ApplyLeaveSubmitInput, type ApplyLeaveSubmitOutcome } from '../applyLeave/ApplyLeaveDialog'
@@ -28,10 +30,25 @@ export function HrApplyOnBehalfDialog({ open, onOpenChange, snapshot, submitterN
 
   const api = snapshot.api
   const balance = useGetLeaveBalanceQuery({ employeeId: resolvedId }, { skip: !api || !open || !resolvedId })
+  const balanceRows = useMemo(
+    () => (api && balance.data ? mapLeaveBalanceRows(balance.data, api.leaveTypes) : null),
+    [api, balance.data],
+  )
   const serverBalances = useMemo(() => {
     if (!api) return undefined
-    return balance.data ? availableByTypeCode(mapLeaveBalanceRows(balance.data, api.leaveTypes)) : null
-  }, [api, balance.data])
+    return balanceRows ? availableByTypeCode(balanceRows) : null
+  }, [api, balanceRows])
+  const balanceTypeOptions = useMemo(() => {
+    if (!api) return null
+    if (!balanceRows) return []
+    return applyLeaveTypeOptionsFromBalance(balanceRows) ?? []
+  }, [api, balanceRows])
+  const applyExisting = useEmployeeLeaveRequestsForValidation(
+    resolvedId,
+    Boolean(api),
+    Boolean(api && open),
+    snapshot.requests,
+  )
 
   if (!employee) return null
 
@@ -42,11 +59,13 @@ export function HrApplyOnBehalfDialog({ open, onOpenChange, snapshot, submitterN
       employee={employee}
       settings={snapshot.settings}
       ledger={snapshot.ledger}
-      existing={snapshot.requests}
+      existing={applyExisting}
       employees={snapshot.employees}
       saving={saving}
       submitterName={submitterName}
       serverBalances={serverBalances}
+      balanceTypeOptions={balanceTypeOptions}
+      balanceTypesLoading={Boolean(api && open && balance.isFetching && !balanceRows)}
       hrEmployeePicker={{ options, value: resolvedId, onChange: setEmployeeId }}
       onSubmit={(input) => onSubmit(resolvedId, input)}
     />

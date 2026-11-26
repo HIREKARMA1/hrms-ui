@@ -12,7 +12,7 @@ import {
 } from '../constants/userRoles'
 
 export const MANAGER_TABS = ['My Leave', 'Approvals', 'Calendar'] as const
-export const EMPLOYEE_TABS = ['My Leave', 'Calendar'] as const
+export const EMPLOYEE_TABS = ['My Leave', 'Approvals', 'Calendar'] as const
 
 export const HR_ADMIN_TABS = [
   'Overview',

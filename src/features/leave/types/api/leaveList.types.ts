@@ -42,6 +42,9 @@ export type ApiLeaveRequestItem = {
   totalDays?: number
   paidDays?: number
   lwpDays?: number
+  lopDays?: number
+  workflowId?: string | null
+  currentLevel?: number | null
   createdAt?: string
   appliedAt?: string
   updatedAt?: string

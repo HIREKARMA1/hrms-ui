@@ -21,12 +21,17 @@ import {
 
 type AttendanceReportEmployeePickerProps = {
   selectedCode?: string
+  /** Shown on the trigger when the selected row is not in the current search results */
+  selectedName?: string
+  label?: string
   onSelect: (record: EmployeeRecord) => void
   disabled?: boolean
 }
 
 export function AttendanceReportEmployeePicker({
   selectedCode,
+  selectedName,
+  label = 'Employee roster',
   onSelect,
   disabled,
 }: AttendanceReportEmployeePickerProps) {
@@ -37,13 +42,15 @@ export function AttendanceReportEmployeePicker({
   const triggerText = selectedLabel
     ? `${selectedLabel.profile.firstName} ${selectedLabel.profile.lastName}`.trim() ||
       selectedCode
-    : selectedCode
-      ? selectedCode
-      : 'Select employee'
+    : selectedName && selectedCode
+      ? selectedName
+      : selectedCode
+        ? selectedCode
+        : 'Select employee'
 
   return (
     <div>
-      <label className={policyLabelClass}>Employee roster</label>
+      <label className={policyLabelClass}>{label}</label>
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <Button

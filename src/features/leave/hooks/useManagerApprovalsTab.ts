@@ -14,6 +14,8 @@ import {
   pendingManagerEncashments,
   pendingManagerLeaveRequests,
 } from '../utils/managerApprovalsQueue'
+import { mergeLeaveRequestForWorkflowAction } from '../utils/leaveWorkflowApproval'
+import { useApprovalsPendingLeave } from './useApprovalsPendingLeave'
 import { useLeaveApiActions } from './useLeaveApiActions'
 
 type ToastFn = (message: string) => void
@@ -25,14 +27,28 @@ export function useManagerApprovalsTab(
   showToast: ToastFn,
 ) {
   const server = useLeaveApiActions()
-  // The team is found through the manager's employee record; without one the queues are empty.
   const managerId = viewer.employeeId
   const fromServer = Boolean(snapshot?.api)
 
-  const pendingLeave = useMemo(
+  const mockLeave = useMemo(
     () => (snapshot && managerId ? pendingManagerLeaveRequests(snapshot, managerId) : []),
     [managerId, snapshot],
   )
+  const pendingLeaveApi = useApprovalsPendingLeave(mockLeave)
+
+  const pendingLeave = useMemo(() => {
+    if (fromServer && (pendingLeaveApi.blockingError || pendingLeaveApi.skippedNoEmployeeLink)) return []
+    if (fromServer && pendingLeaveApi.useLiveApi) return pendingLeaveApi.rows
+    return mockLeave
+  }, [
+    fromServer,
+    mockLeave,
+    pendingLeaveApi.blockingError,
+    pendingLeaveApi.rows,
+    pendingLeaveApi.skippedNoEmployeeLink,
+    pendingLeaveApi.useLiveApi,
+  ])
+
   const pendingEncashment = useMemo(
     () => (snapshot && managerId ? pendingManagerEncashments(snapshot, managerId) : []),
     [managerId, snapshot],
@@ -43,11 +59,15 @@ export function useManagerApprovalsTab(
   )
 
   async function runLeaveAction(id: string, mode: 'approve' | 'reject', comment: string) {
+    const queued =
+      pendingLeave.find((item) => item.id === id) ?? snapshot?.requests.find((item) => item.id === id)
+    if (!queued || !snapshot) return
+    const request = mergeLeaveRequestForWorkflowAction(queued, snapshot.requests)
+
     if (fromServer) {
-      const request = snapshot?.requests.find((item) => item.id === id)
-      if (!request) return
       const result = mode === 'approve' ? await server.approve(request, comment) : await server.reject(request, comment)
       showToast(result.ok ? (mode === 'approve' ? 'Request approved.' : 'Request rejected.') : result.message)
+      if (result.ok) await reload()
       return
     }
     if (mode === 'approve') {
@@ -64,6 +84,7 @@ export function useManagerApprovalsTab(
     if (fromServer) {
       const result = mode === 'approve' ? await server.approveEncashment(id) : await server.rejectEncashment(id)
       showToast(result.ok ? (mode === 'approve' ? 'Encashment approved.' : 'Encashment rejected.') : result.message)
+      if (result.ok) await reload()
       return
     }
     resolveEncashmentRequest(id, mode)
@@ -83,6 +104,11 @@ export function useManagerApprovalsTab(
 
   return {
     pendingLeave,
+    pendingLeaveLoading: fromServer && pendingLeaveApi.isFetching,
+    pendingLeaveError: fromServer ? pendingLeaveApi.errorMessage : null,
+    pendingEmployeeLinkRequired: fromServer ? pendingLeaveApi.employeeLinkRequired : false,
+    skippedNoEmployeeLink: fromServer ? pendingLeaveApi.skippedNoEmployeeLink : false,
+    refetchPendingLeave: fromServer ? pendingLeaveApi.refetch : undefined,
     pendingEncashment,
     pendingCompOff,
     runLeaveAction,

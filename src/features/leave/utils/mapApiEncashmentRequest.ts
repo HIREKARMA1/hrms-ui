@@ -91,6 +91,39 @@ export function mapApiEncashmentItemToEncashmentRequest(
   }
 }
 
+export function encashmentRequestToHrRow(
+  row: EncashmentRequest,
+  employeeDisplayName?: string,
+): HrEncashmentRequestRow {
+  return {
+    id: row.id,
+    employeeId: row.employeeId,
+    employeeDisplayName,
+    leaveTypeCode: row.leaveTypeCode,
+    days: row.days,
+    appliedOn: row.appliedOn,
+    status: row.status,
+    approvedOn: row.approvedOn,
+  }
+}
+
+/** My Leave: filter own encashment rows by calendar year and search. */
+export function filterMyEncashmentRows(
+  rows: HrEncashmentRequestRow[],
+  year: string,
+  search: string,
+): HrEncashmentRequestRow[] {
+  const inYear = rows.filter((row) => row.appliedOn.startsWith(year))
+  const query = search.trim().toLowerCase()
+  if (!query) return inYear
+  return inYear.filter(
+    (row) =>
+      row.leaveTypeCode.toLowerCase().includes(query) ||
+      row.status.toLowerCase().includes(query) ||
+      row.id.toLowerCase().includes(query),
+  )
+}
+
 export function filterHrEncashmentRows(
   rows: HrEncashmentRequestRow[],
   search: string,
