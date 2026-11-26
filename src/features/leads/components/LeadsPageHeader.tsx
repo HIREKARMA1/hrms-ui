@@ -1,6 +1,3 @@
-import { LEADS_ACTIVE_SECTION_PILL } from './shared/leadsUi'
-import { LeadsOverviewDemoPill } from './overview/LeadsOverviewDemoPill'
-
 type LeadsPageHeaderProps = {
   activeSection?: string
 }
@@ -12,7 +9,6 @@ export function LeadsPageHeader({ activeSection }: LeadsPageHeaderProps) {
     return (
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-[28px] font-bold tracking-tight text-[#17213A]">Leads Management</h1>
-        <LeadsOverviewDemoPill />
       </div>
     )
   }
@@ -25,7 +21,6 @@ export function LeadsPageHeader({ activeSection }: LeadsPageHeaderProps) {
           Capture prospects, assign owners, and track status through conversion.
         </p>
       </div>
-      {activeSection ? <p className={LEADS_ACTIVE_SECTION_PILL}>{activeSection}</p> : null}
     </div>
   )
 }

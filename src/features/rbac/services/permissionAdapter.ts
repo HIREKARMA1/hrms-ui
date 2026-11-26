@@ -111,6 +111,8 @@ export const FEATURE_PERMISSION_MAP: Partial<
   'leads.assign': 'leads:assign',
   'leads.notes': 'leads:notes',
   'leads.analytics': 'leads:analytics',
+  'leads.sources.manage': 'lead_sources:manage',
+  'leads.categories.manage': 'lead_categories:manage',
   // POST /holidays, PATCH /holidays/:id, DELETE /holidays/:id
   'holidays.create': 'holidays:create',
   'holidays.update': 'holidays:update',

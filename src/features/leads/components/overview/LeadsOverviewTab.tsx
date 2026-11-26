@@ -20,6 +20,7 @@ import {
   leadsNeedingAttention,
   recentLeadActivities,
 } from '../../utils/leadsOverviewInsights'
+import { leadStatusFromApi } from '../../utils/mapLeadFromApi'
 import { LeadsNeedsAttentionList } from './LeadsNeedsAttentionList'
 import { LeadsOverviewCard } from './LeadsOverviewCard'
 import { LeadsPipelineFunnelCard } from './LeadsOverviewCharts'
@@ -49,8 +50,23 @@ export function LeadsOverviewTab({
     : isManagerExperience(role)
       ? 'team'
       : 'org'
-  const { scopedLeads, canViewAnalytics } = useLeadsScope(role, scope)
-  const summary = summarizeLeads(scopedLeads)
+  const { scopedLeads, canViewAnalytics, analytics } = useLeadsScope(role, scope)
+  const localSummary = summarizeLeads(scopedLeads)
+  const statusCounts = analytics
+    ? Object.fromEntries(
+        analytics.byStatus.map((row) => [leadStatusFromApi(row.status), row.count]),
+      )
+    : localSummary.byStatus
+  const summary = analytics
+    ? {
+        total: analytics.total,
+        byStatus: statusCounts,
+        highPriority:
+          analytics.byPriority.find((row) => row.priority === 'HIGH')?.count ??
+          localSummary.highPriority,
+        unassigned: localSummary.unassigned,
+      }
+    : localSummary
   const funnel = buildLeadStatusFunnel(scopedLeads)
   const sources = buildLeadSourceBreakdown(scopedLeads)
   const attention = leadsNeedingAttention(scopedLeads)
@@ -91,7 +107,7 @@ export function LeadsOverviewTab({
 
         {canViewAnalytics ? (
           <LeadsStatusSnapshot
-            counts={summary.byStatus}
+            counts={statusCounts}
             onOpenPipeline={onNavigate ? () => onNavigate('Pipeline') : undefined}
           />
         ) : null}
@@ -125,8 +141,8 @@ export function LeadsOverviewTab({
             >
               <LeadsPipelineFunnelCard
                 data={funnel}
-                wonCount={summary.byStatus.Won ?? 0}
-                lostCount={summary.byStatus.Lost ?? 0}
+                wonCount={analytics?.wonCount ?? summary.byStatus.Won ?? 0}
+                lostCount={analytics?.lostCount ?? summary.byStatus.Lost ?? 0}
                 onStatusClick={() => onNavigate?.('Pipeline')}
               />
             </LeadsOverviewCard>
