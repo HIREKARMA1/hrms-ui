@@ -130,9 +130,6 @@ export function InternalJobBoardPage() {
       }),
     [email, myCandidate.data, myCandidate.isError, myCandidate.error],
   )
-  const candidateId =
-    candidateResolution.status === 'resolved' ? candidateResolution.candidateId : null
-
   const myApplications = useListMyApplicationsQuery(
     { limit: 100, page: 1 },
     { skip: !email },
