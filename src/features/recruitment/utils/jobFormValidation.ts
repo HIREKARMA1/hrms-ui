@@ -1,5 +1,10 @@
 /**
- * Client-side checks aligned with production OpenAPI for `/recruitment/jobs`.
+ * Client-side checks aligned with production OpenAPI for `/recruitment/jobs`,
+ * plus required Reference Name / Reference Email for the internal job workflow.
+ *
+ * Production CreateJobDto / UpdateJobDto do not list `referenceName` or
+ * `referenceEmail`. The UI still validates and serializes them on the request
+ * body so values are not silently dropped; persistence requires a backend update.
  */
 import type {
   CreateJobBody,
@@ -15,10 +20,21 @@ export const JOB_TEXT_MAX = 20000
 export const JOB_SKILL_MAX = 100
 export const JOB_SKILLS_MAX = 50
 export const JOB_OPENINGS_MAX = 9999
+export const JOB_REFERENCE_NAME_MAX = 200
 export const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/
+/** Practical email shape check (format only; not DNS). */
+export const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+/**
+ * Production OpenAPI (`/api/v1/recruitment/jobs` POST/PATCH) does not document
+ * referenceName or referenceEmail anywhere in the swagger document.
+ */
+export const JOB_REFERENCE_FIELDS_IN_OPENAPI = false
 
 export type JobFormErrors = {
   title?: string
+  referenceName?: string
+  referenceEmail?: string
   employmentType?: string
   location?: string
   workMode?: string
@@ -34,6 +50,8 @@ export type JobFormErrors = {
 
 export type JobFormValues = {
   title: string
+  referenceName: string
+  referenceEmail: string
   departmentId: string
   employmentType: JobEmploymentType | ''
   location: string
@@ -71,9 +89,23 @@ export function validateCreateJobForm(values: JobFormValues): JobFormErrors {
   const title = values.title.trim()
   const location = values.location.trim()
   const description = values.description.trim()
+  const referenceName = values.referenceName.trim()
+  const referenceEmail = values.referenceEmail.trim()
 
   if (!title) errors.title = 'Title is required.'
   else if (title.length > JOB_TITLE_MAX) errors.title = `Title must be at most ${JOB_TITLE_MAX} characters.`
+
+  if (!referenceName) errors.referenceName = 'Reference Name is required.'
+  else if (referenceName.length > JOB_REFERENCE_NAME_MAX) {
+    errors.referenceName = `Reference Name must be at most ${JOB_REFERENCE_NAME_MAX} characters.`
+  }
+
+  if (!referenceEmail) errors.referenceEmail = 'Reference Email ID is required.'
+  else if (!EMAIL_PATTERN.test(referenceEmail)) {
+    errors.referenceEmail = 'Enter a valid email address.'
+  } else if (referenceEmail.length > 254) {
+    errors.referenceEmail = 'Reference Email ID is too long.'
+  }
 
   if (!values.employmentType) errors.employmentType = 'Employment type is required.'
   if (!location) errors.location = 'Location is required.'
@@ -158,6 +190,8 @@ export function buildCreateJobBody(values: JobFormValues): CreateJobBody {
     workMode: values.workMode as JobWorkMode,
     description: values.description.trim(),
     status: values.status,
+    referenceName: values.referenceName.trim(),
+    referenceEmail: values.referenceEmail.trim().toLowerCase(),
   }
 
   if (values.departmentId.trim()) body.departmentId = values.departmentId.trim()
@@ -207,6 +241,8 @@ export function buildUpdateJobBody(
     requirements: string | null
     skills: string[]
     applicationDeadline: string | null
+    referenceName: string | null
+    referenceEmail: string | null
     status: JobPostingStatus
   },
 ): { body: UpdateJobBody; errors: JobFormErrors } {
@@ -247,6 +283,13 @@ export function buildUpdateJobBody(
 
   const nextDeadline = next.applicationDeadline ?? null
   if (nextDeadline !== original.applicationDeadline) body.applicationDeadline = nextDeadline
+
+  const nextRefName = next.referenceName ?? ''
+  if (nextRefName !== (original.referenceName ?? '')) body.referenceName = nextRefName
+  const nextRefEmail = next.referenceEmail ?? ''
+  if (nextRefEmail !== (original.referenceEmail ?? '').toLowerCase()) {
+    body.referenceEmail = nextRefEmail
+  }
 
   if (next.status !== original.status) body.status = next.status
 

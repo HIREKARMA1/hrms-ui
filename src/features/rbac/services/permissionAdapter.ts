@@ -218,6 +218,7 @@ const ROLE_FEATURE_MATRIX: Record<BackendRoleCode, FeatureAccessKey[]> = {
     'module.permissions',
     'module.audit',
     'module.systemSettings',
+    // Recruitment: Super Admin manages internal job postings (+ full ATS).
     'recruitment.overview',
     'recruitment.jobs',
     'recruitment.jobDescriptions',
@@ -273,6 +274,17 @@ const ROLE_FEATURE_MATRIX: Record<BackendRoleCode, FeatureAccessKey[]> = {
     'attendance.biometric.sync',
     'attendance.biometric.attendanceRead',
     'module.users',
+    // Recruitment: HR Admin has full access (including writes via recruitment.manage).
+    'recruitment.overview',
+    'recruitment.jobs',
+    'recruitment.jobDescriptions',
+    'recruitment.candidates',
+    'recruitment.pipeline',
+    'recruitment.interviews',
+    'recruitment.feedback',
+    'recruitment.offers',
+    'recruitment.analytics',
+    'recruitment.manage',
     'leads.overview',
     'leads.manage',
     'calendar.overview',
@@ -311,16 +323,8 @@ const ROLE_FEATURE_MATRIX: Record<BackendRoleCode, FeatureAccessKey[]> = {
     'attendance.holidays',
     'attendance.reports',
     'attendance.settings',
-    'recruitment.overview',
+    // Internal job board: view + apply only (no recruitment.manage).
     'recruitment.jobs',
-    'recruitment.jobDescriptions',
-    'recruitment.candidates',
-    'recruitment.pipeline',
-    'recruitment.interviews',
-    'recruitment.feedback',
-    'recruitment.offers',
-    'recruitment.analytics',
-    'recruitment.manage',
     'leads.overview',
     'leads.manage',
     'leads.my',
@@ -341,6 +345,8 @@ const ROLE_FEATURE_MATRIX: Record<BackendRoleCode, FeatureAccessKey[]> = {
     'calendar.holidays',
     'employee.profile.own',
     'employee.documents.own',
+    // Internal job board: view + apply only (no recruitment.manage).
+    'recruitment.jobs',
   ],
 }
 

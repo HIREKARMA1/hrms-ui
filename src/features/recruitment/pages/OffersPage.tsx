@@ -1,8 +1,7 @@
-import { Download, Eye, Plus, Upload } from 'lucide-react'
-import { useMemo, useRef, useState } from 'react'
+import { Plus, RefreshCw, Upload } from 'lucide-react'
+import { useRef, useState } from 'react'
 
 import { Feature } from '@/features/rbac/components/Feature'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -14,6 +13,7 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Skeleton } from '@/components/ui/skeleton'
 import {
   Select,
   SelectContent,
@@ -29,327 +29,263 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Separator } from '@/components/ui/separator'
+import { getApiErrorMessage } from '@/services/api/errors'
 
-import { MockDataBanner, OfferStatusBadge, RecruitmentPageShell } from '../components'
-import { departments } from '../mocks/recruitmentMocks'
-import { listCandidates, listOffers } from '../services/recruitmentService'
-import type { EmploymentType, Offer, OfferStatus } from '../types/recruitment'
+import { CANDIDATES_PAGE_SIZE, useListCandidatesQuery } from '../api/candidatesApi'
 import {
-  buildDemoOfferLetterBlob,
-  triggerOfferLetterDownload,
-} from '../utils/offerLetterDownload'
+  OFFERS_PAGE_SIZE,
+  OFFER_STATUSES,
+  useCreateOfferMutation,
+  useListOffersQuery,
+  useUpdateOfferStatusMutation,
+  useUploadOfferLetterMutation,
+} from '../api/offersApi'
+import type { OfferStatus } from '../api/offersApi.types'
+import { ApiOfferStatusBadge, RecruitmentPageShell } from '../components'
+import { formatOfferStatus } from '../utils/applicationFormat'
+import { getOfferErrorMessage } from '../api/offersApi'
 
 type OfferForm = {
   candidateId: string
-  jobTitle: string
   offeredDesignation: string
   department: string
-  offeredSalary: string
+  salary: string
   joiningDate: string
-  offerExpiryDate: string
-  employmentType: EmploymentType
-  status: OfferStatus
-  offerLetterFileName: string
+  expiryDate: string
 }
 
 const emptyForm: OfferForm = {
   candidateId: '',
-  jobTitle: '',
   offeredDesignation: '',
-  department: 'Engineering',
-  offeredSalary: '',
+  department: '',
+  salary: '',
   joiningDate: '',
-  offerExpiryDate: '',
-  employmentType: 'Full-time',
-  status: 'Draft',
-  offerLetterFileName: '',
+  expiryDate: '',
 }
 
-const offerStatuses: OfferStatus[] = [
-  'Draft',
-  'Pending Approval',
-  'Released',
-  'Accepted',
-  'Rejected',
-  'Expired',
-]
-
 export function OffersPage() {
-  const [offers, setOffers] = useState(() => listOffers())
-  const [candidates] = useState(() => listCandidates())
-  const [statusFilter, setStatusFilter] = useState<string>('All')
+  const [statusFilter, setStatusFilter] = useState('__all__')
   const [formOpen, setFormOpen] = useState(false)
-  const [preview, setPreview] = useState<Offer | null>(null)
   const [form, setForm] = useState<OfferForm>(emptyForm)
-  const [actionNote, setActionNote] = useState<string | null>(null)
+  const [formError, setFormError] = useState<string | null>(null)
+  const [saving, setSaving] = useState(false)
   const [uploadOfferId, setUploadOfferId] = useState<string | null>(null)
-  const [offerLetterBlobs, setOfferLetterBlobs] = useState<Record<string, Blob>>(
-    {},
-  )
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const filtered = useMemo(() => {
-    if (statusFilter === 'All') return offers
-    return offers.filter((o) => o.status === statusFilter)
-  }, [offers, statusFilter])
+  const list = useListOffersQuery({
+    page: 1,
+    limit: OFFERS_PAGE_SIZE,
+    ...(statusFilter !== '__all__' ? { status: statusFilter as OfferStatus } : {}),
+  })
+  const candidatesQuery = useListCandidatesQuery({ page: 1, limit: CANDIDATES_PAGE_SIZE })
+  const [createOffer] = useCreateOfferMutation()
+  const [updateStatus] = useUpdateOfferStatusMutation()
+  const [uploadLetter] = useUploadOfferLetterMutation()
 
-  const pending = offers.filter((o) =>
-    ['Draft', 'Pending Approval', 'Released'].includes(o.status),
-  )
+  const items = list.data?.items ?? []
 
   const openCreate = () => {
-    const candidate = candidates.find((c) => c.stage === 'Selected') ?? candidates[0]
+    const candidate = candidatesQuery.data?.items?.[0]
     setForm({
       ...emptyForm,
       candidateId: candidate?.id ?? '',
-      jobTitle: candidate?.appliedJobTitle ?? '',
-      offeredDesignation: 'Senior Engineer',
     })
+    setFormError(null)
     setFormOpen(true)
   }
 
-  const saveOffer = () => {
-    const candidate = candidates.find((c) => c.id === form.candidateId)
-    if (!candidate || !form.offeredSalary.trim()) return
-    setOffers((prev) => [
-      {
-        id: `OFF-${500 + prev.length + 1}`,
-        candidateId: candidate.id,
-        candidateName: candidate.fullName,
-        jobTitle: form.jobTitle.trim() || candidate.appliedJobTitle,
-        offeredDesignation: form.offeredDesignation.trim(),
-        department: form.department,
-        offeredSalary: form.offeredSalary.trim(),
-        joiningDate: form.joiningDate,
-        offerExpiryDate: form.offerExpiryDate,
-        employmentType: form.employmentType,
-        status: form.status,
-        offerLetterFileName: form.offerLetterFileName.trim() || undefined,
-      },
-      ...prev,
-    ])
-    setFormOpen(false)
-  }
-
-  const attachOfferLetter = (
-    offerId: string,
-    fileName: string,
-    file?: File,
-  ) => {
-    setOffers((prev) =>
-      prev.map((o) =>
-        o.id === offerId ? { ...o, offerLetterFileName: fileName } : o,
-      ),
-    )
-    setPreview((prev) =>
-      prev && prev.id === offerId
-        ? { ...prev, offerLetterFileName: fileName }
-        : prev,
-    )
-    if (file) {
-      setOfferLetterBlobs((prev) => ({ ...prev, [offerId]: file }))
+  const saveOffer = async () => {
+    if (!form.candidateId) {
+      setFormError('Select a candidate.')
+      return
     }
-    setActionNote(
-      `Offer letter "${fileName}" saved locally for this session (no file storage API).`,
-    )
+    setSaving(true)
+    setFormError(null)
+    try {
+      await createOffer({
+        candidateId: form.candidateId,
+        offeredDesignation: form.offeredDesignation || undefined,
+        department: form.department || undefined,
+        salary: form.salary ? Number(form.salary) : undefined,
+        joiningDate: form.joiningDate || undefined,
+        expiryDate: form.expiryDate || undefined,
+      }).unwrap()
+      setFormOpen(false)
+    } catch (error) {
+      setFormError(getOfferErrorMessage(error, 'Could not create offer.'))
+    } finally {
+      setSaving(false)
+    }
   }
 
-  const downloadOfferLetter = (offer: Offer) => {
-    if (!offer.offerLetterFileName) return
-    const blob = offerLetterBlobs[offer.id] ?? buildDemoOfferLetterBlob(offer)
-    triggerOfferLetterDownload(offer, blob)
-    setActionNote(
-      `Downloaded "${offer.offerLetterFileName}" (demo file until document API is connected).`,
-    )
-  }
-
-  const promptUploadForOffer = (offerId: string) => {
-    setUploadOfferId(offerId)
-    fileInputRef.current?.click()
-  }
-
-  const onOfferLetterFilePicked = (file: File | undefined) => {
-    if (!file || !uploadOfferId) return
-    attachOfferLetter(uploadOfferId, file.name, file)
-    setUploadOfferId(null)
-    if (fileInputRef.current) fileInputRef.current.value = ''
-  }
-
-  const setOfferStatus = (id: string, status: OfferStatus, note: string) => {
-    setOffers((prev) =>
-      prev.map((o) => (o.id === id ? { ...o, status } : o)),
-    )
-    setActionNote(note)
-    setPreview((prev) => (prev && prev.id === id ? { ...prev, status } : prev))
+  const onLetterSelected = async (offerId: string, file: File | undefined) => {
+    if (!file) return
+    try {
+      await uploadLetter({ id: offerId, file }).unwrap()
+    } catch (error) {
+      window.alert(getOfferErrorMessage(error, 'Could not upload offer letter.'))
+    }
   }
 
   return (
     <RecruitmentPageShell
-      activeSection="Offers & offer letters"
+      activeSection="Offers"
       trailing={
-        <Feature name="recruitment.manage">
-          <Button type="button" className="gap-2" onClick={openCreate}>
-            <Plus className="h-4 w-4" />
-            Generate Offer
+        <div className="flex flex-wrap gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => void list.refetch()}
+            disabled={list.isFetching}
+          >
+            <RefreshCw className={`h-4 w-4 ${list.isFetching ? 'animate-spin' : ''}`} />
           </Button>
-        </Feature>
+          <Feature name="recruitment.manage">
+            <Button type="button" className="gap-2" onClick={openCreate}>
+              <Plus className="h-4 w-4" />
+              Create Offer
+            </Button>
+          </Feature>
+        </div>
       }
     >
-      <MockDataBanner message="Offer actions are UI-only. Upload stores files in-session; download uses demo content when no file was uploaded. Email is not implemented." />
+      <Select value={statusFilter} onValueChange={setStatusFilter}>
+        <SelectTrigger className="mb-4 w-full lg:w-48">
+          <SelectValue placeholder="Status" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="__all__">All statuses</SelectItem>
+          {OFFER_STATUSES.map((s) => (
+            <SelectItem key={s} value={s}>
+              {formatOfferStatus(s)}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+
+      <div className="overflow-hidden rounded-2xl border border-border-soft bg-white shadow-sm">
+        {list.isLoading ? (
+          <Skeleton className="m-4 h-32 w-full" />
+        ) : list.isError ? (
+          <div className="space-y-3 p-6">
+            <p role="alert" className="text-sm text-red-600">
+              {getApiErrorMessage(list.error, 'Could not load offers.')}
+            </p>
+            <Button type="button" variant="outline" onClick={() => void list.refetch()}>
+              Retry
+            </Button>
+          </div>
+        ) : items.length === 0 ? (
+          <p className="p-8 text-center text-sm text-slate-500">No offers found.</p>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Candidate</TableHead>
+                <TableHead>Role</TableHead>
+                <TableHead>Salary</TableHead>
+                <TableHead>Joining</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Letter</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {items.map((offer) => (
+                <TableRow key={offer.id}>
+                  <TableCell className="font-medium text-navy">
+                    {offer.candidateName ?? offer.candidateId}
+                  </TableCell>
+                  <TableCell>
+                    {offer.offeredDesignation ?? '—'}
+                    <p className="text-xs text-text-secondary">{offer.jobTitle}</p>
+                  </TableCell>
+                  <TableCell>
+                    {offer.salary != null
+                      ? `${offer.salaryCurrency ?? ''} ${offer.salary}`
+                      : '—'}
+                  </TableCell>
+                  <TableCell>{offer.joiningDate ?? '—'}</TableCell>
+                  <TableCell>
+                    <ApiOfferStatusBadge status={offer.status} />
+                  </TableCell>
+                  <TableCell className="text-xs">
+                    {offer.offerLetterFileName ?? offer.offerLetterUrl ?? '—'}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Feature name="recruitment.manage">
+                      <div className="flex justify-end gap-1">
+                        {offer.status === 'RELEASED' ? (
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            onClick={() =>
+                              void updateStatus({
+                                id: offer.id,
+                                body: { status: 'ACCEPTED' },
+                              })
+                            }
+                          >
+                            Accept
+                          </Button>
+                        ) : null}
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => {
+                            setUploadOfferId(offer.id)
+                            fileInputRef.current?.click()
+                          }}
+                        >
+                          <Upload className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </Feature>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+      </div>
 
       <input
         ref={fileInputRef}
         type="file"
-        accept=".pdf,.doc,.docx,application/pdf"
+        accept=".pdf,.doc,.docx"
         className="hidden"
-        onChange={(e) => onOfferLetterFilePicked(e.target.files?.[0])}
+        onChange={(e) => {
+          const file = e.target.files?.[0]
+          if (uploadOfferId && file) void onLetterSelected(uploadOfferId, file)
+          e.target.value = ''
+        }}
       />
 
-      {actionNote ? (
-        <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm text-slate-700">
-          {actionNote}
-        </div>
-      ) : null}
-
-      <div className="flex flex-wrap items-center gap-3">
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-48">
-            <SelectValue placeholder="Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="All">All statuses</SelectItem>
-            {offerStatuses.map((s) => (
-              <SelectItem key={s} value={s}>
-                {s}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Badge variant="warning">Pending offers: {pending.length}</Badge>
-      </div>
-
-      <div className="overflow-hidden rounded-2xl border border-border-soft bg-white shadow-sm">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Candidate</TableHead>
-              <TableHead>Job / Designation</TableHead>
-              <TableHead>Department</TableHead>
-              <TableHead>Salary</TableHead>
-              <TableHead>Joining</TableHead>
-              <TableHead>Expiry</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Offer letter</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filtered.map((offer) => (
-              <TableRow key={offer.id}>
-                <TableCell className="font-medium text-navy">
-                  {offer.candidateName}
-                </TableCell>
-                <TableCell>
-                  {offer.jobTitle}
-                  <p className="text-xs text-text-secondary">
-                    {offer.offeredDesignation}
-                  </p>
-                </TableCell>
-                <TableCell>{offer.department}</TableCell>
-                <TableCell>{offer.offeredSalary}</TableCell>
-                <TableCell>{offer.joiningDate}</TableCell>
-                <TableCell>{offer.offerExpiryDate}</TableCell>
-                <TableCell>
-                  <OfferStatusBadge status={offer.status} />
-                </TableCell>
-                <TableCell className="max-w-[140px]">
-                  {offer.offerLetterFileName ? (
-                    <p className="truncate text-xs text-[#17213A]" title={offer.offerLetterFileName}>
-                      {offer.offerLetterFileName}
-                    </p>
-                  ) : (
-                    <span className="text-xs text-text-secondary">Not uploaded</span>
-                  )}
-                </TableCell>
-                <TableCell className="text-right">
-                  <div className="flex justify-end gap-1">
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => {
-                        setActionNote(null)
-                        setPreview(offer)
-                      }}
-                      title="Preview offer"
-                    >
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="ghost"
-                      title="Download offer letter"
-                      disabled={!offer.offerLetterFileName}
-                      onClick={() => downloadOfferLetter(offer)}
-                    >
-                      <Download className="h-4 w-4" />
-                    </Button>
-                    <Feature name="recruitment.manage">
-                      {offer.status === 'Draft' ||
-                      offer.status === 'Pending Approval' ? (
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="outline"
-                          onClick={() =>
-                            setOfferStatus(
-                              offer.id,
-                              'Released',
-                              'Offer marked as Released in UI only. No email was sent.',
-                            )
-                          }
-                        >
-                          Release
-                        </Button>
-                      ) : null}
-                    </Feature>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
-
       <Dialog open={formOpen} onOpenChange={setFormOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle>Generate Offer Letter</DialogTitle>
-            <DialogDescription>
-              Creates a draft offer record in mock state.
-            </DialogDescription>
+            <DialogTitle>Create offer</DialogTitle>
+            <DialogDescription>POST `/recruitment/offers`</DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2 sm:col-span-2">
+          {formError ? (
+            <p role="alert" className="text-sm text-red-600">
+              {formError}
+            </p>
+          ) : null}
+          <div className="grid gap-3">
+            <div className="space-y-2">
               <Label>Candidate</Label>
               <Select
                 value={form.candidateId}
-                onValueChange={(v) => {
-                  const c = candidates.find((x) => x.id === v)
-                  setForm((f) => ({
-                    ...f,
-                    candidateId: v,
-                    jobTitle: c?.appliedJobTitle ?? f.jobTitle,
-                  }))
-                }}
+                onValueChange={(v) => setForm((f) => ({ ...f, candidateId: v }))}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select candidate" />
+                  <SelectValue placeholder="Candidate" />
                 </SelectTrigger>
                 <SelectContent>
-                  {candidates.map((c) => (
+                  {(candidatesQuery.data?.items ?? []).map((c) => (
                     <SelectItem key={c.id} value={c.id}>
                       {c.fullName}
                     </SelectItem>
@@ -357,309 +293,35 @@ export function OffersPage() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
-              <Label>Job Title</Label>
-              <Input
-                value={form.jobTitle}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, jobTitle: e.target.value }))
-                }
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Offered Designation</Label>
-              <Input
-                value={form.offeredDesignation}
-                onChange={(e) =>
-                  setForm((f) => ({
-                    ...f,
-                    offeredDesignation: e.target.value,
-                  }))
-                }
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Department</Label>
-              <Select
-                value={form.department}
-                onValueChange={(v) => setForm((f) => ({ ...f, department: v }))}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {departments
-                    .filter((d) => d !== 'All')
-                    .map((d) => (
-                      <SelectItem key={d} value={d}>
-                        {d}
-                      </SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Offered Salary</Label>
-              <Input
-                value={form.offeredSalary}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, offeredSalary: e.target.value }))
-                }
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Joining Date</Label>
-              <Input
-                type="date"
-                value={form.joiningDate}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, joiningDate: e.target.value }))
-                }
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Offer Expiry Date</Label>
-              <Input
-                type="date"
-                value={form.offerExpiryDate}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, offerExpiryDate: e.target.value }))
-                }
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Employment Type</Label>
-              <Select
-                value={form.employmentType}
-                onValueChange={(v) =>
-                  setForm((f) => ({
-                    ...f,
-                    employmentType: v as EmploymentType,
-                  }))
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {(
-                    [
-                      'Full-time',
-                      'Part-time',
-                      'Contract',
-                      'Internship',
-                    ] as EmploymentType[]
-                  ).map((t) => (
-                    <SelectItem key={t} value={t}>
-                      {t}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Offer Status</Label>
-              <Select
-                value={form.status}
-                onValueChange={(v) =>
-                  setForm((f) => ({ ...f, status: v as OfferStatus }))
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {offerStatuses.map((s) => (
-                    <SelectItem key={s} value={s}>
-                      {s}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2 sm:col-span-2">
-              <Label>Offer letter (PDF / DOC / DOCX)</Label>
-              <div className="flex flex-wrap items-center gap-3">
+            {(
+              [
+                ['offeredDesignation', 'Designation'],
+                ['department', 'Department'],
+                ['salary', 'Salary'],
+                ['joiningDate', 'Joining date'],
+                ['expiryDate', 'Expiry date'],
+              ] as const
+            ).map(([key, label]) => (
+              <div key={key} className="space-y-2">
+                <Label>{label}</Label>
                 <Input
-                  type="file"
-                  accept=".pdf,.doc,.docx,application/pdf"
-                  onChange={(e) => {
-                    const name = e.target.files?.[0]?.name ?? ''
-                    setForm((f) => ({ ...f, offerLetterFileName: name }))
-                  }}
+                  type={key.includes('Date') ? 'date' : 'text'}
+                  value={form[key]}
+                  onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))}
                 />
-                {form.offerLetterFileName ? (
-                  <Badge variant="secondary" className="gap-1">
-                    <Upload className="h-3 w-3" />
-                    {form.offerLetterFileName}
-                  </Badge>
-                ) : null}
               </div>
-            </div>
+            ))}
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setFormOpen(false)}>
               Cancel
             </Button>
-            <Button type="button" onClick={saveOffer}>
-              Save Offer
-            </Button>
+            <Feature name="recruitment.manage">
+              <Button type="button" onClick={() => void saveOffer()} disabled={saving}>
+                {saving ? 'Creating…' : 'Create'}
+              </Button>
+            </Feature>
           </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog
-        open={Boolean(preview)}
-        onOpenChange={(open) => !open && setPreview(null)}
-      >
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Offer Preview</DialogTitle>
-            <DialogDescription>
-              Professional preview only — document is not emailed or downloaded.
-            </DialogDescription>
-          </DialogHeader>
-          {preview ? (
-            <div className="space-y-4 rounded-2xl border border-border-soft bg-muted-bg/30 p-5 text-sm">
-              <div className="text-center">
-                <p className="text-lg font-bold text-navy">HRMS</p>
-                <p className="text-text-secondary">Offer of Employment</p>
-              </div>
-              <Separator />
-              <p>
-                Dear <span className="font-semibold">{preview.candidateName}</span>,
-              </p>
-              <p className="text-text-secondary">
-                We are pleased to offer you the position of{' '}
-                <span className="font-medium text-navy">
-                  {preview.offeredDesignation}
-                </span>{' '}
-                ({preview.jobTitle}) in the {preview.department} department.
-              </p>
-              <dl className="grid gap-2 sm:grid-cols-2">
-                <div>
-                  <dt className="text-xs text-text-secondary">Compensation</dt>
-                  <dd className="font-medium">{preview.offeredSalary}</dd>
-                </div>
-                <div>
-                  <dt className="text-xs text-text-secondary">Employment type</dt>
-                  <dd className="font-medium">{preview.employmentType}</dd>
-                </div>
-                <div>
-                  <dt className="text-xs text-text-secondary">Joining date</dt>
-                  <dd className="font-medium">{preview.joiningDate}</dd>
-                </div>
-                <div>
-                  <dt className="text-xs text-text-secondary">Offer expires</dt>
-                  <dd className="font-medium">{preview.offerExpiryDate}</dd>
-                </div>
-              </dl>
-              <div className="flex items-center gap-2">
-                <span className="text-text-secondary">Status:</span>
-                <OfferStatusBadge status={preview.status} />
-              </div>
-              <div className="rounded-xl border border-border-soft bg-white p-3">
-                <p className="text-xs font-semibold text-navy">Offer letter file</p>
-                <p className="mt-1 text-xs text-text-secondary">
-                  {preview.offerLetterFileName ?? 'No file attached yet.'}
-                </p>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    className="gap-1"
-                    disabled={!preview.offerLetterFileName}
-                    onClick={() => downloadOfferLetter(preview)}
-                  >
-                    <Download className="h-3.5 w-3.5" />
-                    Download
-                  </Button>
-                  <Feature name="recruitment.manage">
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      className="gap-1"
-                      onClick={() => promptUploadForOffer(preview.id)}
-                    >
-                      <Upload className="h-3.5 w-3.5" />
-                      {preview.offerLetterFileName
-                        ? 'Replace file'
-                        : 'Upload offer letter'}
-                    </Button>
-                  </Feature>
-                </div>
-              </div>
-              <Feature name="recruitment.manage">
-                <div className="flex flex-wrap gap-2 pt-2">
-                  {preview.status === 'Released' ? (
-                    <>
-                      <Button
-                        type="button"
-                        size="sm"
-                        onClick={() =>
-                          setOfferStatus(
-                            preview.id,
-                            'Accepted',
-                            'Offer marked Accepted in UI only.',
-                          )
-                        }
-                      >
-                        Mark Accepted
-                      </Button>
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        onClick={() =>
-                          setOfferStatus(
-                            preview.id,
-                            'Rejected',
-                            'Offer marked Rejected in UI only.',
-                          )
-                        }
-                      >
-                        Mark Rejected
-                      </Button>
-                    </>
-                  ) : null}
-                  {preview.status === 'Released' ||
-                  preview.status === 'Pending Approval' ? (
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      onClick={() =>
-                        setOfferStatus(
-                          preview.id,
-                          'Expired',
-                          'Offer marked Expired in UI only.',
-                        )
-                      }
-                    >
-                      Mark Expired
-                    </Button>
-                  ) : null}
-                  {preview.status === 'Draft' ? (
-                    <Button
-                      type="button"
-                      size="sm"
-                      onClick={() =>
-                        setOfferStatus(
-                          preview.id,
-                          'Released',
-                          'Offer marked as Released in UI only. No email was sent.',
-                        )
-                      }
-                    >
-                      Release Offer
-                    </Button>
-                  ) : null}
-                </div>
-              </Feature>
-            </div>
-          ) : null}
         </DialogContent>
       </Dialog>
     </RecruitmentPageShell>
