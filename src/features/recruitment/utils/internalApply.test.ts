@@ -50,6 +50,25 @@ const PAGE: CandidatesPage = {
   pagination: { page: 1, limit: 20, total: 2, totalPages: 1 },
 }
 
+function mockSend(overrides: Record<string, unknown> = {}) {
+  return vi.fn().mockReturnValue({
+    unwrap: async () => ({
+      id: 'app-1',
+      jobPostingId: 'job-1',
+      candidateId: 'cand-1',
+      status: 'APPLIED',
+      source: 'OTHER',
+      coverLetter: null,
+      appliedAt: null,
+      createdAt: null,
+      updatedAt: null,
+      candidate: null,
+      jobPosting: null,
+      ...overrides,
+    }),
+  })
+}
+
 describe('internalApply', () => {
   it('treats only PUBLISHED + active jobs as eligible', () => {
     expect(isJobEligibleForInternalApply({ status: 'PUBLISHED', isActive: true })).toBe(true)
@@ -91,12 +110,28 @@ describe('internalApply', () => {
     ).toBe('missing')
   })
 
-  it('requires reference name and email when applying', () => {
+  it('allows empty optional reference and cover letter fields', () => {
     expect(
-      validateApplyReference({ referenceName: '', referenceEmail: 'ref@hirekarma.in' }),
-    ).toBeTruthy()
+      validateApplyReference({ referenceName: '', referenceEmail: '', coverLetter: '' }),
+    ).toBeNull()
     expect(
-      validateApplyReference({ referenceName: 'Asha', referenceEmail: 'bad' }),
+      validateApplyReference({
+        referenceName: 'Asha',
+        referenceEmail: '',
+        coverLetter: '',
+      }),
+    ).toBeNull()
+    expect(
+      validateApplyReference({
+        referenceName: '',
+        referenceEmail: 'asha.rao@hirekarma.in',
+      }),
+    ).toBeNull()
+  })
+
+  it('rejects invalid reference email only when entered', () => {
+    expect(
+      validateApplyReference({ referenceName: '', referenceEmail: 'bad' }),
     ).toBeTruthy()
     expect(
       validateApplyReference({
@@ -106,7 +141,21 @@ describe('internalApply', () => {
     ).toBeNull()
   })
 
-  it('embeds referral details in the cover letter payload', () => {
+  it('builds cover letter only from provided optional values', () => {
+    expect(
+      buildApplicationCoverLetter({
+        referenceName: '',
+        referenceEmail: '',
+        coverLetter: '',
+      }),
+    ).toBeNull()
+    expect(
+      buildApplicationCoverLetter({
+        referenceName: 'Asha Rao',
+        referenceEmail: '',
+        coverLetter: '',
+      }),
+    ).toBe('Referral reference: Asha Rao')
     expect(
       buildApplicationCoverLetter({
         referenceName: 'Asha Rao',
@@ -118,37 +167,111 @@ describe('internalApply', () => {
     )
   })
 
-  it('submits application with required job, candidate, and referral reference', async () => {
-    const guard = createSubmitGuard()
-    const send = vi.fn().mockReturnValue({
-      unwrap: async () => ({
-        id: 'app-1',
-        jobPostingId: 'job-1',
-        candidateId: 'cand-1',
-        status: 'APPLIED',
-        source: 'REFERRAL',
-        coverLetter: 'Referral reference: Asha Rao <asha.rao@hirekarma.in>',
-        appliedAt: null,
-        createdAt: null,
-        updatedAt: null,
-        candidate: null,
-        jobPosting: null,
-      }),
-    })
+  it('submits with only jobPostingId + candidateId when optional fields are empty', async () => {
+    const send = mockSend()
     const outcome = await submitInternalApplication({
       jobPostingId: 'job-1',
       candidateId: 'cand-1',
-      referenceName: 'Asha Rao',
-      referenceEmail: 'asha.rao@hirekarma.in',
-      guard,
+      referenceName: '',
+      referenceEmail: '',
+      coverLetter: '   ',
+      guard: createSubmitGuard(),
       send,
     })
     expect(outcome.status).toBe('success')
     expect(send).toHaveBeenCalledWith({
       jobPostingId: 'job-1',
       candidateId: 'cand-1',
+      source: 'OTHER',
+    })
+  })
+
+  it('submits with only Reference Name', async () => {
+    const send = mockSend()
+    await submitInternalApplication({
+      jobPostingId: 'job-1',
+      candidateId: 'cand-1',
+      referenceName: 'Asha Rao',
+      referenceEmail: '',
+      guard: createSubmitGuard(),
+      send,
+    })
+    expect(send).toHaveBeenCalledWith({
+      jobPostingId: 'job-1',
+      candidateId: 'cand-1',
       source: 'REFERRAL',
-      coverLetter: 'Referral reference: Asha Rao <asha.rao@hirekarma.in>',
+      coverLetter: 'Referral reference: Asha Rao',
+    })
+  })
+
+  it('submits with only Reference Email ID', async () => {
+    const send = mockSend()
+    await submitInternalApplication({
+      jobPostingId: 'job-1',
+      candidateId: 'cand-1',
+      referenceName: '',
+      referenceEmail: 'asha.rao@hirekarma.in',
+      guard: createSubmitGuard(),
+      send,
+    })
+    expect(send).toHaveBeenCalledWith({
+      jobPostingId: 'job-1',
+      candidateId: 'cand-1',
+      source: 'REFERRAL',
+      coverLetter: 'Referral reference: <asha.rao@hirekarma.in>',
+    })
+  })
+
+  it('blocks invalid Reference Email ID without calling the API', async () => {
+    const send = mockSend()
+    const outcome = await submitInternalApplication({
+      jobPostingId: 'job-1',
+      candidateId: 'cand-1',
+      referenceName: '',
+      referenceEmail: 'not-an-email',
+      guard: createSubmitGuard(),
+      send,
+    })
+    expect(outcome.status).toBe('blocked')
+    expect(send).not.toHaveBeenCalled()
+  })
+
+  it('submits with only Cover Letter', async () => {
+    const send = mockSend()
+    await submitInternalApplication({
+      jobPostingId: 'job-1',
+      candidateId: 'cand-1',
+      referenceName: '',
+      referenceEmail: '',
+      coverLetter: 'Please consider my application.',
+      guard: createSubmitGuard(),
+      send,
+    })
+    expect(send).toHaveBeenCalledWith({
+      jobPostingId: 'job-1',
+      candidateId: 'cand-1',
+      source: 'OTHER',
+      coverLetter: 'Please consider my application.',
+    })
+  })
+
+  it('submits with all three optional fields populated', async () => {
+    const send = mockSend()
+    await submitInternalApplication({
+      jobPostingId: 'job-1',
+      candidateId: 'cand-1',
+      referenceName: 'Asha Rao',
+      referenceEmail: 'asha.rao@hirekarma.in',
+      coverLetter: 'Interested in the role',
+      guard: createSubmitGuard(),
+      send,
+    })
+    expect(send).toHaveBeenCalledWith({
+      jobPostingId: 'job-1',
+      candidateId: 'cand-1',
+      source: 'REFERRAL',
+      coverLetter:
+        'Referral reference: Asha Rao <asha.rao@hirekarma.in>\n\nInterested in the role',
     })
   })
 })

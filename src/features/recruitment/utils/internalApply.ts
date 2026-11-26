@@ -114,35 +114,64 @@ export function resolveCandidateFromSearch(input: {
 }
 
 const REFERENCE_NAME_MAX = 200
+/** Align with common OpenAPI string caps used elsewhere in recruitment forms. */
+const COVER_LETTER_MAX = 20000
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 export type ApplyReferenceInput = {
   referenceName: string
   referenceEmail: string
+  coverLetter?: string
 }
 
+/**
+ * Optional apply fields: empty values are allowed.
+ * Validate format/length only when the user entered a value.
+ */
 export function validateApplyReference(input: ApplyReferenceInput): string | null {
   const name = input.referenceName.trim()
   const email = input.referenceEmail.trim()
-  if (!name) return 'Reference Name is required when applying.'
-  if (name.length > REFERENCE_NAME_MAX) {
+  const note = input.coverLetter?.trim() ?? ''
+
+  if (name && name.length > REFERENCE_NAME_MAX) {
     return `Reference Name must be at most ${REFERENCE_NAME_MAX} characters.`
   }
-  if (!email) return 'Reference Email ID is required when applying.'
-  if (!EMAIL_PATTERN.test(email)) return 'Enter a valid reference email address.'
-  if (email.length > 254) return 'Reference Email ID is too long.'
+  if (email) {
+    if (!EMAIL_PATTERN.test(email)) return 'Enter a valid reference email address.'
+    if (email.length > 254) return 'Reference Email ID is too long.'
+  }
+  if (note.length > COVER_LETTER_MAX) {
+    return `Cover letter must be at most ${COVER_LETTER_MAX} characters.`
+  }
   return null
 }
 
-/** Embed referral details in coverLetter until the applications API has dedicated fields. */
+/**
+ * Build optional coverLetter text. Applications API has no referenceName/referenceEmail
+ * properties — when provided, embed referral details in coverLetter.
+ * Returns null when there is nothing to send (omit from POST body).
+ */
 export function buildApplicationCoverLetter(input: {
   referenceName: string
   referenceEmail: string
   coverLetter?: string
-}): string {
-  const header = `Referral reference: ${input.referenceName.trim()} <${input.referenceEmail.trim().toLowerCase()}>`
-  const note = input.coverLetter?.trim()
-  return note ? `${header}\n\n${note}` : header
+}): string | null {
+  const name = input.referenceName.trim()
+  const email = input.referenceEmail.trim().toLowerCase()
+  const note = input.coverLetter?.trim() ?? ''
+
+  const parts: string[] = []
+  if (name && email) {
+    parts.push(`Referral reference: ${name} <${email}>`)
+  } else if (name) {
+    parts.push(`Referral reference: ${name}`)
+  } else if (email) {
+    parts.push(`Referral reference: <${email}>`)
+  }
+  if (note) parts.push(note)
+
+  if (parts.length === 0) return null
+  return parts.join('\n\n')
 }
 
 export async function submitInternalApplication(input: {
@@ -164,22 +193,27 @@ export async function submitInternalApplication(input: {
   const referenceError = validateApplyReference({
     referenceName: input.referenceName,
     referenceEmail: input.referenceEmail,
+    coverLetter: input.coverLetter,
   })
   if (referenceError) {
     return { status: 'blocked', message: referenceError }
   }
   if (!input.guard.tryEnter()) return { status: 'busy' }
   try {
+    const hasReferral =
+      Boolean(input.referenceName.trim()) || Boolean(input.referenceEmail.trim())
+    const coverLetter = buildApplicationCoverLetter({
+      referenceName: input.referenceName,
+      referenceEmail: input.referenceEmail,
+      coverLetter: input.coverLetter,
+    })
     const body: CreateApplicationBody = {
       jobPostingId: input.jobPostingId.trim(),
       candidateId: input.candidateId.trim(),
-      source: input.source ?? 'REFERRAL',
-      coverLetter: buildApplicationCoverLetter({
-        referenceName: input.referenceName,
-        referenceEmail: input.referenceEmail,
-        coverLetter: input.coverLetter,
-      }),
+      source: input.source ?? (hasReferral ? 'REFERRAL' : 'OTHER'),
     }
+    // Omit empty coverLetter — CreateApplicationBody.coverLetter is optional.
+    if (coverLetter) body.coverLetter = coverLetter
     const application = await input.send(body).unwrap()
     return { status: 'success', application }
   } catch (error) {
