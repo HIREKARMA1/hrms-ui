@@ -2,11 +2,16 @@ export type DepartmentStatus = 'Active' | 'Inactive'
 
 export type DepartmentRecord = {
   id: string
+  /** Unique department code from the API (A–Z / 0–9 / _ / -). */
+  code: string
   name: string
   description: string
+  /**
+   * Department head is not supported by the current departments API.
+   * Kept for legacy mock/designation UI; API-backed rows use an empty string.
+   */
   headName: string
   employeeCount: number
-  /** Local UI status — mock/session only (no department API). */
   status: DepartmentStatus
 }
 

@@ -23,12 +23,6 @@ function recruitmentChildren(prefix: string): RoleNavItem['children'] {
       path: `${prefix}/recruitment/jobs`,
       feature: 'recruitment.jobs',
     },
-  // Job Descriptions UI hidden — page kept in codebase for later phases
-  // {
-  //   title: 'Job Descriptions',
-  //   path: `${prefix}/recruitment/job-descriptions`,
-  //   feature: 'recruitment.jobDescriptions',
-  // },
     { title: 'Candidates & applications', path: `${prefix}/recruitment`, isSectionLabel: true },
     {
       title: 'Candidates',
@@ -61,6 +55,22 @@ function recruitmentChildren(prefix: string): RoleNavItem['children'] {
       title: 'Recruitment Analytics',
       path: `${prefix}/recruitment/analytics`,
       feature: 'recruitment.analytics',
+    },
+  ]
+}
+
+/** Manager / Employee: browse and apply only. */
+function internalJobsNavChildren(prefix: string): RoleNavItem['children'] {
+  return [
+    {
+      title: 'Open jobs',
+      path: `${prefix}/recruitment/jobs`,
+      feature: 'recruitment.jobs',
+    },
+    {
+      title: 'My applications',
+      path: `${prefix}/recruitment/applications`,
+      feature: 'recruitment.jobs',
     },
   ]
 }
@@ -152,6 +162,11 @@ const superAdminNav: RoleNavItem[] = [
         title: 'Add Employee',
         path: '/superadmin/employees/add',
         feature: 'employee.registration.edit',
+      },
+      {
+        title: 'Organisation Onboarding',
+        path: '/superadmin/organisation-onboarding',
+        feature: 'onboarding.list',
       },
     ],
   },
@@ -280,8 +295,13 @@ const hrAdminNav: RoleNavItem[] = [
       },
       {
         title: 'Add Employee',
-        path: '/admin/employees/add',
+        path: '/hradmin/employees/add',
         feature: 'employee.registration.edit',
+      },
+      {
+        title: 'Organisation Onboarding',
+        path: '/hradmin/organisation-onboarding',
+        feature: 'onboarding.list',
       },
     ],
   },
@@ -296,6 +316,13 @@ const hrAdminNav: RoleNavItem[] = [
     path: '/hradmin/designations',
     iconName: 'BadgeCheck',
     feature: 'employee.organization.view',
+  },
+  {
+    title: 'Recruitment & ATS',
+    path: '/hradmin/recruitment',
+    iconName: 'Briefcase',
+    feature: 'recruitment.overview',
+    children: recruitmentChildren('/hradmin'),
   },
   {
     title: 'Employee Documents',
@@ -429,11 +456,11 @@ const managerNav: RoleNavItem[] = [
     feature: 'support.adminRequests',
   },
   {
-    title: 'Recruitment & ATS',
-    path: '/manager/recruitment',
+    title: 'Internal Jobs',
+    path: '/manager/recruitment/jobs',
     iconName: 'Briefcase',
-    feature: 'recruitment.overview',
-    children: recruitmentChildren('/manager'),
+    feature: 'recruitment.jobs',
+    children: internalJobsNavChildren('/manager'),
   },
   {
     title: 'Leads Management',
@@ -504,6 +531,13 @@ const employeeNav: RoleNavItem[] = [
     iconName: 'Megaphone',
     feature: 'leads.my',
     children: employeeLeadsNavChildren(),
+  },
+  {
+    title: 'Internal Jobs',
+    path: '/employee/recruitment/jobs',
+    iconName: 'Briefcase',
+    feature: 'recruitment.jobs',
+    children: internalJobsNavChildren('/employee'),
   },
   {
     title: 'My Documents',

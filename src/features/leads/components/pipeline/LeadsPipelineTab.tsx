@@ -7,8 +7,6 @@ import type { LeadsListScope } from '../../constants/leadsDemoActor'
 import { useLeads } from '../../hooks/useLeads'
 import { useLeadsScope } from '../../hooks/useLeadsScope'
 import type { Lead, LeadStatus } from '../../types/lead'
-import { leadToInput } from '../../utils/leadForm'
-import { LeadsMockBanner } from '../LeadsMockBanner'
 import { LeadsPipelineClosedSection } from './LeadsPipelineClosedSection'
 import { LeadsPipelineTable } from './LeadsPipelineTable'
 import { ACTIVE_PIPELINE_STATUSES } from './pipelineStages'
@@ -36,7 +34,7 @@ export function LeadsPipelineTab({ role, onOpenEdit }: LeadsPipelineTabProps) {
     canEditLead,
     canDeleteLeads,
   } = useLeadsScope(role, scope)
-  const { updateLead } = useLeads()
+  const { updateLeadStatus } = useLeads()
 
   const [search, setSearch] = useState('')
   const [priorityFilter, setPriorityFilter] = useState('All')
@@ -51,7 +49,7 @@ export function LeadsPipelineTab({ role, onOpenEdit }: LeadsPipelineTabProps) {
         lead.id.toLowerCase().includes(q) ||
         lead.leadName.toLowerCase().includes(q) ||
         lead.companyName.toLowerCase().includes(q) ||
-        lead.contactPerson.toLowerCase().includes(q)
+        lead.email.toLowerCase().includes(q)
       )
     })
   }, [scopedLeads, search, priorityFilter])
@@ -84,11 +82,9 @@ export function LeadsPipelineTab({ role, onOpenEdit }: LeadsPipelineTabProps) {
   const handleMove = useCallback(
     async (lead: Lead, status: LeadStatus) => {
       if (!canEditLead) return
-      const input = leadToInput(lead)
-      input.status = status
-      await updateLead(lead.id, input)
+      await updateLeadStatus(lead.id, status)
     },
-    [canEditLead, updateLead],
+    [canEditLead, updateLeadStatus],
   )
 
   const handleDelete = useCallback(
@@ -104,7 +100,6 @@ export function LeadsPipelineTab({ role, onOpenEdit }: LeadsPipelineTabProps) {
 
   return (
     <div className="space-y-4">
-      <LeadsMockBanner />
       <LeadsPipelineToolbar
         search={search}
         onSearchChange={setSearch}

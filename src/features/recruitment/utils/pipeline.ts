@@ -1,35 +1,37 @@
-import type { PipelineStage } from '../types/recruitment'
+import {
+  APPLICATION_STATUSES,
+  type ApplicationStatus,
+} from '../api/applicationsApi.types'
 
-export const PIPELINE_STAGES: PipelineStage[] = [
-  'Applied',
-  'Screening',
-  'Shortlisted',
-  'Interview',
-  'Selected',
-  'Offer Released',
-  'Joined',
-  'Rejected',
-]
+/** Kanban columns mirror production application statuses (OpenAPI). */
+export const PIPELINE_STAGES: ApplicationStatus[] = [...APPLICATION_STATUSES]
 
-const FORWARD: Record<PipelineStage, PipelineStage[]> = {
-  Applied: ['Screening', 'Rejected'],
-  Screening: ['Shortlisted', 'Rejected'],
-  Shortlisted: ['Interview', 'Rejected'],
-  Interview: ['Selected', 'Rejected'],
-  Selected: ['Offer Released', 'Rejected'],
-  'Offer Released': ['Joined', 'Rejected'],
-  Joined: [],
-  Rejected: [],
+const FORWARD: Record<ApplicationStatus, ApplicationStatus[]> = {
+  APPLIED: ['SCREENING', 'REJECTED', 'WITHDRAWN'],
+  SCREENING: ['SHORTLISTED', 'REJECTED', 'WITHDRAWN'],
+  SHORTLISTED: ['INTERVIEW', 'REJECTED', 'WITHDRAWN'],
+  INTERVIEW: ['SELECTED', 'REJECTED', 'WITHDRAWN'],
+  SELECTED: ['OFFER_RELEASED', 'REJECTED', 'WITHDRAWN'],
+  OFFER_RELEASED: ['JOINED', 'REJECTED', 'WITHDRAWN'],
+  JOINED: [],
+  REJECTED: [],
+  WITHDRAWN: [],
 }
 
-export function getAllowedNextStages(current: PipelineStage): PipelineStage[] {
+export function getAllowedNextStatuses(current: ApplicationStatus): ApplicationStatus[] {
   return FORWARD[current] ?? []
 }
 
-export function canTransition(
-  from: PipelineStage,
-  to: PipelineStage,
-): boolean {
+export function getAllowedNextStages(current: ApplicationStatus): ApplicationStatus[] {
+  return getAllowedNextStatuses(current)
+}
+
+export function canTransitionStatus(from: ApplicationStatus, to: ApplicationStatus): boolean {
   if (from === to) return true
-  return getAllowedNextStages(from).includes(to)
+  return getAllowedNextStatuses(from).includes(to)
+}
+
+/** @deprecated Prefer `canTransitionStatus` — mock hiring desk only. */
+export function canTransition(from: ApplicationStatus, to: ApplicationStatus): boolean {
+  return canTransitionStatus(from, to)
 }

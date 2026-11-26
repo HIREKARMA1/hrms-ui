@@ -31,6 +31,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { TablePagination } from '@/components/ui/table-pagination'
 import { getApiErrorMessage } from '@/services/api/errors'
 
 import {
@@ -229,7 +230,7 @@ export function EmployeeDirectoryPage() {
                 <TableHead>Designation</TableHead>
                 <TableHead>Joined</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead className="text-center">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -258,7 +259,7 @@ export function EmployeeDirectoryPage() {
                     const e = record.profile
                     return (
                       <TableRow key={record.server.id}>
-                        <TableCell>
+                        <TableCell className="align-middle">
                           <p className="font-medium text-navy">
                             {e.firstName} {e.lastName}
                           </p>
@@ -266,20 +267,21 @@ export function EmployeeDirectoryPage() {
                             {e.employeeCode} · {e.workEmail}
                           </p>
                         </TableCell>
-                        <TableCell>{e.department || '—'}</TableCell>
-                        <TableCell>{e.designation}</TableCell>
-                        <TableCell>{e.dateOfJoining || '—'}</TableCell>
-                        <TableCell>
+                        <TableCell className="align-middle">{e.department || '—'}</TableCell>
+                        <TableCell className="align-middle">{e.designation}</TableCell>
+                        <TableCell className="align-middle">{e.dateOfJoining || '—'}</TableCell>
+                        <TableCell className="align-middle">
                           <Badge variant={statusVariant(e.employmentStatus)}>
                             {e.employmentStatus}
                           </Badge>
                         </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-1">
+                        <TableCell className="text-center align-middle">
+                          <div className="inline-flex flex-wrap items-center justify-center gap-1">
                             <Button
                               type="button"
                               size="sm"
                               variant="ghost"
+                              className="h-8 w-8 p-0"
                               title="View profile"
                               onClick={() => navigate(`${prefix}/employees/profile/${record.server.id}`)}
                             >
@@ -287,40 +289,44 @@ export function EmployeeDirectoryPage() {
                             </Button>
                             {/* Edit / status are PATCH /employees/:id (employees:update). */}
                             <Feature name="employee.manage">
-                              <Button
-                                type="button"
-                                size="sm"
-                                variant="ghost"
-                                title="Edit profile"
-                                onClick={() => navigate(`${prefix}/employees/profile/${record.server.id}`)}
-                              >
-                                <Pencil className="h-4 w-4" />
-                              </Button>
-                              <Select
-                                value=""
-                                disabled={updateState.isLoading}
-                                onValueChange={(v) => void setStatusFor(record, v as EmploymentStatus)}
-                              >
-                                <SelectTrigger className="h-8 w-[130px] text-xs">
-                                  <SelectValue placeholder="Set status" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {SERVER_EMPLOYMENT_STATUSES.map((s) => (
-                                    <SelectItem key={s} value={s} disabled={s === e.employmentStatus}>
-                                      {s}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                              <Button
-                                type="button"
-                                size="sm"
-                                variant="ghost"
-                                disabled
-                                title="Archive is not supported by the server yet"
-                              >
-                                <Archive className="h-4 w-4" />
-                              </Button>
+                              <span className="inline-flex flex-wrap items-center justify-center gap-1">
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-8 w-8 p-0"
+                                  title="Edit profile"
+                                  onClick={() => navigate(`${prefix}/employees/profile/${record.server.id}`)}
+                                >
+                                  <Pencil className="h-4 w-4" />
+                                </Button>
+                                <Select
+                                  value=""
+                                  disabled={updateState.isLoading}
+                                  onValueChange={(v) => void setStatusFor(record, v as EmploymentStatus)}
+                                >
+                                  <SelectTrigger className="h-8 w-[130px] text-xs">
+                                    <SelectValue placeholder="Set status" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {SERVER_EMPLOYMENT_STATUSES.map((s) => (
+                                      <SelectItem key={s} value={s} disabled={s === e.employmentStatus}>
+                                        {s}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-8 w-8 p-0"
+                                  disabled
+                                  title="Archive is not supported by the server yet"
+                                >
+                                  <Archive className="h-4 w-4" />
+                                </Button>
+                              </span>
                             </Feature>
                             {/* Delete is DELETE /employees/:id (employees:delete). */}
                             <Feature name="employee.delete">
@@ -328,6 +334,7 @@ export function EmployeeDirectoryPage() {
                                 type="button"
                                 size="sm"
                                 variant="ghost"
+                                className="h-8 w-8 p-0"
                                 onClick={() => setDeleteTarget(record)}
                                 title="Delete employee"
                               >
@@ -344,34 +351,24 @@ export function EmployeeDirectoryPage() {
           </Table>
         )}
         {pageInfo && viewState !== 'error' ? (
-          <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border-soft px-4 py-3 text-sm text-text-secondary">
-            <span>
-              {pageInfo.total === 0
+          <TablePagination
+            className="border-t border-border-soft px-4 py-3"
+            page={Math.floor(skip / EMPLOYEE_PAGE_SIZE) + 1}
+            totalPages={Math.max(1, Math.ceil(pageInfo.total / EMPLOYEE_PAGE_SIZE))}
+            total={pageInfo.total}
+            itemLabel="employees"
+            summary={
+              pageInfo.total === 0
                 ? 'No employees'
-                : `Showing ${pageInfo.from}–${pageInfo.to} of ${pageInfo.total}`}
-              {active.isFetching ? ' · Updating…' : ''}
-            </span>
-            <div className="flex gap-2">
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                disabled={!pageInfo.hasPrevious || active.isFetching}
-                onClick={() => setSkip((s) => Math.max(s - EMPLOYEE_PAGE_SIZE, 0))}
-              >
-                Previous
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                disabled={!pageInfo.hasNext || active.isFetching}
-                onClick={() => setSkip((s) => s + EMPLOYEE_PAGE_SIZE)}
-              >
-                Next
-              </Button>
-            </div>
-          </div>
+                : `Showing ${pageInfo.from}–${pageInfo.to} of ${pageInfo.total}${
+                    active.isFetching ? ' · Updating…' : ''
+                  }`
+            }
+            disabled={active.isFetching}
+            onPageChange={(nextPage) =>
+              setSkip(Math.max(0, (nextPage - 1) * EMPLOYEE_PAGE_SIZE))
+            }
+          />
         ) : null}
       </div>
 

@@ -11,6 +11,7 @@ import type {
 export const departmentsMock: DepartmentRecord[] = [
   {
     id: 'd1',
+    code: 'ENG',
     name: 'Engineering',
     description: 'Product engineering and platform teams',
     headName: 'Karan Patel',
@@ -19,6 +20,7 @@ export const departmentsMock: DepartmentRecord[] = [
   },
   {
     id: 'd2',
+    code: 'HR',
     name: 'HR',
     description: 'People operations and talent',
     headName: 'Meera Iyer',
@@ -27,6 +29,7 @@ export const departmentsMock: DepartmentRecord[] = [
   },
   {
     id: 'd3',
+    code: 'FIN',
     name: 'Finance',
     description: 'Accounting, payroll support and FP&A',
     headName: 'Vikram Singh',
@@ -35,6 +38,7 @@ export const departmentsMock: DepartmentRecord[] = [
   },
   {
     id: 'd4',
+    code: 'PROD',
     name: 'Product',
     description: 'Product management and design',
     headName: 'Priya Nair',

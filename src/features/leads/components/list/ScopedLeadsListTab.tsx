@@ -12,7 +12,8 @@ import { useLeadsScope } from '../../hooks/useLeadsScope'
 import type { UserRole } from '@/features/leave/constants/userRoles'
 import { LeadPriorityPill } from '../LeadPriorityPill'
 import { LeadStatusPill } from '../LeadStatusPill'
-import { LeadsMockBanner } from '../LeadsMockBanner'
+import { LeadTaxonomyAddControls } from '../taxonomy/LeadTaxonomyAddControls'
+import { AssignLeadDialog } from './AssignLeadDialog'
 import { LeadsListRowActions } from './LeadsListRowActions'
 import {
   LEADS_FILTER_BAR,
@@ -46,11 +47,13 @@ export function ScopedLeadsListTab({
     canCreateLeads,
     canEditLead,
     canDeleteLeads,
+    canAssignLeads,
   } = useLeadsScope(role, scope)
-  const showActions = canEditLead || canDeleteLeads
+  const showActions = canEditLead || canDeleteLeads || canAssignLeads
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('All')
   const [priorityFilter, setPriorityFilter] = useState('All')
+  const [assignLead, setAssignLead] = useState<Lead | null>(null)
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
@@ -69,7 +72,6 @@ export function ScopedLeadsListTab({
 
   return (
     <div className="space-y-4">
-      <LeadsMockBanner />
       <p className="text-base font-semibold text-hrms-navy">{title}</p>
       <div className={`${LEADS_FILTER_BAR} flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between`}>
         <div className="relative max-w-md flex-1">
@@ -106,6 +108,7 @@ export function ScopedLeadsListTab({
               </option>
             ))}
           </select>
+          <LeadTaxonomyAddControls />
           {canCreateLeads && onOpenCreate ? (
             <Button type="button" className="gap-2" onClick={onOpenCreate}>
               <Plus className="h-4 w-4" />
@@ -125,6 +128,7 @@ export function ScopedLeadsListTab({
               <th className="px-4 py-3 font-medium">Priority</th>
               <th className="px-4 py-3 font-medium">Status</th>
               <th className="px-4 py-3 font-medium">Owner</th>
+              <th className="px-4 py-3 font-medium">Assigned by</th>
               {showActions ? <th className="px-4 py-3 font-medium">Actions</th> : null}
             </tr>
           </thead>
@@ -141,8 +145,8 @@ export function ScopedLeadsListTab({
                   <p className="text-xs text-hrms-text-muted">{lead.companyName}</p>
                 </td>
                 <td className="px-4 py-3 text-hrms-text-secondary">
-                  <p>{lead.contactPerson}</p>
-                  <p className="text-xs">{lead.email}</p>
+                  <p>{lead.email}</p>
+                  <p className="text-xs">{lead.phone}</p>
                 </td>
                 <td className="px-4 py-3 text-hrms-text-secondary">{lead.source}</td>
                 <td className="px-4 py-3">
@@ -154,16 +158,21 @@ export function ScopedLeadsListTab({
                 <td className="px-4 py-3 text-hrms-text-secondary">
                   {lead.assignedEmployeeName ?? '—'}
                 </td>
+                <td className="px-4 py-3 text-hrms-text-secondary">
+                  {lead.assignedByEmployeeName ?? lead.createdByEmployeeName ?? '—'}
+                </td>
                 {showActions ? (
                   <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                     <LeadsListRowActions
                       leadLabel={lead.leadName}
+                      onAssign={() => setAssignLead(lead)}
                       onEdit={() => onOpenEdit(lead)}
                       onDelete={() => {
                         if (!canDeleteLeads) return
-                        if (!window.confirm(`Delete lead ${lead.id}?`)) return
+                        if (!window.confirm(`Delete lead ${lead.leadName}?`)) return
                         void deleteLead(lead.id)
                       }}
+                      showAssign={canAssignLeads}
                       showEdit={canEditLead}
                       showDelete={canDeleteLeads}
                     />
@@ -179,6 +188,15 @@ export function ScopedLeadsListTab({
           </p>
         ) : null}
       </div>
+      {canAssignLeads ? (
+        <AssignLeadDialog
+          lead={assignLead}
+          open={Boolean(assignLead)}
+          onOpenChange={(open) => {
+            if (!open) setAssignLead(null)
+          }}
+        />
+      ) : null}
     </div>
   )
 }

@@ -3,6 +3,7 @@ import { Copy, GitBranch, Plus } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 import type { LeadsPageTabId } from '../../hooks/useLeadsPageTabs'
+import { LeadTaxonomyAddControls } from '../taxonomy/LeadTaxonomyAddControls'
 import { OVERVIEW_FOCUS, OVERVIEW_MOTION } from './leadsOverviewUi'
 
 type LeadsOverviewQuickActionsProps = {
@@ -40,6 +41,7 @@ export function LeadsOverviewQuickActions({
             Create lead
           </button>
         ) : null}
+        <LeadTaxonomyAddControls variant="overview" />
         <button
           type="button"
           onClick={() => onNavigate('Pipeline')}

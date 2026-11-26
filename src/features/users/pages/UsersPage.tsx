@@ -25,6 +25,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { TablePagination } from '@/components/ui/table-pagination'
 import { getApiErrorMessage } from '@/services/api/errors'
 
 import { USERS_PAGE_SIZE, useListUsersQuery } from '../api/usersApi'
@@ -32,6 +33,7 @@ import type { BackendUser, BackendUserRole } from '../api/usersApi.types'
 import { CreateUserDialog } from '../components/CreateUserDialog'
 import { DeactivateUserDialog } from '../components/DeactivateUserDialog'
 import { UserDetailDialog } from '../components/UserDetailDialog'
+import { formatUserDisplayName } from '../utils/userDisplayName'
 
 const SEARCH_DEBOUNCE_MS = 350
 const ALL = '__all__'
@@ -204,17 +206,21 @@ export function UsersPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Email</TableHead>
+                <TableHead className="min-w-[10rem]">Name</TableHead>
+                <TableHead className="min-w-[12rem]">Email</TableHead>
                 <TableHead>Legacy role</TableHead>
                 <TableHead>Roles</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead className="text-center">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {items.map((row) => (
                 <TableRow key={row.id}>
-                  <TableCell className="font-medium text-navy">{row.email}</TableCell>
+                  <TableCell className="font-medium text-navy">
+                    {formatUserDisplayName(row)}
+                  </TableCell>
+                  <TableCell>{row.email}</TableCell>
                   <TableCell>{row.role}</TableCell>
                   <TableCell>
                     <div className="flex flex-wrap gap-1">
@@ -266,29 +272,14 @@ export function UsersPage() {
       </div>
 
       {pagination && totalPages > 0 ? (
-        <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-slate-600">
-          <p>
-            Page {pagination.page} of {totalPages} · {pagination.total} users
-          </p>
-          <div className="flex gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              disabled={page <= 1 || list.isFetching}
-              onClick={() => setPage((current) => Math.max(1, current - 1))}
-            >
-              Previous
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              disabled={page >= totalPages || list.isFetching}
-              onClick={() => setPage((current) => current + 1)}
-            >
-              Next
-            </Button>
-          </div>
-        </div>
+        <TablePagination
+          page={page}
+          totalPages={totalPages}
+          total={pagination.total}
+          itemLabel="users"
+          disabled={list.isFetching}
+          onPageChange={setPage}
+        />
       ) : null}
 
       <CreateUserDialog

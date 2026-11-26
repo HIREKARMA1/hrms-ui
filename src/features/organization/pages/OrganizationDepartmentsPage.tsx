@@ -1,8 +1,7 @@
-import { Filter, Pencil, Plus, Search, Trash2, X } from 'lucide-react'
+import { Eye, Filter, Pencil, Plus, Search, Trash2, X } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 
-import { employeeDirectoryMock } from '@/features/employees/mocks/employeeDirectory.mock'
 import { Feature } from '@/features/rbac/components/Feature'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -30,6 +29,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { Skeleton } from '@/components/ui/skeleton'
 import {
   Table,
   TableBody,
@@ -38,9 +38,21 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { TablePagination } from '@/components/ui/table-pagination'
 import { Textarea } from '@/components/ui/textarea'
+import { ToastBanner, useToast } from '@/hooks/useToast'
 import { cn } from '@/lib/utils'
+import { getApiErrorMessage } from '@/services/api/errors'
 
+import {
+  DEPARTMENTS_PAGE_SIZE,
+  useCreateDepartmentMutation,
+  useDeleteDepartmentMutation,
+  useGetDepartmentQuery,
+  useListDepartmentEmployeesQuery,
+  useListDepartmentsQuery,
+  useUpdateDepartmentMutation,
+} from '../api/departmentsApi'
 import {
   departmentsMock,
   designationsMock,
@@ -56,20 +68,27 @@ import {
   filterDepartments,
   type DepartmentFilters,
 } from '../utils/departmentFilters'
+import {
+  formatEmploymentStatus,
+  toDepartmentRecord,
+} from '../utils/toDepartmentRecord'
 
 type DeptForm = {
+  code: string
   name: string
   description: string
-  headName: string
   status: DepartmentStatus
 }
 
 const emptyDept: DeptForm = {
+  code: '',
   name: '',
   description: '',
-  headName: '',
   status: 'Active',
 }
+
+const SEARCH_DEBOUNCE_MS = 350
+const CODE_PATTERN = /^[A-Za-z0-9][A-Za-z0-9_-]{1,31}$/
 
 /**
  * Organization routes:
@@ -88,10 +107,11 @@ export function OrganizationDepartmentsPage() {
 }
 
 function DepartmentsSection() {
-  const [departments, setDepartments] = useState(() =>
-    structuredClone(departmentsMock),
-  )
+  const { message, toast } = useToast()
+
   const [search, setSearch] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
+  const [page, setPage] = useState(1)
   const [draftFilters, setDraftFilters] = useState<DepartmentFilters>(
     EMPTY_DEPARTMENT_FILTERS,
   )
@@ -104,9 +124,119 @@ function DepartmentsSection() {
   const [editingDeptId, setEditingDeptId] = useState<string | null>(null)
   const [deptForm, setDeptForm] = useState<DeptForm>(emptyDept)
   const [deleteDept, setDeleteDept] = useState<DepartmentRecord | null>(null)
-  const [selectedDeptId, setSelectedDeptId] = useState(
-    departmentsMock[0]?.id ?? '',
+  const [viewDeptId, setViewDeptId] = useState<string | null>(null)
+  const [selectedDeptId, setSelectedDeptId] = useState('')
+  const [employeesPage, setEmployeesPage] = useState(1)
+  const [employeesForDeptId, setEmployeesForDeptId] = useState('')
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setDebouncedSearch(search.trim())
+      setPage(1)
+    }, SEARCH_DEBOUNCE_MS)
+    return () => window.clearTimeout(timer)
+  }, [search])
+
+  const isActiveFilter =
+    appliedFilters.status === 'Active'
+      ? true
+      : appliedFilters.status === 'Inactive'
+        ? false
+        : undefined
+
+  const listArgs = {
+    page,
+    limit: DEPARTMENTS_PAGE_SIZE,
+    sortBy: 'name' as const,
+    sortOrder: 'asc' as const,
+    ...(debouncedSearch ? { search: debouncedSearch } : {}),
+    ...(isActiveFilter !== undefined ? { isActive: isActiveFilter } : {}),
+  }
+
+  const departmentsQuery = useListDepartmentsQuery(listArgs)
+  const [createDepartment, createState] = useCreateDepartmentMutation()
+  const [updateDepartment, updateState] = useUpdateDepartmentMutation()
+  const [deleteDepartment, deleteState] = useDeleteDepartmentMutation()
+
+  const detailQuery = useGetDepartmentQuery(viewDeptId ?? '', {
+    skip: !viewDeptId,
+  })
+
+  const departments = useMemo(
+    () => (departmentsQuery.data?.items ?? []).map(toDepartmentRecord),
+    [departmentsQuery.data?.items],
   )
+
+  /** Client-only head / employee-count filters on the current API page. */
+  const filteredDepartments = useMemo(
+    () =>
+      filterDepartments(departments, '', {
+        ...appliedFilters,
+        // Status already applied server-side via `isActive`.
+        status: 'All',
+      }),
+    [departments, appliedFilters],
+  )
+
+  const pagination = departmentsQuery.data?.pagination
+  const totalPages = Math.max(pagination?.totalPages ?? 0, 0)
+  const safePage = totalPages > 0 ? Math.min(page, totalPages) : page
+
+  const resolvedSelectedDeptId = filteredDepartments.some(
+    (dept) => dept.id === selectedDeptId,
+  )
+    ? selectedDeptId
+    : (filteredDepartments[0]?.id ?? '')
+
+  const activeEmployeesDeptId = resolvedSelectedDeptId
+  const activeEmployeesPage =
+    employeesForDeptId === activeEmployeesDeptId ? employeesPage : 1
+
+  useEffect(() => {
+    if (page !== safePage) setPage(safePage)
+  }, [page, safePage])
+
+  useEffect(() => {
+    if (resolvedSelectedDeptId !== selectedDeptId) {
+      setSelectedDeptId(resolvedSelectedDeptId)
+    }
+  }, [resolvedSelectedDeptId, selectedDeptId])
+
+  useEffect(() => {
+    if (
+      employeesForDeptId !== activeEmployeesDeptId ||
+      employeesPage !== activeEmployeesPage
+    ) {
+      setEmployeesForDeptId(activeEmployeesDeptId)
+      setEmployeesPage(activeEmployeesPage)
+    }
+  }, [
+    activeEmployeesDeptId,
+    activeEmployeesPage,
+    employeesForDeptId,
+    employeesPage,
+  ])
+
+  const selectDepartment = (deptId: string) => {
+    setSelectedDeptId(deptId)
+    setEmployeesForDeptId(deptId)
+    setEmployeesPage(1)
+  }
+
+  const employeesQuery = useListDepartmentEmployeesQuery(
+    {
+      id: activeEmployeesDeptId,
+      page: activeEmployeesPage,
+      limit: DEPARTMENTS_PAGE_SIZE,
+      sortBy: 'firstName',
+      sortOrder: 'asc',
+    },
+    { skip: !activeEmployeesDeptId },
+  )
+
+  const deptEmployees = employeesQuery.data?.items ?? []
+  const employeesPagination = employeesQuery.data?.pagination
+  const employeesTotalPages = Math.max(employeesPagination?.totalPages ?? 0, 0)
 
   const headOptions = useMemo(() => {
     const names = Array.from(
@@ -115,18 +245,13 @@ function DepartmentsSection() {
     return names
   }, [departments])
 
-  const filteredDepartments = useMemo(
-    () => filterDepartments(departments, search, appliedFilters),
-    [departments, search, appliedFilters],
-  )
-
   const activeFilterCount = countActiveDepartmentFilters(appliedFilters)
-
-  const deptEmployees = useMemo(() => {
-    const dept = departments.find((d) => d.id === selectedDeptId)
-    if (!dept) return []
-    return employeeDirectoryMock.filter((e) => e.department === dept.name)
-  }, [departments, selectedDeptId])
+  const formBusy = createState.isLoading || updateState.isLoading
+  const codeValid = CODE_PATTERN.test(deptForm.code.trim())
+  const canSave =
+    deptForm.name.trim().length > 0 &&
+    codeValid &&
+    !formBusy
 
   useEffect(() => {
     if (!filterOpen) return
@@ -158,69 +283,96 @@ function DepartmentsSection() {
   const openEditDept = (dept: DepartmentRecord) => {
     setEditingDeptId(dept.id)
     setDeptForm({
+      code: dept.code,
       name: dept.name,
       description: dept.description,
-      headName: dept.headName,
       status: dept.status,
     })
     setDeptFormOpen(true)
   }
 
-  const saveDept = () => {
-    if (!deptForm.name.trim()) return
-    if (editingDeptId) {
-      setDepartments((prev) =>
-        prev.map((d) =>
-          d.id === editingDeptId
-            ? {
-                ...d,
-                name: deptForm.name.trim(),
-                description: deptForm.description.trim(),
-                headName: deptForm.headName.trim(),
-                status: deptForm.status,
-              }
-            : d,
-        ),
-      )
-    } else {
-      const created: DepartmentRecord = {
-        id: `d-${Date.now()}`,
-        name: deptForm.name.trim(),
-        description: deptForm.description.trim(),
-        headName: deptForm.headName.trim(),
-        employeeCount: 0,
-        status: deptForm.status,
-      }
-      setDepartments((prev) => [created, ...prev])
-      setSelectedDeptId(created.id)
-    }
-    setDeptFormOpen(false)
+  const openViewDept = (deptId: string) => {
+    selectDepartment(deptId)
+    setViewDeptId(deptId)
   }
 
-  const confirmDeleteDept = () => {
-    if (!deleteDept) return
-    const removedId = deleteDept.id
-    const remaining = departments.filter((d) => d.id !== removedId)
-    setDepartments(remaining)
-    if (selectedDeptId === removedId) {
-      setSelectedDeptId(remaining[0]?.id ?? '')
+  const saveDept = async () => {
+    if (!canSave) return
+    const body = {
+      code: deptForm.code.trim().toUpperCase(),
+      name: deptForm.name.trim(),
+      description: deptForm.description.trim() || undefined,
+      isActive: deptForm.status === 'Active',
     }
-    setDeleteDept(null)
+
+    try {
+      if (editingDeptId) {
+        await updateDepartment({
+          id: editingDeptId,
+          body: {
+            code: body.code,
+            name: body.name,
+            description: deptForm.description.trim() ? body.description : null,
+            isActive: body.isActive,
+          },
+        }).unwrap()
+        toast('Department updated successfully.')
+      } else {
+        const created = await createDepartment(body).unwrap()
+        selectDepartment(created.id)
+        toast('Department created successfully.')
+      }
+      setDeptFormOpen(false)
+    } catch (error) {
+      toast(
+        getApiErrorMessage(
+          error,
+          editingDeptId
+            ? 'Could not update the department.'
+            : 'Could not create the department.',
+        ),
+      )
+    }
+  }
+
+  const confirmDeleteDept = async () => {
+    if (!deleteDept) return
+    try {
+      await deleteDepartment(deleteDept.id).unwrap()
+      if (resolvedSelectedDeptId === deleteDept.id) {
+        selectDepartment('')
+      }
+      if (viewDeptId === deleteDept.id) {
+        setViewDeptId(null)
+      }
+      toast('Department deleted successfully.')
+      setDeleteDept(null)
+    } catch (error) {
+      toast(getApiErrorMessage(error, 'Could not delete the department.'))
+    }
   }
 
   const applyFilters = () => {
     setAppliedFilters(draftFilters)
+    setPage(1)
     setFilterOpen(false)
   }
 
   const clearFilters = () => {
     setDraftFilters(EMPTY_DEPARTMENT_FILTERS)
     setAppliedFilters(EMPTY_DEPARTMENT_FILTERS)
+    setPage(1)
     setFilterOpen(false)
   }
 
+  const listError = departmentsQuery.isError
+    ? getApiErrorMessage(departmentsQuery.error, 'Could not load departments.')
+    : null
+
   return (
     <div className="mx-auto flex w-full max-w-[1200px] flex-col gap-5">
+      <ToastBanner message={message} />
+
       <header className="space-y-1">
         <h1 className="text-2xl font-semibold tracking-tight text-[#17213A]">
           Department Management
@@ -236,7 +388,7 @@ function DepartmentsSection() {
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search by department name or department head"
+            placeholder="Search by department name or code"
             className="h-10 rounded-lg border-[#E2E6EF] bg-white pl-9 text-sm shadow-none focus-visible:ring-[#0F766E]/30"
           />
         </div>
@@ -395,110 +547,164 @@ function DepartmentsSection() {
       </div>
 
       <div className="overflow-hidden rounded-xl border border-[#E2E6EF] bg-white">
-        <Table>
-          <TableHeader>
-            <TableRow className="border-[#E2E6EF] hover:bg-transparent">
-              <TableHead className="h-11 text-xs font-semibold tracking-wide text-[#667085] uppercase">
-                Department
-              </TableHead>
-              <TableHead className="h-11 text-xs font-semibold tracking-wide text-[#667085] uppercase">
-                Department Head
-              </TableHead>
-              <TableHead className="h-11 text-xs font-semibold tracking-wide text-[#667085] uppercase">
-                Employees
-              </TableHead>
-              <TableHead className="h-11 text-xs font-semibold tracking-wide text-[#667085] uppercase">
-                Description
-              </TableHead>
-              <TableHead className="h-11 text-xs font-semibold tracking-wide text-[#667085] uppercase">
-                Status
-              </TableHead>
-              <TableHead className="h-11 text-right text-xs font-semibold tracking-wide text-[#667085] uppercase">
-                Actions
-              </TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredDepartments.length === 0 ? (
-              <TableRow className="hover:bg-transparent">
-                <TableCell
-                  colSpan={6}
-                  className="h-32 text-center text-sm text-[#667085]"
-                >
-                  No departments match your search or filters.
-                </TableCell>
+        {departmentsQuery.isLoading && !departmentsQuery.data ? (
+          <div className="space-y-3 p-4">
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+          </div>
+        ) : listError ? (
+          <div className="space-y-3 p-6 text-center">
+            <p role="alert" className="text-sm text-rose-600">
+              {listError}
+            </p>
+            <Button
+              type="button"
+              variant="outline"
+              className="rounded-lg border-[#E2E6EF]"
+              onClick={() => void departmentsQuery.refetch()}
+            >
+              Retry
+            </Button>
+          </div>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow className="border-[#E2E6EF] hover:bg-transparent">
+                <TableHead className="h-11 text-xs font-semibold tracking-wide text-[#667085] uppercase">
+                  Department
+                </TableHead>
+                <TableHead className="h-11 text-xs font-semibold tracking-wide text-[#667085] uppercase">
+                  Department Head
+                </TableHead>
+                <TableHead className="h-11 text-xs font-semibold tracking-wide text-[#667085] uppercase">
+                  Employees
+                </TableHead>
+                <TableHead className="h-11 text-xs font-semibold tracking-wide text-[#667085] uppercase">
+                  Description
+                </TableHead>
+                <TableHead className="h-11 text-xs font-semibold tracking-wide text-[#667085] uppercase">
+                  Status
+                </TableHead>
+                <TableHead className="h-11 text-center text-xs font-semibold tracking-wide text-[#667085] uppercase">
+                  Actions
+                </TableHead>
               </TableRow>
-            ) : (
-              filteredDepartments.map((dept) => (
-                <TableRow
-                  key={dept.id}
-                  className="border-[#E2E6EF] transition-colors hover:bg-[#F7F8FC]"
-                >
-                  <TableCell>
-                    <button
-                      type="button"
-                      className="text-left text-sm font-semibold text-[#17213A] hover:text-[#0F766E]"
-                      onClick={() => setSelectedDeptId(dept.id)}
-                    >
-                      {dept.name}
-                    </button>
+            </TableHeader>
+            <TableBody>
+              {filteredDepartments.length === 0 ? (
+                <TableRow className="hover:bg-transparent">
+                  <TableCell
+                    colSpan={6}
+                    className="h-32 text-center text-sm text-[#667085]"
+                  >
+                    {departments.length === 0
+                      ? 'No departments found.'
+                      : 'No departments match your search or filters.'}
                   </TableCell>
-                  <TableCell className="text-sm text-[#344054]">
-                    {dept.headName || '—'}
-                  </TableCell>
-                  <TableCell>
-                    <span className="inline-flex min-w-8 items-center justify-center rounded-full bg-[#CCFBF1] px-2.5 py-0.5 text-xs font-semibold tabular-nums text-[#0F766E]">
-                      {dept.employeeCount}
-                    </span>
-                  </TableCell>
-                  <TableCell className="max-w-[280px] truncate text-sm text-[#667085]">
-                    {dept.description || '—'}
-                  </TableCell>
-                  <TableCell>
-                    <Badge
-                      variant={dept.status === 'Active' ? 'success' : 'secondary'}
-                      className={cn(
-                        'font-medium',
-                        dept.status === 'Active'
-                          ? 'border-transparent bg-[#CCFBF1] text-[#0F766E]'
-                          : 'border-transparent bg-[#F2F4F7] text-[#667085]',
-                      )}
-                    >
-                      {dept.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Feature name="employee.organization.edit">
-                      <div className="flex justify-end gap-1">
+                </TableRow>
+              ) : (
+                filteredDepartments.map((dept) => (
+                  <TableRow
+                    key={dept.id}
+                    className={cn(
+                      'border-[#E2E6EF] transition-colors hover:bg-[#F7F8FC]',
+                      resolvedSelectedDeptId === dept.id && 'bg-[#F0FDFA]',
+                    )}
+                  >
+                    <TableCell className="align-middle">
+                      <button
+                        type="button"
+                        className="text-left"
+                        onClick={() => selectDepartment(dept.id)}
+                      >
+                        <span className="block text-sm font-semibold text-[#17213A] hover:text-[#0F766E]">
+                          {dept.name}
+                        </span>
+                        <span className="block text-xs text-[#98A2B3]">
+                          {dept.code}
+                        </span>
+                      </button>
+                    </TableCell>
+                    <TableCell className="align-middle text-sm text-[#344054]">
+                      {dept.headName || '—'}
+                    </TableCell>
+                    <TableCell className="align-middle">
+                      <span className="inline-flex min-w-8 items-center justify-center rounded-full bg-[#CCFBF1] px-2.5 py-0.5 text-xs font-semibold tabular-nums text-[#0F766E]">
+                        {dept.employeeCount}
+                      </span>
+                    </TableCell>
+                    <TableCell className="max-w-[280px] truncate align-middle text-sm text-[#667085]">
+                      {dept.description || '—'}
+                    </TableCell>
+                    <TableCell className="align-middle">
+                      <Badge
+                        variant={dept.status === 'Active' ? 'success' : 'secondary'}
+                        className={cn(
+                          'font-medium',
+                          dept.status === 'Active'
+                            ? 'border-transparent bg-[#CCFBF1] text-[#0F766E]'
+                            : 'border-transparent bg-[#F2F4F7] text-[#667085]',
+                        )}
+                      >
+                        {dept.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-center align-middle">
+                      <div className="inline-flex items-center justify-center gap-1">
                         <Button
                           type="button"
                           size="icon"
                           variant="ghost"
                           className="h-8 w-8 text-[#667085] hover:bg-[#CCFBF1]/60 hover:text-[#0F766E]"
-                          onClick={() => openEditDept(dept)}
-                          aria-label={`Edit ${dept.name}`}
+                          onClick={() => openViewDept(dept.id)}
+                          aria-label={`View ${dept.name}`}
                         >
-                          <Pencil className="h-4 w-4" />
+                          <Eye className="h-4 w-4" />
                         </Button>
-                        <Button
-                          type="button"
-                          size="icon"
-                          variant="ghost"
-                          className="h-8 w-8 text-[#667085] hover:bg-rose-50 hover:text-rose-600"
-                          onClick={() => setDeleteDept(dept)}
-                          aria-label={`Delete ${dept.name}`}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        <Feature name="employee.organization.edit">
+                          <span className="inline-flex items-center gap-1">
+                            <Button
+                              type="button"
+                              size="icon"
+                              variant="ghost"
+                              className="h-8 w-8 text-[#667085] hover:bg-[#CCFBF1]/60 hover:text-[#0F766E]"
+                              onClick={() => openEditDept(dept)}
+                              aria-label={`Edit ${dept.name}`}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              type="button"
+                              size="icon"
+                              variant="ghost"
+                              className="h-8 w-8 text-[#667085] hover:bg-rose-50 hover:text-rose-600"
+                              onClick={() => setDeleteDept(dept)}
+                              aria-label={`Delete ${dept.name}`}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </span>
+                        </Feature>
                       </div>
-                    </Feature>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        )}
       </div>
+
+      {pagination && totalPages > 0 ? (
+        <TablePagination
+          page={safePage}
+          totalPages={totalPages}
+          total={pagination.total}
+          itemLabel="departments"
+          onPageChange={setPage}
+        />
+      ) : null}
 
       <Card className="rounded-xl border-[#E2E6EF] bg-white shadow-none">
         <CardHeader className="gap-3 space-y-0 border-b border-[#E2E6EF] pb-4 sm:flex-row sm:items-center sm:justify-between">
@@ -511,8 +717,8 @@ function DepartmentsSection() {
             </CardDescription>
           </div>
           <Select
-            value={selectedDeptId || undefined}
-            onValueChange={setSelectedDeptId}
+            value={resolvedSelectedDeptId || undefined}
+            onValueChange={selectDepartment}
             disabled={departments.length === 0}
           >
             <SelectTrigger className="h-10 w-full rounded-lg border-[#E2E6EF] sm:w-64">
@@ -528,58 +734,95 @@ function DepartmentsSection() {
           </Select>
         </CardHeader>
         <CardContent className="pt-4">
-          {deptEmployees.length === 0 ? (
+          {!resolvedSelectedDeptId ? (
+            <p className="rounded-lg border border-dashed border-[#E2E6EF] px-4 py-8 text-center text-sm text-[#667085]">
+              Select a department to view linked employees.
+            </p>
+          ) : employeesQuery.isLoading ? (
+            <div className="space-y-3">
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full" />
+            </div>
+          ) : employeesQuery.isError ? (
+            <div className="space-y-3 text-center">
+              <p role="alert" className="text-sm text-rose-600">
+                {getApiErrorMessage(
+                  employeesQuery.error,
+                  'Could not load department employees.',
+                )}
+              </p>
+              <Button
+                type="button"
+                variant="outline"
+                className="rounded-lg border-[#E2E6EF]"
+                onClick={() => void employeesQuery.refetch()}
+              >
+                Retry
+              </Button>
+            </div>
+          ) : deptEmployees.length === 0 ? (
             <p className="rounded-lg border border-dashed border-[#E2E6EF] px-4 py-8 text-center text-sm text-[#667085]">
               No employees found for this department.
             </p>
           ) : (
-            <div className="overflow-hidden rounded-lg border border-[#E2E6EF]">
-              <Table>
-                <TableHeader>
-                  <TableRow className="border-[#E2E6EF] hover:bg-transparent">
-                    <TableHead className="h-10 text-xs font-semibold text-[#667085] uppercase">
-                      Employee name
-                    </TableHead>
-                    <TableHead className="h-10 text-xs font-semibold text-[#667085] uppercase">
-                      Designation
-                    </TableHead>
-                    <TableHead className="h-10 text-xs font-semibold text-[#667085] uppercase">
-                      Employment status
-                    </TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {deptEmployees.map((employee) => (
-                    <TableRow
-                      key={employee.id}
-                      className="border-[#E2E6EF] hover:bg-[#F7F8FC]"
-                    >
-                      <TableCell className="text-sm font-medium text-[#17213A]">
-                        {employee.firstName} {employee.lastName}
-                      </TableCell>
-                      <TableCell className="text-sm text-[#344054]">
-                        {employee.designation}
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={
-                            employee.employmentStatus === 'Active'
-                              ? 'success'
-                              : 'secondary'
-                          }
-                          className={
-                            employee.employmentStatus === 'Active'
-                              ? 'border-transparent bg-[#CCFBF1] text-[#0F766E]'
-                              : undefined
-                          }
-                        >
-                          {employee.employmentStatus}
-                        </Badge>
-                      </TableCell>
+            <div className="space-y-3">
+              <div className="overflow-hidden rounded-lg border border-[#E2E6EF]">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="border-[#E2E6EF] hover:bg-transparent">
+                      <TableHead className="h-10 text-xs font-semibold text-[#667085] uppercase">
+                        Employee name
+                      </TableHead>
+                      <TableHead className="h-10 text-xs font-semibold text-[#667085] uppercase">
+                        Designation
+                      </TableHead>
+                      <TableHead className="h-10 text-xs font-semibold text-[#667085] uppercase">
+                        Employment status
+                      </TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {deptEmployees.map((employee) => (
+                      <TableRow
+                        key={employee.id}
+                        className="border-[#E2E6EF] hover:bg-[#F7F8FC]"
+                      >
+                        <TableCell className="text-sm font-medium text-[#17213A]">
+                          {employee.firstName} {employee.lastName}
+                        </TableCell>
+                        <TableCell className="text-sm text-[#344054]">
+                          {employee.designation || '—'}
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant={
+                              employee.employmentStatus === 'ACTIVE'
+                                ? 'success'
+                                : 'secondary'
+                            }
+                            className={
+                              employee.employmentStatus === 'ACTIVE'
+                                ? 'border-transparent bg-[#CCFBF1] text-[#0F766E]'
+                                : undefined
+                            }
+                          >
+                            {formatEmploymentStatus(employee.employmentStatus)}
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+              {employeesPagination && employeesTotalPages > 0 ? (
+                <TablePagination
+                  page={activeEmployeesPage}
+                  totalPages={employeesTotalPages}
+                  total={employeesPagination.total}
+                  itemLabel="employees"
+                  onPageChange={setEmployeesPage}
+                />
+              ) : null}
             </div>
           )}
         </CardContent>
@@ -592,10 +835,31 @@ function DepartmentsSection() {
               {editingDeptId ? 'Edit Department' : 'Create Department'}
             </DialogTitle>
             <DialogDescription>
-              Assign a department head, description, and status.
+              Set the department code, name, description, and status.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="dept-code">Department Code</Label>
+              <Input
+                id="dept-code"
+                value={deptForm.code}
+                onChange={(e) =>
+                  setDeptForm((f) => ({
+                    ...f,
+                    code: e.target.value.toUpperCase(),
+                  }))
+                }
+                placeholder="e.g. ENG"
+                maxLength={32}
+                className="rounded-lg border-[#E2E6EF] uppercase"
+              />
+              {deptForm.code.trim() && !codeValid ? (
+                <p className="text-xs text-rose-600">
+                  Code must be 2–32 characters: A–Z, 0–9, underscore or hyphen.
+                </p>
+              ) : null}
+            </div>
             <div className="space-y-2">
               <Label htmlFor="dept-name">Department Name</Label>
               <Input
@@ -603,17 +867,6 @@ function DepartmentsSection() {
                 value={deptForm.name}
                 onChange={(e) =>
                   setDeptForm((f) => ({ ...f, name: e.target.value }))
-                }
-                className="rounded-lg border-[#E2E6EF]"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="dept-head">Department Head</Label>
-              <Input
-                id="dept-head"
-                value={deptForm.headName}
-                onChange={(e) =>
-                  setDeptForm((f) => ({ ...f, headName: e.target.value }))
                 }
                 className="rounded-lg border-[#E2E6EF]"
               />
@@ -657,24 +910,153 @@ function DepartmentsSection() {
               variant="outline"
               className="rounded-lg border-[#E2E6EF]"
               onClick={() => setDeptFormOpen(false)}
+              disabled={formBusy}
             >
               Cancel
             </Button>
             <Button
               type="button"
               className="rounded-lg bg-[#0F766E] text-white hover:bg-[#0D9488]"
-              onClick={saveDept}
-              disabled={!deptForm.name.trim()}
+              onClick={() => void saveDept()}
+              disabled={!canSave}
             >
-              Save
+              {formBusy ? 'Saving…' : 'Save'}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       <Dialog
+        open={Boolean(viewDeptId)}
+        onOpenChange={(open) => {
+          if (!open) setViewDeptId(null)
+        }}
+      >
+        <DialogContent className="rounded-xl sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="text-[#17213A]">
+              Department details
+            </DialogTitle>
+            <DialogDescription>
+              Live department record from the HRMS API.
+            </DialogDescription>
+          </DialogHeader>
+          {detailQuery.isLoading ? (
+            <div className="space-y-3 py-2">
+              <Skeleton className="h-5 w-2/3" />
+              <Skeleton className="h-5 w-1/2" />
+              <Skeleton className="h-16 w-full" />
+            </div>
+          ) : detailQuery.isError ? (
+            <div className="space-y-3">
+              <p role="alert" className="text-sm text-rose-600">
+                {getApiErrorMessage(
+                  detailQuery.error,
+                  'Could not load department details.',
+                )}
+              </p>
+              <Button
+                type="button"
+                variant="outline"
+                className="rounded-lg border-[#E2E6EF]"
+                onClick={() => void detailQuery.refetch()}
+              >
+                Retry
+              </Button>
+            </div>
+          ) : detailQuery.data ? (
+            <div className="grid gap-3 text-sm">
+              <div>
+                <p className="text-xs text-[#667085]">Name</p>
+                <p className="font-semibold text-[#17213A]">
+                  {detailQuery.data.name}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-[#667085]">Code</p>
+                <p className="text-[#344054]">{detailQuery.data.code}</p>
+              </div>
+              <div>
+                <p className="text-xs text-[#667085]">Status</p>
+                <Badge
+                  variant={detailQuery.data.isActive ? 'success' : 'secondary'}
+                  className={
+                    detailQuery.data.isActive
+                      ? 'border-transparent bg-[#CCFBF1] text-[#0F766E]'
+                      : 'border-transparent bg-[#F2F4F7] text-[#667085]'
+                  }
+                >
+                  {detailQuery.data.isActive ? 'Active' : 'Inactive'}
+                </Badge>
+              </div>
+              <div>
+                <p className="text-xs text-[#667085]">Employees</p>
+                <p className="text-[#344054]">
+                  {detailQuery.data.employeeCount}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-[#667085]">Description</p>
+                <p className="text-[#344054]">
+                  {detailQuery.data.description || '—'}
+                </p>
+              </div>
+              {detailQuery.data.employees.length > 0 ? (
+                <div>
+                  <p className="mb-1.5 text-xs text-[#667085]">
+                    Assigned employees (preview)
+                  </p>
+                  <ul className="max-h-40 space-y-1 overflow-y-auto rounded-lg border border-[#E2E6EF] p-2">
+                    {detailQuery.data.employees.map((employee) => (
+                      <li
+                        key={employee.id}
+                        className="text-sm text-[#344054]"
+                      >
+                        {employee.name}{' '}
+                        <span className="text-[#98A2B3]">
+                          ({employee.employeeCode})
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              className="rounded-lg border-[#E2E6EF]"
+              onClick={() => setViewDeptId(null)}
+            >
+              Close
+            </Button>
+            {detailQuery.data ? (
+              <Feature name="employee.organization.edit">
+                <Button
+                  type="button"
+                  className="rounded-lg bg-[#0F766E] text-white hover:bg-[#0D9488]"
+                  onClick={() => {
+                    const detail = detailQuery.data
+                    if (!detail) return
+                    openEditDept(toDepartmentRecord(detail))
+                    setViewDeptId(null)
+                  }}
+                >
+                  Edit
+                </Button>
+              </Feature>
+            ) : null}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
         open={Boolean(deleteDept)}
-        onOpenChange={(open) => !open && setDeleteDept(null)}
+        onOpenChange={(open) => {
+          if (!open && !deleteState.isLoading) setDeleteDept(null)
+        }}
       >
         <DialogContent className="max-w-md rounded-xl">
           <DialogHeader>
@@ -682,8 +1064,8 @@ function DepartmentsSection() {
               Delete department?
             </DialogTitle>
             <DialogDescription>
-              Removes “{deleteDept?.name}” from the local list. Requires
-              organization edit permission.
+              Permanently deletes “{deleteDept?.name}”. Departments with
+              assigned employees or other references cannot be deleted.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -692,15 +1074,17 @@ function DepartmentsSection() {
               variant="outline"
               className="rounded-lg border-[#E2E6EF]"
               onClick={() => setDeleteDept(null)}
+              disabled={deleteState.isLoading}
             >
               Cancel
             </Button>
             <Button
               type="button"
               className="rounded-lg bg-rose-600 text-white hover:bg-rose-700"
-              onClick={confirmDeleteDept}
+              onClick={() => void confirmDeleteDept()}
+              disabled={deleteState.isLoading}
             >
-              Delete
+              {deleteState.isLoading ? 'Deleting…' : 'Delete'}
             </Button>
           </DialogFooter>
         </DialogContent>

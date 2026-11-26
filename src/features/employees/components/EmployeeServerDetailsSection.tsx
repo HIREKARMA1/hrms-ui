@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/select'
 
 import { EMPLOYEE_DOCUMENT_FIELDS, type BackendUserRole } from '../api/employeeApi.types'
-import { isHttpUrl, type EmployeeCreateExtras } from '../api/employeeMappers'
+import type { EmployeeCreateExtras } from '../api/employeeMappers'
 import { BiometricDeviceSelect } from './BiometricDeviceSelect'
 
 const ROLE_OPTIONS: Array<{ value: BackendUserRole; label: string }> = [
@@ -26,10 +26,12 @@ const DOCUMENT_ACCEPT = '.pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/jpeg,i
 function Field({
   label,
   required = false,
+  hint,
   children,
 }: {
   label: string
   required?: boolean
+  hint?: string
   children: ReactNode
 }) {
   return (
@@ -39,6 +41,7 @@ function Field({
         {required ? <span className="text-rose-600"> *</span> : null}
       </Label>
       {children}
+      {hint ? <p className="text-xs text-text-secondary">{hint}</p> : null}
     </div>
   )
 }
@@ -51,19 +54,16 @@ function Field({
 export function EmployeeServerDetailsSection({
   value,
   onChange,
-  profilePictureUrl,
   disabled = false,
 }: {
   value: EmployeeCreateExtras
   onChange: (next: EmployeeCreateExtras) => void
-  profilePictureUrl: string
   disabled?: boolean
 }) {
   const set = <K extends keyof EmployeeCreateExtras>(key: K, next: EmployeeCreateExtras[K]) =>
     onChange({ ...value, [key]: next })
   const setBank = (key: keyof EmployeeCreateExtras['bankDetail'], next: string) =>
     onChange({ ...value, bankDetail: { ...value.bankDetail, [key]: next } })
-  const needsPhotoUrl = !isHttpUrl(profilePictureUrl.trim())
 
   return (
     <div className="space-y-8">
@@ -123,37 +123,42 @@ export function EmployeeServerDetailsSection({
               onChange={(e) => set('uanNumber', e.target.value)}
             />
           </Field>
-          <Field label="Biometric device" required>
+          <Field
+            label="Device ID"
+            required
+            hint="Required by POST /employees. Use the device code of an onboarded biometric device."
+          >
+            <Input
+              value={value.deviceId}
+              autoComplete="off"
+              placeholder="e.g. TW1KDW0010250461"
+              disabled={disabled}
+              onChange={(e) => set('deviceId', e.target.value.trim())}
+            />
+          </Field>
+          <Field
+            label="Pick registered device"
+            hint="Optional shortcut — fills Device ID from onboarded devices."
+          >
             <BiometricDeviceSelect
               value={value.deviceId}
               disabled={disabled}
               onChange={(deviceCode) => set('deviceId', deviceCode)}
             />
           </Field>
-          <Field label="Device user ID">
+          <Field
+            label="Employee device user ID"
+            hint="TimeWatch UserID of this employee on the device (optional; can be set later)."
+          >
             <Input
               value={value.deviceUserId}
+              autoComplete="off"
+              placeholder="e.g. 61"
               disabled={disabled}
               onChange={(e) => set('deviceUserId', e.target.value)}
             />
           </Field>
-          {needsPhotoUrl ? (
-            <Field label="Photo URL" required>
-              <Input
-                type="url"
-                value={value.photoUrl}
-                placeholder="https://…"
-                disabled={disabled}
-                onChange={(e) => set('photoUrl', e.target.value)}
-              />
-            </Field>
-          ) : null}
         </div>
-        {needsPhotoUrl ? (
-          <p className="text-xs text-text-secondary">
-            Upload a photo above, or paste a hosted photo URL (http/https).
-          </p>
-        ) : null}
       </section>
 
       <section className="space-y-4">
@@ -175,7 +180,11 @@ export function EmployeeServerDetailsSection({
               onChange={(e) => setBank('accountNumber', e.target.value)}
             />
           </Field>
-          <Field label="IFSC" required>
+          <Field
+            label="IFSC"
+            required
+            hint="Must be 11 characters like SBIN0001234 (4 letters + 0 + 6 digits/letters)."
+          >
             <Input
               value={value.bankDetail.ifsc}
               maxLength={11}

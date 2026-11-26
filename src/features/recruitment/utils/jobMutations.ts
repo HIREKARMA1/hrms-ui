@@ -90,6 +90,31 @@ export async function submitDeleteJob(input: {
   }
 }
 
+/**
+ * Publish via PATCH /recruitment/jobs/:id with status PUBLISHED.
+ * No dedicated publish endpoint exists in OpenAPI.
+ */
+export async function submitPublishJob(input: {
+  id: string
+  guard: SubmitGuard
+  send: (arg: { id: string; body: UpdateJobBody }) => { unwrap: () => Promise<BackendJob> }
+}): Promise<JobMutationOutcome> {
+  if (!input.guard.tryEnter()) return { status: 'busy' }
+  try {
+    const job = await input
+      .send({ id: input.id, body: { status: 'PUBLISHED' } })
+      .unwrap()
+    return { status: 'success', job }
+  } catch (error) {
+    return {
+      status: 'error',
+      message: getJobErrorMessage(error, 'Could not publish this job.'),
+    }
+  } finally {
+    input.guard.leave()
+  }
+}
+
 export async function submitUpdateJobDescription(input: {
   id: string
   description: string

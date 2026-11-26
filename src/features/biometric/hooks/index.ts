@@ -2,6 +2,7 @@ export { useBiometricPermissions } from './useBiometricPermissions'
 export {
   useBiometricConnectionTest,
   useBiometricDeviceList,
+  useDeleteBiometricDevice,
   useRegisterBiometricDevice,
   useTimeWatchDeviceCatalog,
   useUpdateBiometricDevice,

@@ -17,6 +17,7 @@ import { ChangePasswordPage } from '@/features/auth/pages/ChangePasswordPage'
 import { ForgotPasswordPage } from '@/features/auth/pages/ForgotPasswordPage'
 import { LoginPage } from '@/features/auth/pages/LoginPage'
 import { ResetPasswordPage } from '@/features/auth/pages/ResetPasswordPage'
+import { OrganisationOnboardingFormPage } from '@/features/organisation-onboarding/pages/OrganisationOnboardingFormPage'
 import { ContactAdministratorPage } from '@/features/support/pages/ContactAdministratorPage'
 import { DashboardPage } from '@/features/dashboard/pages/DashboardPage'
 import { EmployeeDashboardPage } from '@/features/employee/pages/EmployeeDashboardPage'
@@ -33,6 +34,7 @@ import { WorkspaceModuleRedirect } from '@/features/rbac/components/WorkspaceMod
 import { createEmployeeCalendarModuleRoutes } from '@/features/rbac/routes/calendarModuleRoutes'
 import { createEmployeeLeadsModuleRoutes } from '@/features/rbac/routes/leadsModuleRoutes'
 import { createEmployeeLeavePayrollRoutes } from '@/features/rbac/routes/leavePayrollModuleRoutes'
+import { createEmployeeRecruitmentRoutes } from '@/features/rbac/routes/recruitmentModuleRoutes'
 import { createOrgRoleModuleRoutes } from '@/features/rbac/routes/roleModuleRoutes'
 import { SuperAdminDashboardPage } from '@/features/superadmin/pages/SuperAdminDashboardPage'
 
@@ -61,6 +63,10 @@ function App() {
         <Route
           path="/contact-administrator"
           element={<ContactAdministratorPage />}
+        />
+        <Route
+          path="/organisation-onboarding/:onboardingId"
+          element={<OrganisationOnboardingFormPage />}
         />
 
         {/* Every route below requires an authenticated session. */}
@@ -341,6 +347,7 @@ function App() {
           {createEmployeeLeavePayrollRoutes()}
           {createEmployeeLeadsModuleRoutes()}
           {createEmployeeCalendarModuleRoutes()}
+          {createEmployeeRecruitmentRoutes()}
           <Route path="/employee/*" element={<RoleModulePage />} />
         </Route>
         </Route>

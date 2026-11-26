@@ -9,7 +9,7 @@ import type { FeatureAccessKey } from '../types/features'
 import type { BackendRoleCode, RoleNavChild, RoleNavItem } from '../types/roles'
 import { filterNavigation } from './filterNavigation'
 
-/** The 14 permissions the production EMPLOYEE role actually holds. */
+/** The 17 permissions the production EMPLOYEE role actually holds (leads subset). */
 const EMPLOYEE_PERMISSIONS = [
   'leaves:create',
   'leaves:read',
@@ -23,8 +23,11 @@ const EMPLOYEE_PERMISSIONS = [
   'leads:create',
   'leads:read',
   'leads:update',
+  'leads:assign',
   'leads:notes',
   'leads:analytics',
+  'lead_sources:manage',
+  'lead_categories:manage',
 ]
 
 /** Codes seeded by hrms-server/prisma/seed.ts that this stage maps. */
@@ -54,6 +57,8 @@ const SEEDED_CODES = new Set([
   'leads:notes',
   'leads:read',
   'leads:update',
+  'lead_sources:manage',
+  'lead_categories:manage',
   'leave_encashments:approve',
   'leave_encashments:cancel',
   'leave_encashments:create',
@@ -122,6 +127,8 @@ describe('FEATURE_PERMISSION_MAP', () => {
     expect(FEATURE_PERMISSION_MAP['leads.assign']).toBe('leads:assign')
     expect(FEATURE_PERMISSION_MAP['leads.notes']).toBe('leads:notes')
     expect(FEATURE_PERMISSION_MAP['leads.analytics']).toBe('leads:analytics')
+    expect(FEATURE_PERMISSION_MAP['leads.sources.manage']).toBe('lead_sources:manage')
+    expect(FEATURE_PERMISSION_MAP['leads.categories.manage']).toBe('lead_categories:manage')
     expect(FEATURE_PERMISSION_MAP['holidays.create']).toBe('holidays:create')
     expect(FEATURE_PERMISSION_MAP['holidays.update']).toBe('holidays:update')
     expect(FEATURE_PERMISSION_MAP['holidays.delete']).toBe('holidays:delete')

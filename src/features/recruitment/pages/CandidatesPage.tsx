@@ -1,5 +1,5 @@
-import { Eye, Pencil, Plus, Search, Upload } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { Eye, Pencil, Plus, RefreshCw, Search, Upload } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
 
 import { Feature } from '@/features/rbac/components/Feature'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
@@ -22,6 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { Skeleton } from '@/components/ui/skeleton'
 import {
   Table,
   TableBody,
@@ -30,61 +31,62 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { getApiErrorMessage } from '@/services/api/errors'
 
 import {
-  MockDataBanner,
-  RecruitmentPageShell,
-  ResumeParseBadge,
-  StageBadge,
-} from '../components'
+  CANDIDATES_PAGE_SIZE,
+  getCandidateErrorMessage,
+  useCreateCandidateMutation,
+  useGetCandidateStatusQuery,
+  useListCandidatesQuery,
+  useParseResumeMutation,
+  useUpdateCandidateMutation,
+  useUploadCandidateResumeMutation,
+} from '../api/candidatesApi'
+import type { BackendCandidate, CandidateSource } from '../api/candidatesApi.types'
+import { RecruitmentPageShell } from '../components'
+import { ApplicationStatusBadge } from '../components'
 import { RECRUITMENT_FILTER_BAR } from '../components/shared/recruitmentUi'
 import {
-  getParsedResume,
-  listCandidates,
-  listJobs,
-  listStageHistory,
-} from '../services/recruitmentService'
-import type { Candidate, PipelineStage } from '../types/recruitment'
-import { PIPELINE_STAGES } from '../utils/pipeline'
+  formatCandidateSource,
+  formatExperienceYears,
+  formatApplicationStatus,
+} from '../utils/applicationFormat'
+
+const SEARCH_DEBOUNCE_MS = 350
+const SOURCES: CandidateSource[] = [
+  'CAREER_PAGE',
+  'REFERRAL',
+  'LINKEDIN',
+  'JOB_PORTAL',
+  'AGENCY',
+  'WALK_IN',
+  'OTHER',
+]
 
 type CandidateForm = {
   fullName: string
   email: string
   phone: string
-  currentLocation: string
-  totalExperience: string
+  location: string
+  experienceYears: string
   currentCompany: string
   currentDesignation: string
   skills: string
-  highestQualification: string
-  appliedJobId: string
-  resumeFileName: string
-  source: string
+  source: CandidateSource
 }
 
 const emptyForm: CandidateForm = {
   fullName: '',
   email: '',
   phone: '',
-  currentLocation: '',
-  totalExperience: '',
+  location: '',
+  experienceYears: '',
   currentCompany: '',
   currentDesignation: '',
   skills: '',
-  highestQualification: '',
-  appliedJobId: '',
-  resumeFileName: '',
-  source: 'LinkedIn',
+  source: 'LINKEDIN',
 }
-
-const sources = [
-  'LinkedIn',
-  'Referral',
-  'Naukri',
-  'Company Careers',
-  'Agency',
-  'Other',
-]
 
 function initialsFromName(name: string) {
   return name
@@ -95,167 +97,179 @@ function initialsFromName(name: string) {
     .join('')
 }
 
+function toFormBody(form: CandidateForm) {
+  const experienceYears = form.experienceYears.trim()
+    ? Number(form.experienceYears)
+    : undefined
+  return {
+    fullName: form.fullName.trim(),
+    email: form.email.trim(),
+    phone: form.phone.trim(),
+    ...(form.location.trim() ? { location: form.location.trim() } : {}),
+    ...(experienceYears !== undefined && Number.isFinite(experienceYears)
+      ? { experienceYears }
+      : {}),
+    ...(form.currentCompany.trim() ? { currentCompany: form.currentCompany.trim() } : {}),
+    ...(form.currentDesignation.trim()
+      ? { currentDesignation: form.currentDesignation.trim() }
+      : {}),
+    skills: form.skills
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean),
+    source: form.source,
+  }
+}
+
 export function CandidatesPage() {
-  const [candidates, setCandidates] = useState(() => listCandidates())
-  const [jobs] = useState(() => listJobs())
+  const [searchInput, setSearchInput] = useState('')
   const [search, setSearch] = useState('')
-  const [stageFilter, setStageFilter] = useState<string>('All')
-  const [jobFilter, setJobFilter] = useState('All')
+  const [page, setPage] = useState(1)
+  const [sourceFilter, setSourceFilter] = useState<string>('__all__')
   const [formOpen, setFormOpen] = useState(false)
-  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editing, setEditing] = useState<BackendCandidate | null>(null)
   const [form, setForm] = useState<CandidateForm>(emptyForm)
   const [profileId, setProfileId] = useState<string | null>(null)
+  const [resumeFile, setResumeFile] = useState<File | null>(null)
+  const [formError, setFormError] = useState<string | null>(null)
+  const [saving, setSaving] = useState(false)
 
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase()
-    return candidates.filter((c) => {
-      if (stageFilter !== 'All' && c.stage !== stageFilter) return false
-      if (jobFilter !== 'All' && c.appliedJobId !== jobFilter) return false
-      if (!q) return true
-      return (
-        c.fullName.toLowerCase().includes(q) ||
-        c.email.toLowerCase().includes(q) ||
-        c.skills.some((s) => s.toLowerCase().includes(q))
-      )
-    })
-  }, [candidates, search, stageFilter, jobFilter])
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setSearch(searchInput.trim())
+      setPage(1)
+    }, SEARCH_DEBOUNCE_MS)
+    return () => window.clearTimeout(timer)
+  }, [searchInput])
 
-  const profile = candidates.find((c) => c.id === profileId) ?? null
-  const parsed = profile ? getParsedResume(profile.id) : null
-  const history = profile ? listStageHistory(profile.id) : []
+  const list = useListCandidatesQuery({
+    page,
+    limit: CANDIDATES_PAGE_SIZE,
+    ...(search ? { search } : {}),
+    ...(sourceFilter !== '__all__' ? { source: sourceFilter as CandidateSource } : {}),
+    sortBy: 'createdAt',
+    sortOrder: 'desc',
+  })
+
+  const statusQuery = useGetCandidateStatusQuery(profileId ?? '', { skip: !profileId })
+  const [createCandidate] = useCreateCandidateMutation()
+  const [updateCandidate] = useUpdateCandidateMutation()
+  const [uploadResume] = useUploadCandidateResumeMutation()
+  const [parseResume, parseState] = useParseResumeMutation()
+
+  const items = list.data?.items ?? []
+  const profile = items.find((c) => c.id === profileId) ?? null
+
+  const latestStatus = useMemo(() => {
+    const entries = statusQuery.data?.entries ?? []
+    return entries[0]?.status ?? null
+  }, [statusQuery.data])
 
   const openCreate = () => {
-    setEditingId(null)
-    setForm({ ...emptyForm, appliedJobId: jobs[0]?.id ?? '' })
+    setEditing(null)
+    setForm(emptyForm)
+    setResumeFile(null)
+    setFormError(null)
     setFormOpen(true)
   }
 
-  const openEdit = (c: Candidate) => {
-    setEditingId(c.id)
+  const openEdit = (c: BackendCandidate) => {
+    setEditing(c)
     setForm({
       fullName: c.fullName,
       email: c.email,
       phone: c.phone,
-      currentLocation: c.currentLocation,
-      totalExperience: c.totalExperience,
-      currentCompany: c.currentCompany,
-      currentDesignation: c.currentDesignation,
+      location: c.location ?? '',
+      experienceYears: c.experienceYears != null ? String(c.experienceYears) : '',
+      currentCompany: c.currentCompany ?? '',
+      currentDesignation: c.currentDesignation ?? '',
       skills: c.skills.join(', '),
-      highestQualification: c.highestQualification,
-      appliedJobId: c.appliedJobId,
-      resumeFileName: c.resumeFileName,
       source: c.source,
     })
+    setResumeFile(null)
+    setFormError(null)
     setFormOpen(true)
   }
 
   const onResumeSelected = (file: File | undefined) => {
     if (!file) return
-    const ok =
-      /\.pdf$/i.test(file.name) ||
-      /\.docx?$/i.test(file.name)
+    const ok = /\.pdf$/i.test(file.name) || /\.docx?$/i.test(file.name)
     if (!ok) return
-    setForm((f) => ({ ...f, resumeFileName: file.name }))
+    setResumeFile(file)
+    void parseResume(file)
   }
 
-  const saveCandidate = () => {
-    if (!form.fullName.trim() || !form.email.trim()) return
-    const job = jobs.find((j) => j.id === form.appliedJobId)
-    const base = {
-      fullName: form.fullName.trim(),
-      email: form.email.trim(),
-      phone: form.phone.trim(),
-      currentLocation: form.currentLocation.trim(),
-      totalExperience: form.totalExperience.trim(),
-      currentCompany: form.currentCompany.trim(),
-      currentDesignation: form.currentDesignation.trim(),
-      skills: form.skills
-        .split(',')
-        .map((s) => s.trim())
-        .filter(Boolean),
-      highestQualification: form.highestQualification.trim(),
-      appliedJobId: form.appliedJobId,
-      appliedJobTitle: job?.title ?? 'Unknown role',
-      resumeFileName: form.resumeFileName || 'Not uploaded',
-      source: form.source,
-      initials: initialsFromName(form.fullName),
-      resumeParseStatus: form.resumeFileName
-        ? ('Pending' as const)
-        : ('Not Started' as const),
+  const saveCandidate = async () => {
+    if (!form.fullName.trim() || !form.email.trim() || !form.phone.trim()) {
+      setFormError('Full name, email, and phone are required.')
+      return
     }
-
-    if (editingId) {
-      setCandidates((prev) =>
-        prev.map((c) =>
-          c.id === editingId
-            ? {
-                ...c,
-                ...base,
-                resumeParseStatus: c.resumeParseStatus,
-              }
-            : c,
-        ),
-      )
-    } else {
-      setCandidates((prev) => [
-        {
-          ...base,
-          id: `CAN-${200 + prev.length + 1}`,
-          applicationDate: new Date().toISOString().slice(0, 10),
-          stage: 'Applied' as PipelineStage,
-        },
-        ...prev,
-      ])
+    setSaving(true)
+    setFormError(null)
+    try {
+      const body = toFormBody(form)
+      const saved = editing
+        ? await updateCandidate({ id: editing.id, body }).unwrap()
+        : await createCandidate(body).unwrap()
+      if (resumeFile) {
+        await uploadResume({ id: saved.id, file: resumeFile }).unwrap()
+      }
+      setFormOpen(false)
+    } catch (error) {
+      setFormError(getCandidateErrorMessage(error, 'Could not save candidate.'))
+    } finally {
+      setSaving(false)
     }
-    setFormOpen(false)
   }
 
   return (
     <RecruitmentPageShell
       activeSection="Candidates"
       trailing={
-        <Feature name="recruitment.manage">
-          <Button type="button" className="gap-2" onClick={openCreate}>
-            <Plus className="h-4 w-4" />
-            Register Candidate
+        <div className="flex flex-wrap gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => void list.refetch()}
+            disabled={list.isFetching}
+          >
+            <RefreshCw className={`h-4 w-4 ${list.isFetching ? 'animate-spin' : ''}`} />
+            Refresh
           </Button>
-        </Feature>
+          <Feature name="recruitment.manage">
+            <Button type="button" className="gap-2" onClick={openCreate}>
+              <Plus className="h-4 w-4" />
+              Register Candidate
+            </Button>
+          </Feature>
+        </div>
       }
     >
-      <MockDataBanner message="Resume upload stores the file name locally. Resume parsing is demo-only until a parsing API exists." />
-
       <div className={RECRUITMENT_FILTER_BAR}>
         <div className="relative flex-1">
           <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-text-secondary" />
           <Input
             className="pl-9"
             placeholder="Search name, email, skills..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
           />
         </div>
-        <Select value={stageFilter} onValueChange={setStageFilter}>
+        <Select
+          value={sourceFilter}
+          onValueChange={(value) => {
+            setSourceFilter(value)
+            setPage(1)
+          }}
+        >
           <SelectTrigger className="w-full lg:w-44">
-            <SelectValue placeholder="Stage" />
+            <SelectValue placeholder="Source" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="All">All stages</SelectItem>
-            {PIPELINE_STAGES.map((s) => (
+            <SelectItem value="__all__">All sources</SelectItem>
+            {SOURCES.map((s) => (
               <SelectItem key={s} value={s}>
-                {s}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select value={jobFilter} onValueChange={setJobFilter}>
-          <SelectTrigger className="w-full lg:w-56">
-            <SelectValue placeholder="Job" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="All">All jobs</SelectItem>
-            {jobs.map((job) => (
-              <SelectItem key={job.id} value={job.id}>
-                {job.title}
+                {formatCandidateSource(s)}
               </SelectItem>
             ))}
           </SelectContent>
@@ -263,132 +277,138 @@ export function CandidatesPage() {
       </div>
 
       <div className="overflow-hidden rounded-2xl border border-border-soft bg-white shadow-sm">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Candidate</TableHead>
-              <TableHead>Applied Job</TableHead>
-              <TableHead>Current company</TableHead>
-              <TableHead>Experience</TableHead>
-              <TableHead>Skills</TableHead>
-              <TableHead>Applied</TableHead>
-              <TableHead>Stage</TableHead>
-              <TableHead>Resume</TableHead>
-              <TableHead>Source</TableHead>
-              <TableHead className="text-center">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filtered.map((c) => (
-              <TableRow key={c.id}>
-                <TableCell>
-                  <div className="flex items-center gap-3">
-                    <Avatar className="h-9 w-9">
-                      <AvatarFallback>{c.initials}</AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <p className="font-medium text-navy">{c.fullName}</p>
-                      <p className="text-xs text-text-secondary">{c.email}</p>
-                      <p className="text-xs text-text-secondary">{c.phone}</p>
-                    </div>
-                  </div>
-                </TableCell>
-                <TableCell>{c.appliedJobTitle}</TableCell>
-                <TableCell className="max-w-[160px]">
-                  <p
-                    className="truncate font-medium text-navy"
-                    title={c.currentCompany || undefined}
-                  >
-                    {c.currentCompany || '—'}
-                  </p>
-                  {c.currentDesignation ? (
-                    <p
-                      className="truncate text-xs text-text-secondary"
-                      title={c.currentDesignation}
-                    >
-                      {c.currentDesignation}
-                    </p>
-                  ) : null}
-                </TableCell>
-                <TableCell>{c.totalExperience}</TableCell>
-                <TableCell>
-                  <div className="flex max-w-[160px] flex-wrap gap-1">
-                    {c.skills.slice(0, 2).map((s) => (
-                      <Badge key={s} variant="secondary">
-                        {s}
-                      </Badge>
-                    ))}
-                  </div>
-                </TableCell>
-                <TableCell>{c.applicationDate}</TableCell>
-                <TableCell>
-                  <StageBadge stage={c.stage} />
-                </TableCell>
-                <TableCell>
-                  <div className="space-y-1">
-                    <p className="text-xs text-text-secondary">{c.resumeFileName}</p>
-                    <ResumeParseBadge status={c.resumeParseStatus} />
-                  </div>
-                </TableCell>
-                <TableCell>{c.source}</TableCell>
-                <TableCell className="text-center">
-                  <div className="flex justify-center gap-1">
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => setProfileId(c.id)}
-                    >
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                    <Feature name="recruitment.manage">
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => openEdit(c)}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                    </Feature>
-                  </div>
-                </TableCell>
+        {list.isLoading ? (
+          <div className="space-y-3 p-4">
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+          </div>
+        ) : list.isError ? (
+          <div className="space-y-3 p-6">
+            <p role="alert" className="text-sm text-red-600">
+              {getApiErrorMessage(list.error, 'Could not load candidates.')}
+            </p>
+            <Button type="button" variant="outline" onClick={() => void list.refetch()}>
+              Retry
+            </Button>
+          </div>
+        ) : items.length === 0 ? (
+          <p className="p-8 text-center text-sm text-slate-500">No candidates match these filters.</p>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Candidate</TableHead>
+                <TableHead>Location</TableHead>
+                <TableHead>Experience</TableHead>
+                <TableHead>Skills</TableHead>
+                <TableHead>Resume</TableHead>
+                <TableHead>Source</TableHead>
+                <TableHead className="text-center">Actions</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {items.map((c) => (
+                <TableRow key={c.id}>
+                  <TableCell>
+                    <div className="flex items-center gap-3">
+                      <Avatar className="h-9 w-9">
+                        <AvatarFallback>{initialsFromName(c.fullName)}</AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <p className="font-medium text-navy">{c.fullName}</p>
+                        <p className="text-xs text-text-secondary">{c.email}</p>
+                        <p className="text-xs text-text-secondary">{c.phone}</p>
+                      </div>
+                    </div>
+                  </TableCell>
+                  <TableCell>{c.location ?? '—'}</TableCell>
+                  <TableCell>{formatExperienceYears(c.experienceYears)}</TableCell>
+                  <TableCell>
+                    <div className="flex max-w-[160px] flex-wrap gap-1">
+                      {c.skills.slice(0, 2).map((s) => (
+                        <Badge key={s} variant="secondary">
+                          {s}
+                        </Badge>
+                      ))}
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-xs text-text-secondary">
+                    {c.resumes[0]?.fileName ?? '—'}
+                  </TableCell>
+                  <TableCell>{formatCandidateSource(c.source)}</TableCell>
+                  <TableCell className="text-center">
+                    <div className="flex justify-center gap-1">
+                      <Button type="button" size="sm" variant="ghost" onClick={() => setProfileId(c.id)}>
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      <Feature name="recruitment.manage">
+                        <Button type="button" size="sm" variant="ghost" onClick={() => openEdit(c)}>
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                      </Feature>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
       </div>
+
+      {list.data && list.data.pagination.totalPages > 1 ? (
+        <div className="mt-4 flex items-center justify-end gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={page <= 1}
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+          >
+            Previous
+          </Button>
+          <span className="text-sm text-text-secondary">
+            Page {page} of {list.data.pagination.totalPages}
+          </span>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={page >= list.data.pagination.totalPages}
+            onClick={() => setPage((p) => p + 1)}
+          >
+            Next
+          </Button>
+        </div>
+      ) : null}
 
       <Dialog open={formOpen} onOpenChange={setFormOpen}>
         <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>
-              {editingId ? 'Edit Candidate' : 'Register Candidate'}
-            </DialogTitle>
-            <DialogDescription>
-              Associate the candidate with a job and optionally attach a resume.
-            </DialogDescription>
+            <DialogTitle>{editing ? 'Edit Candidate' : 'Register Candidate'}</DialogTitle>
+            <DialogDescription>Required: full name, email, phone.</DialogDescription>
           </DialogHeader>
+          {formError ? (
+            <p role="alert" className="text-sm text-red-600">
+              {formError}
+            </p>
+          ) : null}
           <div className="grid gap-4 sm:grid-cols-2">
             {(
               [
-                ['fullName', 'Full Name'],
-                ['email', 'Email'],
-                ['phone', 'Phone Number'],
-                ['currentLocation', 'Current Location'],
-                ['totalExperience', 'Total Experience'],
+                ['fullName', 'Full Name *'],
+                ['email', 'Email *'],
+                ['phone', 'Phone *'],
+                ['location', 'Location'],
+                ['experienceYears', 'Experience (years)'],
                 ['currentCompany', 'Current Company'],
                 ['currentDesignation', 'Current Designation'],
-                ['highestQualification', 'Highest Qualification'],
               ] as const
             ).map(([key, label]) => (
               <div key={key} className="space-y-2">
                 <Label>{label}</Label>
                 <Input
                   value={form[key]}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, [key]: e.target.value }))
-                  }
+                  onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))}
                 />
               </div>
             ))}
@@ -397,81 +417,60 @@ export function CandidatesPage() {
               <Input
                 placeholder="Comma-separated"
                 value={form.skills}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, skills: e.target.value }))
-                }
+                onChange={(e) => setForm((f) => ({ ...f, skills: e.target.value }))}
               />
-            </div>
-            <div className="space-y-2">
-              <Label>Applied Job</Label>
-              <Select
-                value={form.appliedJobId}
-                onValueChange={(v) =>
-                  setForm((f) => ({ ...f, appliedJobId: v }))
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select job" />
-                </SelectTrigger>
-                <SelectContent>
-                  {jobs.map((job) => (
-                    <SelectItem key={job.id} value={job.id}>
-                      {job.title}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
             </div>
             <div className="space-y-2">
               <Label>Source</Label>
               <Select
                 value={form.source}
-                onValueChange={(v) => setForm((f) => ({ ...f, source: v }))}
+                onValueChange={(v) => setForm((f) => ({ ...f, source: v as CandidateSource }))}
               >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {sources.map((s) => (
+                  {SOURCES.map((s) => (
                     <SelectItem key={s} value={s}>
-                      {s}
+                      {formatCandidateSource(s)}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2 sm:col-span-2">
-              <Label>Resume Upload (PDF / DOC / DOCX)</Label>
-              <div className="flex flex-wrap items-center gap-3">
-                <Input
-                  type="file"
-                  accept=".pdf,.doc,.docx,application/pdf"
-                  onChange={(e) => onResumeSelected(e.target.files?.[0])}
-                />
-                {form.resumeFileName ? (
-                  <Badge variant="secondary" className="gap-1">
-                    <Upload className="h-3 w-3" />
-                    {form.resumeFileName}
-                  </Badge>
-                ) : null}
+            <Feature name="recruitment.manage">
+              <div className="space-y-2 sm:col-span-2">
+                <Label>Resume Upload (PDF / DOC / DOCX)</Label>
+                <div className="flex flex-wrap items-center gap-3">
+                  <Input
+                    type="file"
+                    accept=".pdf,.doc,.docx,application/pdf"
+                    onChange={(e) => onResumeSelected(e.target.files?.[0])}
+                  />
+                  {resumeFile ? (
+                    <Badge variant="secondary" className="gap-1">
+                      <Upload className="h-3 w-3" />
+                      {resumeFile.name}
+                    </Badge>
+                  ) : null}
+                </div>
               </div>
-            </div>
+            </Feature>
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setFormOpen(false)}>
               Cancel
             </Button>
-            <Button type="button" onClick={saveCandidate}>
-              Save Candidate
-            </Button>
+            <Feature name="recruitment.manage">
+              <Button type="button" onClick={() => void saveCandidate()} disabled={saving}>
+                {saving ? 'Saving…' : 'Save Candidate'}
+              </Button>
+            </Feature>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      <Dialog
-        open={Boolean(profile)}
-        onOpenChange={(open) => !open && setProfileId(null)}
-      >
+      <Dialog open={Boolean(profileId)} onOpenChange={(open) => !open && setProfileId(null)}>
         <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{profile?.fullName}</DialogTitle>
@@ -484,108 +483,48 @@ export function CandidatesPage() {
               <div className="grid gap-3 sm:grid-cols-2">
                 <p>
                   <span className="font-medium text-navy">Location: </span>
-                  {profile.currentLocation}
+                  {profile.location ?? '—'}
                 </p>
                 <p>
                   <span className="font-medium text-navy">Experience: </span>
-                  {profile.totalExperience}
+                  {formatExperienceYears(profile.experienceYears)}
                 </p>
-                <p>
-                  <span className="font-medium text-navy">Company: </span>
-                  {profile.currentCompany} · {profile.currentDesignation}
-                </p>
-                <p>
-                  <span className="font-medium text-navy">Applied job: </span>
-                  {profile.appliedJobTitle}
-                </p>
-                <div className="flex items-center gap-2">
-                  <span className="font-medium text-navy">Stage:</span>
-                  <StageBadge stage={profile.stage} />
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="font-medium text-navy">Parse status:</span>
-                  <ResumeParseBadge status={profile.resumeParseStatus} />
-                </div>
+                {latestStatus ? (
+                  <div className="flex items-center gap-2 sm:col-span-2">
+                    <span className="font-medium text-navy">Latest application status:</span>
+                    <ApplicationStatusBadge status={latestStatus} />
+                  </div>
+                ) : null}
               </div>
-
-              <div>
-                <p className="font-medium text-navy">Skills</p>
-                <div className="mt-1 flex flex-wrap gap-1">
-                  {profile.skills.map((s) => (
-                    <Badge key={s} variant="secondary">
-                      {s}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-
-              <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
-                <p className="font-medium text-amber-900">
-                  Parsed resume information (demo)
+              {parseState.data ? (
+                <pre className="rounded-xl border border-border-soft bg-muted-bg/40 p-4 text-xs whitespace-pre-wrap">
+                  Parsed preview: {parseState.data.skills.join(', ') || 'No skills detected'}
+                </pre>
+              ) : null}
+              {statusQuery.isLoading ? (
+                <Skeleton className="h-16 w-full" />
+              ) : statusQuery.isError ? (
+                <p className="text-red-600">
+                  {getApiErrorMessage(statusQuery.error, 'Could not load status history.')}
                 </p>
-                <p className="mt-1 text-xs text-amber-800">
-                  No resume parsing API is connected. Values below are mock/demo
-                  data when available.
-                </p>
-                {parsed ? (
-                  <dl className="mt-3 grid gap-2 sm:grid-cols-2">
-                    <div>
-                      <dt className="text-xs text-amber-700">Name</dt>
-                      <dd>{parsed.name}</dd>
-                    </div>
-                    <div>
-                      <dt className="text-xs text-amber-700">Email</dt>
-                      <dd>{parsed.email}</dd>
-                    </div>
-                    <div>
-                      <dt className="text-xs text-amber-700">Phone</dt>
-                      <dd>{parsed.phone}</dd>
-                    </div>
-                    <div>
-                      <dt className="text-xs text-amber-700">Education</dt>
-                      <dd>{parsed.education}</dd>
-                    </div>
-                    <div className="sm:col-span-2">
-                      <dt className="text-xs text-amber-700">Skills</dt>
-                      <dd>{parsed.skills.join(', ')}</dd>
-                    </div>
-                    <div className="sm:col-span-2">
-                      <dt className="text-xs text-amber-700">Experience</dt>
-                      <dd>{parsed.experience}</dd>
-                    </div>
-                    <div className="sm:col-span-2">
-                      <dt className="text-xs text-amber-700">
-                        Previous Employment
-                      </dt>
-                      <dd>{parsed.previousEmployment}</dd>
-                    </div>
-                  </dl>
-                ) : (
-                  <p className="mt-3 text-amber-900">
-                    Parsed fields unavailable for this candidate (
-                    {profile.resumeParseStatus}).
-                  </p>
-                )}
-              </div>
-
-              <div>
-                <p className="font-medium text-navy">Application history</p>
-                <ul className="mt-2 space-y-2">
-                  {history.length === 0 ? (
-                    <li className="text-text-secondary">No stage changes recorded.</li>
+              ) : (
+                <ul className="space-y-2">
+                  {(statusQuery.data?.entries ?? []).length === 0 ? (
+                    <li className="text-text-secondary">No status history yet.</li>
                   ) : (
-                    history.map((item) => (
-                      <li
-                        key={item.id}
-                        className="rounded-lg border border-border-soft px-3 py-2"
-                      >
-                        {item.fromStage ?? '—'} → {item.toStage} · {item.changedAt}{' '}
-                        by {item.changedBy}
+                    statusQuery.data?.entries.map((item, index) => (
+                      <li key={item.id ?? index} className="rounded-lg border border-border-soft px-3 py-2">
+                        {item.previousStatus
+                          ? `${formatApplicationStatus(item.previousStatus)} → `
+                          : ''}
+                        {item.status ? formatApplicationStatus(item.status) : '—'}
+                        {item.jobTitle ? ` · ${item.jobTitle}` : ''}
+                        {item.changedAt ? ` · ${item.changedAt}` : ''}
                       </li>
                     ))
                   )}
                 </ul>
-              </div>
+              )}
             </div>
           ) : null}
         </DialogContent>

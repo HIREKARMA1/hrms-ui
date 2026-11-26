@@ -9,6 +9,7 @@ import {
   Plus,
   RefreshCw,
   Search,
+  Send,
   Trash2,
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
@@ -16,6 +17,8 @@ import { Link, useLocation } from 'react-router-dom'
 
 import { Feature } from '@/features/rbac/components/Feature'
 import { useOptionalFeatureAccess } from '@/features/rbac/hooks/useFeatureAccess'
+import { createSubmitGuard } from '@/features/auth/utils/passwordReset'
+import { useListDepartmentsQuery } from '@/features/organization/api/departmentsApi'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -35,9 +38,16 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { TablePagination } from '@/components/ui/table-pagination'
 import { getApiErrorMessage } from '@/services/api/errors'
 
-import { JOBS_PAGE_SIZE, useGetJobQuery, useListJobsQuery } from '../api/jobsApi'
+import {
+  JOBS_PAGE_SIZE,
+  useGetJobQuery,
+  useListJobsQuery,
+  useUpdateJobMutation,
+} from '../api/jobsApi'
+import { submitPublishJob } from '../utils/jobMutations'
 import type {
   BackendJob,
   JobEmploymentType,
@@ -87,7 +97,15 @@ export function JobPostingsPage() {
   const [employmentType, setEmploymentType] = useState(ALL)
   const [workMode, setWorkMode] = useState(ALL)
   const [isActive, setIsActive] = useState(ALL)
-  const [departmentId, setDepartmentId] = useState('')
+  const [departmentId, setDepartmentId] = useState(ALL)
+
+  const departmentsQuery = useListDepartmentsQuery({
+    isActive: true,
+    limit: 100,
+    page: 1,
+    sortBy: 'name',
+    sortOrder: 'asc',
+  })
 
   const [formOpen, setFormOpen] = useState(false)
   const [formMode, setFormMode] = useState<'create' | 'edit'>('create')
@@ -96,6 +114,9 @@ export function JobPostingsPage() {
   const [deleteTarget, setDeleteTarget] = useState<BackendJob | null>(null)
   const [descriptionTarget, setDescriptionTarget] = useState<BackendJob | null>(null)
   const [notice, setNotice] = useState<Notice | null>(null)
+  const [publishingId, setPublishingId] = useState<string | null>(null)
+  const [publishGuard] = useState(() => createSubmitGuard())
+  const [updateJob] = useUpdateJobMutation()
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -115,7 +136,7 @@ export function JobPostingsPage() {
       : {}),
     ...(workMode !== ALL ? { workMode: workMode as JobWorkMode } : {}),
     ...(isActive === 'true' ? { isActive: true } : isActive === 'false' ? { isActive: false } : {}),
-    ...(departmentId.trim() ? { departmentId: departmentId.trim() } : {}),
+    ...(departmentId !== ALL ? { departmentId } : {}),
     sortBy: 'createdAt',
     sortOrder: 'desc',
   })
@@ -131,16 +152,40 @@ export function JobPostingsPage() {
   const totalPages = pagination?.totalPages ?? 0
 
   const openCreate = () => {
+    if (!canManage) return
     setFormMode('create')
     setEditJob(null)
     setFormOpen(true)
   }
 
   const openEdit = (job: BackendJob) => {
+    if (!canManage) return
     setFormMode('edit')
     setEditJob(job)
     setDetailId(null)
     setFormOpen(true)
+  }
+
+  const handlePublish = async (job: BackendJob) => {
+    if (!canManage || job.status === 'PUBLISHED') return
+    setPublishingId(job.id)
+    const outcome = await submitPublishJob({
+      id: job.id,
+      guard: publishGuard,
+      send: (arg) => updateJob(arg),
+    })
+    setPublishingId(null)
+    if (outcome.status === 'busy') return
+    if (outcome.status === 'success') {
+      setNotice({
+        tone: 'success',
+        text: `Published “${outcome.job.title}”. Eligible employees can now apply.`,
+      })
+      return
+    }
+    if (outcome.status === 'error') {
+      setNotice({ tone: 'error', text: outcome.message })
+    }
   }
 
   return (
@@ -262,15 +307,25 @@ export function JobPostingsPage() {
             <SelectItem value="false">Inactive</SelectItem>
           </SelectContent>
         </Select>
-        <Input
-          className="w-full lg:w-48"
-          placeholder="Department id"
+        <Select
           value={departmentId}
-          onChange={(e) => {
-            setDepartmentId(e.target.value)
+          onValueChange={(value) => {
+            setDepartmentId(value)
             setPage(1)
           }}
-        />
+        >
+          <SelectTrigger className="w-full lg:w-52">
+            <SelectValue placeholder="Department" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={ALL}>All departments</SelectItem>
+            {(departmentsQuery.data?.items ?? []).map((dept) => (
+              <SelectItem key={dept.id} value={dept.id}>
+                {dept.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       <div className="overflow-hidden rounded-2xl border border-border-soft bg-white shadow-sm">
@@ -303,42 +358,45 @@ export function JobPostingsPage() {
                 <TableHead className="hidden xl:table-cell">Openings</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="hidden md:table-cell">Posted</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead className="text-center">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {items.map((job) => (
                 <TableRow key={job.id}>
-                  <TableCell>
+                  <TableCell className="align-middle">
                     <p className="font-medium text-navy">{job.title}</p>
                     <p className="text-xs text-text-secondary">
                       {formatWorkMode(job.workMode)}
                       {!job.isActive ? ' · Inactive' : ''}
                     </p>
                   </TableCell>
-                  <TableCell className="hidden md:table-cell">
+                  <TableCell className="hidden align-middle md:table-cell">
                     {job.department?.name ?? job.departmentId ?? '—'}
                   </TableCell>
-                  <TableCell>{job.location}</TableCell>
-                  <TableCell className="hidden lg:table-cell">
+                  <TableCell className="align-middle">{job.location}</TableCell>
+                  <TableCell className="hidden align-middle lg:table-cell">
                     <Badge variant="secondary">{formatEmploymentType(job.employmentType)}</Badge>
                   </TableCell>
-                  <TableCell className="hidden sm:table-cell">
+                  <TableCell className="hidden align-middle sm:table-cell">
                     {formatExperience(job.minExperienceYears, job.maxExperienceYears)}
                   </TableCell>
-                  <TableCell className="hidden tabular-nums xl:table-cell">{job.openings}</TableCell>
-                  <TableCell>
+                  <TableCell className="hidden align-middle tabular-nums xl:table-cell">
+                    {job.openings}
+                  </TableCell>
+                  <TableCell className="align-middle">
                     <ApiJobStatusBadge status={job.status} />
                   </TableCell>
-                  <TableCell className="hidden md:table-cell">
+                  <TableCell className="hidden align-middle md:table-cell">
                     {formatPostedDate(job.createdAt)}
                   </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-1">
+                  <TableCell className="text-center align-middle">
+                    <div className="inline-flex items-center justify-center gap-1">
                       <Button
                         type="button"
                         size="sm"
                         variant="ghost"
+                        className="h-8 w-8 p-0"
                         title="View details"
                         onClick={() => setDetailId(job.id)}
                       >
@@ -348,6 +406,7 @@ export function JobPostingsPage() {
                         type="button"
                         size="sm"
                         variant="ghost"
+                        className="h-8 w-8 p-0"
                         title="Hiring desk"
                         asChild
                       >
@@ -356,22 +415,34 @@ export function JobPostingsPage() {
                         </Link>
                       </Button>
                       <Feature name="recruitment.manage">
+                        {job.status !== 'PUBLISHED' && job.isActive ? (
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="ghost"
+                            className="h-8 w-8 p-0 text-[#0F766E]"
+                            title="Publish (set status PUBLISHED)"
+                            disabled={publishingId === job.id}
+                            onClick={() => void handlePublish(job)}
+                          >
+                            <Send className="h-4 w-4" />
+                          </Button>
+                        ) : null}
                         <Button
                           type="button"
                           size="sm"
                           variant="ghost"
+                          className="h-8 w-8 p-0"
                           title="Edit"
                           onClick={() => openEdit(job)}
                         >
                           <Pencil className="h-4 w-4" />
                         </Button>
-                      </Feature>
-                      <Feature name="recruitment.manage">
                         <Button
                           type="button"
                           size="sm"
                           variant="ghost"
-                          className="text-red-600 hover:bg-red-50"
+                          className="h-8 w-8 p-0 text-red-600 hover:bg-red-50"
                           title="Deactivate"
                           onClick={() => setDeleteTarget(job)}
                         >
@@ -388,31 +459,15 @@ export function JobPostingsPage() {
       </div>
 
       {pagination && totalPages > 0 ? (
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm text-slate-600">
-          <span>
-            Page {pagination.page} of {totalPages} · {pagination.total} jobs
-          </span>
-          <div className="flex gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={page <= 1 || list.isFetching}
-              onClick={() => setPage((prev) => Math.max(1, prev - 1))}
-            >
-              Previous
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={page >= totalPages || list.isFetching}
-              onClick={() => setPage((prev) => prev + 1)}
-            >
-              Next
-            </Button>
-          </div>
-        </div>
+        <TablePagination
+          className="mt-4"
+          page={page}
+          totalPages={totalPages}
+          total={pagination.total}
+          itemLabel="jobs"
+          disabled={list.isFetching}
+          onPageChange={setPage}
+        />
       ) : null}
 
       <JobFormDialog

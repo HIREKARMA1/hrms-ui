@@ -4,27 +4,19 @@ import {
   isManagerExperience,
 } from '@/features/leave/constants/userRoles'
 
-import { DEMO_ACTOR_BY_ROLE } from '../constants/leadsDemoActor'
 import type { Lead } from '../types/lead'
 import { filterLeadsByScope } from './filterLeadsByScope'
 
-export function visibleLeadsForRole(leads: Lead[], role: UserRole): Lead[] {
-  const actorId = DEMO_ACTOR_BY_ROLE[role]
+export function visibleLeadsForRole(
+  leads: Lead[],
+  role: UserRole,
+  actorEmployeeId: string,
+): Lead[] {
   if (isEmployeeExperience(role)) {
-    return filterLeadsByScope(leads, 'my', actorId)
+    return filterLeadsByScope(leads, 'my', actorEmployeeId)
   }
   if (isManagerExperience(role)) {
-    const seen = new Set<string>()
-    const merged: Lead[] = []
-    for (const item of [
-      ...filterLeadsByScope(leads, 'team', actorId),
-      ...filterLeadsByScope(leads, 'my', actorId),
-    ]) {
-      if (seen.has(item.id)) continue
-      seen.add(item.id)
-      merged.push(item)
-    }
-    return merged
+    return filterLeadsByScope(leads, 'team', actorEmployeeId)
   }
   return leads
 }

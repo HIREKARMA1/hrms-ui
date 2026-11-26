@@ -1,10 +1,12 @@
 /**
- * Leads Management — Admin, Super Admin, HR (Manager), and Employee panels.
+ * Leads Management — Admin, Super Admin, Manager, and Employee panels.
  */
 
 import { useMemo, useState } from 'react'
 
+import { useAuthenticatedUser } from '@/features/auth/hooks/useAuthenticatedUser'
 import {
+  isEmployeeExperience,
   isHrAdminExperience,
   isManagerExperience,
   isSuperAdminExperience,
@@ -20,7 +22,6 @@ import { ScopedLeadsListTab } from '../components/list/ScopedLeadsListTab'
 import { LeadsOverviewTab } from '../components/overview/LeadsOverviewTab'
 import { LeadsPageHeader } from '../components/LeadsPageHeader'
 import { LeadsPipelineTab } from '../components/pipeline/LeadsPipelineTab'
-import { DEMO_ACTOR_BY_ROLE } from '../constants/leadsDemoActor'
 import { LeadsProvider } from '../context/LeadsProvider'
 import { useLeads } from '../hooks/useLeads'
 import { useLeadsRoute } from '../hooks/useLeadsRoute'
@@ -30,6 +31,7 @@ import { visibleLeadsForRole } from '../utils/visibleLeadsForRole'
 
 function LeadsPagePanels() {
   const session = useRbacSession()
+  const { user } = useAuthenticatedUser()
   const role = (session.roleCode ?? 'HR_ADMIN') as UserRole
   const { activeTab, goToTab } = useLeadsRoute(role)
   const { loading, error, reload, leads, selectedLeadId, setSelectedLeadId, deleteLead } = useLeads()
@@ -37,6 +39,8 @@ function LeadsPagePanels() {
     canEditLead,
     canDeleteLeads,
     canCreateLeads,
+    canAssignLeads,
+    actorId,
   } = useLeadsScope(role, 'org')
   const [formState, setFormState] = useState<{
     open: boolean
@@ -44,8 +48,10 @@ function LeadsPagePanels() {
     lead: Lead | null
   }>({ open: false, mode: 'create', lead: null })
 
-  const actorId = DEMO_ACTOR_BY_ROLE[role]
-  const visibleLeads = useMemo(() => visibleLeadsForRole(leads, role), [leads, role])
+  const visibleLeads = useMemo(
+    () => visibleLeadsForRole(leads, role, user?.employeeId ?? actorId),
+    [leads, role, user?.employeeId, actorId],
+  )
 
   const selectedLead = visibleLeads.find((item) => item.id === selectedLeadId) ?? null
 
@@ -69,13 +75,17 @@ function LeadsPagePanels() {
 
   async function handleDelete() {
     if (!selectedLead || !canDeleteLeads) return
-    if (!window.confirm(`Delete lead ${selectedLead.id}?`)) return
+    if (!window.confirm(`Delete lead ${selectedLead.leadName}?`)) return
     await deleteLead(selectedLead.id)
     setSelectedLeadId(null)
   }
 
   const showAdminPanels = isHrAdminExperience(role) || isSuperAdminExperience(role)
   const showManagerPanels = isManagerExperience(role)
+  const defaultAssignee =
+    isManagerExperience(role) || isEmployeeExperience(role)
+      ? user?.employeeId ?? (actorId || undefined)
+      : undefined
 
   return (
     <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-4">
@@ -112,6 +122,7 @@ function LeadsPagePanels() {
             onOpenEdit={openEdit}
             canEditLead={canEditLead}
             canDeleteLeads={canDeleteLeads}
+            canAssignLeads={canAssignLeads}
           />
         ) : null}
         {activeTab === 'My Leads' ? (
@@ -154,7 +165,7 @@ function LeadsPagePanels() {
           onOpenChange={(open) => setFormState((state) => ({ ...state, open }))}
           mode={formState.mode}
           initial={formState.lead}
-          defaultAssigneeId={isManagerExperience(role) ? actorId : undefined}
+          defaultAssigneeId={defaultAssignee}
           onSaved={(saved) => setSelectedLeadId(saved.id)}
         />
       ) : null}

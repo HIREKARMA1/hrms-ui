@@ -6,13 +6,25 @@
  * (exposed as `roleCount`, parallel to `userCount` / `permissionCount` on roles).
  */
 
+export type PermissionRelatedRole = {
+  id: string
+  code: string
+  name: string
+}
+
 export type BackendPermission = {
   id: string
   code: string
   module: string
   description: string | null
+  createdAt: string
+  updatedAt: string
   roleCount: number
+  relatedRoles: PermissionRelatedRole[]
 }
+
+/** Alias used by permission management mappers. */
+export type PermissionResponse = BackendPermission
 
 export type PermissionsPagination = {
   page: number
