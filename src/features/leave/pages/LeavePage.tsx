@@ -29,7 +29,12 @@ import { useLeaveRoute } from '../hooks/useLeaveRoute'
 
 import { useLeaveViewer } from '../hooks/useLeaveViewer'
 
-import { isHrAdminExperience, isManagerExperience, isSuperAdminExperience } from '../constants/userRoles'
+import {
+  isEmployeeExperience,
+  isHrAdminExperience,
+  isManagerExperience,
+  isSuperAdminExperience,
+} from '../constants/userRoles'
 import { resolveCalendarScope } from '../utils/resolveCalendarScope'
 
 import { consumeLeaveSettingsGuard } from '../hooks/leaveSettingsUnsavedBridge'
@@ -51,6 +56,7 @@ import { LeaveToastProvider } from '../components/LeaveToastProvider'
 import { MyLeaveTab } from '../components/myLeave/MyLeaveTab'
 
 import { ApprovalsTab } from '../components/approvals/ApprovalsTab'
+import { EmployeeApprovalsTab } from '../components/approvals/EmployeeApprovalsTab'
 
 import { CalendarTab } from '../components/calendar/CalendarTab'
 
@@ -224,6 +230,8 @@ function LeavePagePanels() {
             {activeTab === 'My Leave' ? <MyLeaveTab viewer={viewer} /> : null}
 
             {isManagerExperience(role) && activeTab === 'Approvals' ? <ApprovalsTab viewer={viewer} /> : null}
+
+            {isEmployeeExperience(role) && activeTab === 'Approvals' ? <EmployeeApprovalsTab viewer={viewer} /> : null}
 
             {activeTab === 'Calendar' ? (
               <CalendarTab

@@ -2,7 +2,7 @@
  * Manager Approvals: leave, encashment, and comp-off queues for direct reports.
  */
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -15,12 +15,15 @@ import type { LeaveViewer } from '../../types/viewer'
 import type { LeaveRequest } from '../../types/leaveRequest'
 import { LeaveTabHeader } from '../LeaveTabHeader'
 import { LeaveEmployeeLinkNotice } from '../shared/LeaveEmployeeLinkNotice'
+import { WorkflowApproverQueueNotice } from '../shared/WorkflowApproverQueueNotice'
+import { LeaveErrorState } from '../LeaveErrorState'
 import { LEAVE_SECONDARY_BUTTON } from '../shared/leaveUi'
 import { LeaveSegmentedControl } from '../shared/LeaveSegmentedControl'
 import { ApprovalsCompOffTable } from './ApprovalsCompOffTable'
 import { ApprovalsEncashmentTable } from './ApprovalsEncashmentTable'
 import { ApprovalsLeaveTable } from './ApprovalsLeaveTable'
 import { ApprovalsManagerOverview } from './ApprovalsManagerOverview'
+import { canUserActOnLeaveRequest, mergeLeaveRequestForWorkflowAction } from '../../utils/leaveWorkflowApproval'
 import { ApprovalsTabDialogs } from './ApprovalsTabDialogs'
 
 type ApprovalsTabProps = { viewer: LeaveViewer }
@@ -48,8 +51,19 @@ export function ApprovalsTab({ viewer }: ApprovalsTabProps) {
   const [action, setAction] = useState<{ mode: 'approve' | 'reject'; request: LeaveRequest } | null>(null)
   const [busyId, setBusyId] = useState<string | null>(null)
 
+  const actionableLeaveIds = useMemo(
+    () => new Set(queues.pendingLeave.map((row) => row.id)),
+    [queues.pendingLeave],
+  )
+
   if (!snapshot) return null
+  const { requests: snapshotRequests } = snapshot
   const nameFor = (id: string) => snapshot.employees.find((item) => item.id === id)?.name ?? id
+  const detailCanAct = detail ? canUserActOnLeaveRequest(detail, actionableLeaveIds) : false
+
+  function workflowRequest(row: LeaveRequest): LeaveRequest {
+    return mergeLeaveRequestForWorkflowAction(row, snapshotRequests)
+  }
 
   async function confirmLeave(comment: string) {
     if (!action) return
@@ -80,10 +94,18 @@ export function ApprovalsTab({ viewer }: ApprovalsTabProps) {
       />
       {viewer.employeeId ? (
         <ApprovalsManagerOverview snapshot={snapshot} managerId={viewer.employeeId} />
+      ) : queues.skippedNoEmployeeLink ? (
+        <WorkflowApproverQueueNotice />
       ) : (
         <LeaveEmployeeLinkNotice />
       )}
       <LeaveSegmentedControl options={segments} value={segment} onChange={setSegment} ariaLabel="Approval queues" />
+      {segment === 'leave' && queues.pendingLeaveError ? (
+        <LeaveErrorState message={queues.pendingLeaveError} onRetry={queues.refetchPendingLeave} />
+      ) : null}
+      {segment === 'leave' && queues.pendingLeaveLoading ? (
+        <p className="text-xs text-hrms-text-muted">Loading your approval queue…</p>
+      ) : null}
       {segment === 'leave' ? (
         <ApprovalsLeaveTable
           rows={queues.pendingLeave}
@@ -91,11 +113,11 @@ export function ApprovalsTab({ viewer }: ApprovalsTabProps) {
           onView={setDetail}
           onApprove={(id) => {
             const row = queues.pendingLeave.find((item) => item.id === id)
-            if (row) setAction({ mode: 'approve', request: row })
+            if (row) setAction({ mode: 'approve', request: workflowRequest(row) })
           }}
           onReject={(id) => {
             const row = queues.pendingLeave.find((item) => item.id === id)
-            if (row) setAction({ mode: 'reject', request: row })
+            if (row) setAction({ mode: 'reject', request: workflowRequest(row) })
           }}
           busyId={busyId}
         />
@@ -129,9 +151,11 @@ export function ApprovalsTab({ viewer }: ApprovalsTabProps) {
         setAction={setAction}
         busy={Boolean(busyId)}
         viewerCanAct={permissions.canApprove}
+        detailCanAct={detailCanAct}
         onConfirmAction={(comment) => void confirmLeave(comment)}
-        onApproveFromDetail={() => detail && setAction({ mode: 'approve', request: detail })}
-        onRejectFromDetail={() => detail && setAction({ mode: 'reject', request: detail })}
+        onApproveFromDetail={() => detail && setAction({ mode: 'approve', request: workflowRequest(detail) })}
+        onRejectFromDetail={() => detail && setAction({ mode: 'reject', request: workflowRequest(detail) })}
+        useLiveRequestDetail={Boolean(snapshot.api)}
       />
     </div>
   )

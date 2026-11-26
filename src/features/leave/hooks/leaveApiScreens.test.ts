@@ -9,7 +9,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { Provider } from 'react-redux'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { authReducer } from '@/features/auth/store/authSlice'
+import { authReducer, setCredentials } from '@/features/auth/store/authSlice'
 import { RbacContext } from '@/features/rbac/context/rbacContext'
 import { canAccessFeature, FEATURE_PERMISSION_MAP } from '@/features/rbac/services/permissionAdapter'
 import type { FeatureAccessKey } from '@/features/rbac/types/features'
@@ -26,6 +26,8 @@ import { CalendarTab } from '../components/calendar/CalendarTab'
 import { HrRequestsTab } from '../components/hrRequests/HrRequestsTab'
 import { MyLeaveTab } from '../components/myLeave/MyLeaveTab'
 import { ApiLeaveSettingsTab } from '../components/settings/ApiLeaveSettingsTab'
+import { canUserActOnLeaveRequest, leaveWorkflowApprovalNotice } from '../utils/leaveWorkflowApproval'
+import { mapPendingApprovalItem } from '../utils/mapApiLeaveRequest'
 import { LeaveContext } from '../context/leaveContext'
 import { LeaveToastContext } from '../context/leaveToastContext'
 import { buildApiLeaveSnapshot, resolveLeaveApiAccess, type LeaveApiAccess } from '../services/leaveApiSnapshot'
@@ -122,7 +124,22 @@ const HR_VIEWER: LeaveViewer = {
 
 function render(node: ReactNode, options: { features?: FeatureAccessKey[]; snapshot?: LeaveSnapshot | null; store?: ReturnType<typeof makeStore> } = {}) {
   const store = options.store ?? makeStore()
-  const session = { userId: 'user-hr', displayName: 'Hema HR', email: 'hr@example.test', roleCode: 'HR_ADMIN', roleName: 'HR Admin', permissions: permissionsFor(options.features ?? []) } as unknown as AuthSession
+  const permissionCodes = permissionsFor(options.features ?? [])
+  store.dispatch(
+    setCredentials({
+      accessToken: 'access-1',
+      refreshToken: 'refresh-1',
+      user: {
+        id: 'user-hr',
+        email: 'hr@example.test',
+        role: 'HR_ADMIN',
+        roles: ['HR_ADMIN'],
+        permissions: permissionCodes,
+        isActive: true,
+      },
+    }),
+  )
+  const session = { userId: 'user-hr', displayName: 'Hema HR', email: 'hr@example.test', roleCode: 'HR_ADMIN', roleName: 'HR Admin', permissions: permissionCodes } as unknown as AuthSession
   const withLeave = createElement(LeaveContext.Provider, {
     value: { loading: false, error: null, snapshot: options.snapshot ?? null, reload: async () => {} },
     children: createElement(LeaveToastContext.Provider, { value: { showToast: () => {} }, children: node }),
@@ -282,13 +299,16 @@ describe('server leave actions', () => {
     expect(result).toEqual({ ok: false, message: 'Overlapping leave request exists for this date range' })
   })
 
-  it('blocks approve/reject on multi-level workflow requests without calling the API', async () => {
-    const calls = stubFetch(() => jsonResponse(200, envelope(backendLeave())))
+  it('routes multi-level workflow approve/reject to leave-approval', async () => {
+    const calls = stubFetch(() => jsonResponse(200, envelope(backendLeave({ status: 'APPROVED' }))))
     const workflow = mapLeaveRequest(backendLeave({ workflowId: 'wf-1', currentLevel: 1 }))!
     const actions = captureActions()
-    expect(await actions.approve(workflow)).toEqual({ ok: false, message: MULTI_LEVEL_WORKFLOW_MESSAGE })
-    expect(await actions.reject(workflow, 'No')).toEqual({ ok: false, message: MULTI_LEVEL_WORKFLOW_MESSAGE })
-    expect(calls).toHaveLength(0)
+    expect(await actions.approve(workflow, 'Looks good')).toEqual({ ok: true })
+    expect(await actions.reject(workflow, 'No')).toEqual({ ok: true })
+    expect(calls).toHaveLength(2)
+    expect(new URL(calls[0].url).pathname).toContain('/leave-approval/lv-1/approve')
+    expect(new URL(calls[1].url).pathname).toContain('/leave-approval/lv-1/reject')
+    expect(JSON.parse(await calls[0].text())).toEqual({ note: 'Looks good' })
   })
 
   it('sends the trimmed review note and cancel reason', async () => {
@@ -308,6 +328,36 @@ describe('server leave actions', () => {
     )
     const result = await captureActions().approve(mapLeaveRequest(backendLeave())!)
     expect(result).toEqual({ ok: false, message: MULTI_LEVEL_WORKFLOW_MESSAGE })
+  })
+
+  it('does not call POST /leaves/:id/approve when multiLevelWorkflow is set', async () => {
+    const calls = stubFetch(() => jsonResponse(200, envelope(backendLeave({ status: 'APPROVED' }))))
+    const workflow = mapLeaveRequest(backendLeave({ workflowId: 'wf-1', currentLevel: 1 }))!
+    await captureActions().approve(workflow)
+    expect(calls).toHaveLength(1)
+    expect(new URL(calls[0].url).pathname).not.toMatch(/\/leaves\/[^/]+\/approve$/)
+    expect(new URL(calls[0].url).pathname).toContain('/leave-approval/')
+  })
+
+  it('routes approve for GET pending mapped workflow rows', async () => {
+    const calls = stubFetch(() => jsonResponse(200, envelope(backendLeave({ status: 'APPROVED' }))))
+    const pendingRow = mapPendingApprovalItem({
+      id: 'lv-1',
+      employeeId: 'emp-1',
+      leaveTypeId: 'lt-cl',
+      startDate: '2026-11-23',
+      endDate: '2026-11-24',
+      status: 'PENDING',
+      totalDays: 2,
+      workflowId: 'wf-1',
+      currentLevel: 1,
+      leaveType: { id: 'lt-cl', code: 'CL' },
+      createdAt: '2026-11-20T05:00:00.000Z',
+    })
+    expect(pendingRow.multiLevelWorkflow).toBe(true)
+    const actions = captureActions()
+    expect(await actions.approve(pendingRow)).toEqual({ ok: true })
+    expect(new URL(calls[0].url).pathname).toContain('/leave-approval/lv-1/approve')
   })
 
   it('returns entitled days after an adjustment and summaries after runs', async () => {
@@ -449,12 +499,30 @@ describe('server-mode screens', () => {
     expect(listed).toContain('Asha Rao')
   })
 
-  it('renders server leave types read-only', () => {
+  it('renders server leave types on settings', () => {
     const html = render(createElement(ApiLeaveSettingsTab), { features: ['leave.types'], snapshot: serverSnapshot() })
-    expect(html).toContain('These settings are read-only here.')
+    expect(html).toContain('Leave types and approval workflows are saved to the server')
     expect(html).toContain('Casual Leave')
     expect(html).toContain('Illness')
     expect(html).not.toContain('Entitlement defaults')
+    expect(html).not.toContain('Approval workflows')
+  })
+
+  it('shows approval workflows when leave list read is allowed', () => {
+    const html = render(createElement(ApiLeaveSettingsTab), {
+      features: ['leave.types', 'leave.requests', 'leave.approve'],
+      snapshot: serverSnapshot(),
+    })
+    expect(html).toContain('Approval workflows')
+  })
+
+  it('builds workflow detail copy and queue membership for approvers', () => {
+    const request = mapLeaveRequest(backendLeave({ workflowId: 'wf-1', currentLevel: 1 }))!
+    const inQueue = new Set([request.id])
+    expect(canUserActOnLeaveRequest(request, inQueue)).toBe(true)
+    expect(canUserActOnLeaveRequest(request, new Set())).toBe(false)
+    expect(leaveWorkflowApprovalNotice(request, true)?.message).toContain('multi-level approval workflow')
+    expect(leaveWorkflowApprovalNotice(request, false)?.message).toContain('not assigned to you')
   })
 })
 

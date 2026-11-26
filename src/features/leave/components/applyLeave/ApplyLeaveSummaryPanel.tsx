@@ -41,7 +41,7 @@ export function ApplyLeaveSummaryPanel({
   const pct = showBar ? Math.max(0, Math.min(100, (balanceAfter / balanceBefore) * 100)) : 0
 
   return (
-    <aside className="flex h-full flex-col rounded-xl bg-hrms-lavender/40 p-4">
+    <aside className="flex h-full min-h-[12rem] flex-col rounded-xl border border-hrms-border/50 bg-hrms-lavender/35 p-4 lg:min-h-0">
       <ApplyLeaveSectionTitle>Preview</ApplyLeaveSectionTitle>
       <p className="mt-2 text-xs text-hrms-text-secondary">
         {ready ? 'Review days and balance before submitting.' : 'Select leave type and dates to see impact.'}

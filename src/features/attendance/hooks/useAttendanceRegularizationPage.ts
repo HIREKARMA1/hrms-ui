@@ -53,12 +53,12 @@ export function useAttendanceRegularizationPage() {
             : 'Employee ID is required.',
         }
       }
-      if (!values.type) return { ok: false as const, message: 'Type is required.' }
+      if (!values.type.trim()) return { ok: false as const, message: 'Type is required.' }
       try {
         await createRegularization({
           employeeId,
           body: {
-            type: values.type,
+            type: values.type.trim(),
             dates: [values.attendanceDate],
             reason: values.reason.trim(),
           },

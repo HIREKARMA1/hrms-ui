@@ -16,7 +16,7 @@ export type ApiEmployeeLeavePolicyHrOverviewItem = {
   employeeName?: string
   employeeCode?: string
   departmentId?: string
-  department?: string
+  department?: string | { id?: string; name?: string; title?: string }
   departmentName?: string
   employee?: {
     id?: string
@@ -25,7 +25,7 @@ export type ApiEmployeeLeavePolicyHrOverviewItem = {
     firstName?: string
     lastName?: string
     fullName?: string
-    department?: string
+    department?: string | { id?: string; name?: string; title?: string }
     departmentName?: string
   }
   balances?: ApiEmployeeLeaveBalanceRow[]
@@ -45,6 +45,7 @@ export type EmployeeLeavePolicyHrOverviewData = {
 export type HrOverviewBalanceTableRow = {
   employeeId: string
   employeeName: string
+  employeeCode?: string
   departmentName: string
   /** leave type code (uppercase) → available balance */
   balancesByCode: Record<string, number>

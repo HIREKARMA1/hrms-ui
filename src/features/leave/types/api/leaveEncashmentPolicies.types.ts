@@ -8,18 +8,24 @@ export type ApiLeaveEncashmentPolicyItem = {
     code?: string
     name?: string
   }
+  /** Live API (`EncashmentPolicyResponse`). */
+  ratePerDay?: number
+  currency?: string
+  minDays?: number
+  maxDaysPerRequest?: number
+  maxDaysPerYear?: number | null
+  effectiveFrom?: string
+  effectiveTo?: string | null
+  /** Legacy / alternate response shapes. */
   minimumBalanceDays?: number
   minBalanceDays?: number
   minBalanceAfterEncashment?: number
   maximumDaysPerYear?: number
-  maxDaysPerYear?: number
   maxEncashmentDaysPerYear?: number
   encashable?: boolean
   allowEncashment?: boolean
   enabled?: boolean
   isActive?: boolean
-  effectiveFrom?: string
-  effectiveTo?: string | null
 }
 
 export type LeaveEncashmentPoliciesData = {
@@ -30,8 +36,10 @@ export type EncashmentPolicyTableRow = {
   id: string
   leaveTypeCode: string
   leaveTypeName: string
-  minBalance: string
+  ratePerDay: string
+  minDays: string
+  maxPerRequest: string
   maxPerYear: string
-  allowed: string
+  effective: string
   active: boolean
 }

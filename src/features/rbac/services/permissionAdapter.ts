@@ -124,7 +124,7 @@ export const FEATURE_PERMISSION_MAP: Partial<
   'leave.types': 'leave_types:read',
   // GET /employee-leave-policies (employee leave policy / balances dashboard)
   'leave.balances': 'employee_leave_policies:read',
-  // GET /leave-policies/accrual, POST /leave-policies/accrual/run
+  // GET /leave-policies/accrual, POST …/accrual and POST …/accrual/run
   'leave.accruals': 'leave_policies:read',
   'leave.accruals.run': 'leave_policies:run',
   // POST /leaves, /leaves/:id/cancel, /leaves/:id/approve|reject

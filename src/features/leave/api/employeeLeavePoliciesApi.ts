@@ -31,6 +31,10 @@ import type {
   EmployeeLeavePolicyListData,
   EmployeeLeavePolicyListQuery,
 } from '../types/api/employeeLeavePolicyList.types'
+import type {
+  AssignEmployeeLeaveDefaultsBody,
+  AssignEmployeeLeavePolicyBody,
+} from '../types/api/employeeLeavePolicyMutations.types'
 
 
 
@@ -266,6 +270,18 @@ function normalizeEmployeeLeavePolicyDashboard(raw: unknown): ApiEmployeeLeavePo
   return {}
 }
 
+function employeePolicyInvalidates(employeeId: string) {
+  return [
+    { type: 'Leave' as const, id: 'EMPLOYEE-POLICY-LIST' },
+    { type: 'Leave' as const, id: 'EMPLOYEE-POLICY-HR-OVERVIEW' },
+    { type: 'Leave' as const, id: 'EMPLOYEE-POLICY-DASHBOARD' },
+    { type: 'Leave' as const, id: `EMPLOYEE-DASHBOARD-${employeeId}` },
+    { type: 'Leave' as const, id: `EMPLOYEE-POLICY-${employeeId}` },
+    { type: 'Leave' as const, id: 'BALANCE' },
+    { type: 'Leave' as const, id: 'LIST' },
+  ]
+}
+
 export const employeeLeavePoliciesApi = baseApi.injectEndpoints({
 
   endpoints: (build) => ({
@@ -387,6 +403,24 @@ export const employeeLeavePoliciesApi = baseApi.injectEndpoints({
       ],
     }),
 
+  /** POST /employee-leave-policies — assign or update an employee leave policy. */
+  assignEmployeeLeavePolicy: build.mutation<ApiEmployeeLeavePolicyItem, AssignEmployeeLeavePolicyBody>({
+    query: (body) => ({ url: '/employee-leave-policies', method: 'POST', body }),
+    transformResponse: (response: ApiResponse<unknown>) => {
+      const raw = unwrapData(response)
+      if (raw && typeof raw === 'object') return raw as ApiEmployeeLeavePolicyItem
+      return {}
+    },
+    invalidatesTags: (_result, _error, arg) => employeePolicyInvalidates(arg.employeeId),
+  }),
+
+  /** POST /employee-leave-policies/assign-defaults */
+  assignEmployeeLeaveDefaults: build.mutation<unknown, AssignEmployeeLeaveDefaultsBody>({
+    query: (body) => ({ url: '/employee-leave-policies/assign-defaults', method: 'POST', body }),
+    transformResponse: (response: ApiResponse<unknown>) => unwrapData(response),
+    invalidatesTags: (_result, _error, arg) => employeePolicyInvalidates(arg.employeeId),
+  }),
+
   }),
 
 })
@@ -401,4 +435,6 @@ export const {
 
   useGetEmployeeLeavePoliciesQuery,
   useGetEmployeeLeavePolicyDashboardQuery,
+  useAssignEmployeeLeavePolicyMutation,
+  useAssignEmployeeLeaveDefaultsMutation,
 } = employeeLeavePoliciesApi

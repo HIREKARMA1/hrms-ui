@@ -4,12 +4,14 @@
 
 import * as Dialog from '@radix-ui/react-dialog'
 import { FileText } from 'lucide-react'
+import { useMemo } from 'react'
 
 import { Button } from '@/components/ui/button'
 import { getApiErrorMessage } from '@/services/api/errors'
 
-import { useGetLeaveApprovalHistoryQuery } from '../../api/leaveApprovalApi'
+import { useGetApprovalWorkflowsQuery, useGetLeaveApprovalHistoryQuery } from '../../api/leaveApprovalApi'
 import { useGetLeaveQuery } from '../../api/leaveApi'
+import { useLeave } from '../../hooks/useLeave'
 import { useShouldFetchLeaveList } from '../../hooks/useShouldFetchLeaveList'
 import type { LeaveRequest } from '../../types/leaveRequest'
 import { formatDate } from '../../utils/formatDate'
@@ -25,6 +27,8 @@ import {
   LeaveDialogRoot,
 } from '../shared/LeaveDialog'
 import { LEAVE_SECONDARY_BUTTON } from '../shared/leaveUi'
+import { leaveWorkflowApprovalNotice } from '../../utils/leaveWorkflowApproval'
+import { findActiveWorkflowForLeaveType, workflowSelfApprovalRequestNotice } from '../../utils/workflowSelfApproval'
 import { RequestDetailSummary } from './RequestDetailSummary'
 
 type RequestDetailDialogProps = {
@@ -59,6 +63,8 @@ export function RequestDetailDialog({
   useLiveApi = false,
   useLiveApprovalHistory = false,
 }: RequestDetailDialogProps) {
+  const { snapshot } = useLeave()
+  const employees = snapshot?.employees ?? []
   const canFetchLeaves = useShouldFetchLeaveList()
   const shouldFetchDetail = Boolean(open && useLiveApi && canFetchLeaves && request?.id)
   const shouldFetchHistory = Boolean(
@@ -78,8 +84,24 @@ export function RequestDetailDialog({
     isFetching: historyFetching,
   } = useGetLeaveApprovalHistoryQuery(requestId, { skip: !shouldFetchHistory })
 
+  const shouldFetchWorkflows = Boolean(
+    open &&
+      canFetchLeaves &&
+      useLiveApi &&
+      request?.status === 'Pending' &&
+      request.multiLevelWorkflow,
+  )
+  const { data: workflowList } = useGetApprovalWorkflowsQuery(undefined, {
+    skip: !shouldFetchWorkflows,
+  })
+
   const displayRequest =
     shouldFetchDetail && liveRequest && !detailIsError ? liveRequest : request
+
+  const workflowForRequest = useMemo(() => {
+    if (!displayRequest) return null
+    return findActiveWorkflowForLeaveType(workflowList, displayRequest.leaveTypeCode, [], employees)
+  }, [displayRequest, employees, workflowList])
 
   if (!displayRequest) return null
 
@@ -100,7 +122,17 @@ export function RequestDetailDialog({
 
   const title = employeeName ?? 'Request details'
   const subtitle = requestSubtitle(displayRequest, employeeName)
-  const showActions = Boolean((canApprove && onApprove) || (canReject && onReject))
+  const viewerCanAct = Boolean((canApprove || canReject) && (onApprove || onReject))
+  const selfApprovalNotice = workflowSelfApprovalRequestNotice(
+    displayRequest,
+    workflowForRequest,
+    employeeName,
+  )
+  const workflowNotice =
+    selfApprovalNotice ?? leaveWorkflowApprovalNotice(displayRequest, viewerCanAct)
+  const blockedSelfApproval = Boolean(selfApprovalNotice)
+  const showActions =
+    !blockedSelfApproval && Boolean((canApprove && onApprove) || (canReject && onReject))
 
   return (
     <LeaveDialogRoot open={open} onOpenChange={onOpenChange}>
@@ -134,6 +166,20 @@ export function RequestDetailDialog({
           ) : null}
           {historyFetching && shouldFetchHistory ? (
             <p className="text-xs text-hrms-text-muted">Loading approval history…</p>
+          ) : null}
+          {workflowNotice ? (
+            <p
+              className={
+                workflowNotice.tone === 'warning'
+                  ? 'rounded-lg border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-900'
+                  : workflowNotice.tone === 'info'
+                    ? 'rounded-lg border border-hrms-primary/20 bg-hrms-primary/5 px-4 py-2 text-sm text-hrms-navy'
+                    : 'rounded-lg border border-hrms-border bg-hrms-muted-bg/60 px-4 py-2 text-sm text-hrms-text-secondary'
+              }
+              role={workflowNotice.tone === 'warning' ? 'alert' : 'status'}
+            >
+              {workflowNotice.message}
+            </p>
           ) : null}
           <RequestDetailSummary
             request={displayRequest}
