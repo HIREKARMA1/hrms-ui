@@ -137,8 +137,8 @@ export function LeadFormDialog({
   }
 
   async function handleSubmit() {
-    if (!draft.leadName.trim() || !draft.email.trim() || !draft.phone.trim()) {
-      setError('Full name, email, and phone are required.')
+    if (!draft.email.trim() || !draft.phone.trim()) {
+      setError('Email and phone are required.')
       return
     }
     if (!draft.sourceId.trim()) {
@@ -148,9 +148,27 @@ export function LeadFormDialog({
     setSaving(true)
     setError(null)
     try {
+      // Owner defaults to the signed-in employee profile; assign permission can override.
+      const ownerEmployeeId =
+        draft.assignedEmployeeId ??
+        defaultAssigneeId ??
+        user?.employeeId ??
+        null
+      // No contact full-name field — keep stored name aligned with company (server fallback).
+      // Owner name always comes from the employee profile, not this form.
+      const draftForSave: LeadInput = {
+        ...draft,
+        leadName: draft.companyName.trim() || draft.leadName.trim(),
+      }
       const payload: LeadInput = canAssign
-        ? draft
-        : { ...draft, assignedEmployeeId: initial?.assignedEmployeeId ?? null }
+        ? { ...draftForSave, assignedEmployeeId: ownerEmployeeId }
+        : {
+            ...draftForSave,
+            assignedEmployeeId:
+              mode === 'create'
+                ? user?.employeeId ?? null
+                : (initial?.assignedEmployeeId ?? null),
+          }
       const saved =
         mode === 'edit' && initial
           ? await updateLead(initial.id, payload)
@@ -175,7 +193,7 @@ export function LeadFormDialog({
           <div className={LEADS_DIALOG_HEADER_BAND}>
             <PayrollDialogHeader
               title={mode === 'create' ? 'Create lead' : `Edit lead — ${initial?.id ?? ''}`}
-              description="Contact details, source, and priority. Status and assignment use dedicated API actions."
+              description="Company and contact details. Owner is taken from your employee profile."
             />
           </div>
           <PayrollDialogBody className="space-y-4">
@@ -185,18 +203,12 @@ export function LeadFormDialog({
               </p>
             ) : null}
             {error ? <p className="text-sm text-hrms-danger">{error}</p> : null}
-            <Field label="Full name" id="lead-name">
-              <Input
-                id="lead-name"
-                value={draft.leadName}
-                onChange={(e) => patch('leadName', e.target.value)}
-              />
-            </Field>
             <Field label="Company name" id="company-name">
               <Input
                 id="company-name"
                 value={draft.companyName}
                 onChange={(e) => patch('companyName', e.target.value)}
+                autoFocus
               />
             </Field>
             <div className="grid gap-3 sm:grid-cols-2">
@@ -278,11 +290,15 @@ export function LeadFormDialog({
               <Field label="Estimated value" id="estimated-value">
                 <Input
                   id="estimated-value"
-                  type="number"
-                  min={0}
-                  step="0.01"
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  placeholder="Whole number only"
                   value={draft.estimatedValue ?? ''}
-                  onChange={(e) => patch('estimatedValue', e.target.value || null)}
+                  onChange={(e) => {
+                    const digits = e.target.value.replace(/\D/g, '')
+                    patch('estimatedValue', digits || null)
+                  }}
                 />
               </Field>
               <Field label="Attachment URL" id="attachment-url">

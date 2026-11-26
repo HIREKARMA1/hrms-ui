@@ -120,7 +120,7 @@ export function AssignLeadDialog({ lead, open, onOpenChange }: AssignLeadDialogP
               title="Assign lead"
               description={
                 lead
-                  ? `Choose an owner for ${lead.leadName}.`
+                  ? `Choose an owner for ${lead.companyName.trim() || lead.leadName}.`
                   : 'Choose an employee to own this lead.'
               }
             />

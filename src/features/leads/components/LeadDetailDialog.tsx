@@ -16,6 +16,7 @@ import { LEAD_PRIORITIES, LEAD_STATUSES } from '../constants/leadOptions'
 import { useLeads } from '../hooks/useLeads'
 import type { Lead, LeadPriority, LeadStatus } from '../types/lead'
 import { formatLeadDate } from '../utils/formatLeadDate'
+import { leadCompanyLabel } from '../utils/leadDisplay'
 import { LeadPriorityPill } from './LeadPriorityPill'
 import { LeadStatusPill } from './LeadStatusPill'
 import {
@@ -195,8 +196,8 @@ export function LeadDetailDialog({
         >
           <div className={LEADS_DIALOG_HEADER_BAND}>
             <PayrollDialogHeader
-              title={detail.leadName}
-              description={`${detail.id} · ${detail.companyName || 'No company'}`}
+              title={leadCompanyLabel(detail)}
+              description={detail.id}
             >
               <div className="mt-2 flex flex-wrap gap-2">
                 <LeadStatusPill status={detail.status} />

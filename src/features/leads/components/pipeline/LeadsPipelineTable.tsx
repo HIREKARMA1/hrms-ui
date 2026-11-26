@@ -2,6 +2,7 @@ import { cn } from '@/lib/utils'
 
 import type { Lead, LeadStatus } from '../../types/lead'
 import { formatLeadAge } from '../../utils/formatLeadAge'
+import { leadCompanyLabel } from '../../utils/leadDisplay'
 import { LeadPriorityPill } from '../LeadPriorityPill'
 import { LeadStatusPill } from '../LeadStatusPill'
 import {
@@ -54,7 +55,7 @@ export function LeadsPipelineTable({
         <thead className={LEADS_TABLE_THEAD}>
           <tr>
             <th className="px-4 py-3 font-medium">Lead ID</th>
-            <th className="px-4 py-3 font-medium">Lead / company</th>
+            <th className="px-4 py-3 font-medium">Company</th>
             <th className="px-4 py-3 font-medium">Contact</th>
             <th className="px-4 py-3 font-medium">Status</th>
             <th className="px-4 py-3 font-medium">Priority</th>
@@ -73,12 +74,11 @@ export function LeadsPipelineTable({
             >
               <td className="px-4 py-3 font-mono text-xs text-hrms-text-secondary">{lead.id}</td>
               <td className="px-4 py-3">
-                <p className="font-medium text-hrms-navy">{lead.leadName}</p>
-                <p className="text-xs text-hrms-text-muted">{lead.companyName}</p>
+                <p className="font-medium text-hrms-navy">{leadCompanyLabel(lead)}</p>
               </td>
               <td className="px-4 py-3 text-hrms-text-secondary">
-                <p>{lead.contactPerson}</p>
-                <p className="text-xs">{lead.email}</p>
+                <p>{lead.email}</p>
+                <p className="text-xs">{lead.phone}</p>
               </td>
               <td className="px-4 py-3">
                 <LeadStatusPill status={lead.status} />
@@ -98,7 +98,7 @@ export function LeadsPipelineTable({
               {showActions ? (
                 <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                   <LeadsPipelineRowActions
-                    leadLabel={lead.leadName}
+                    leadLabel={leadCompanyLabel(lead)}
                     currentStatus={lead.status}
                     canMove={canMove}
                     canEdit={canEdit}
