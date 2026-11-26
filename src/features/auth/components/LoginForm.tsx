@@ -1,12 +1,14 @@
-import { Loader2, Mail } from 'lucide-react'
-
-import { HireKarmaMark } from '@/components/brand/HireKarmaMark'
+/**
+ * Login card UI aligned to the approved reference image.
+ * Auth contract unchanged: POST /auth/login with email + password.
+ * UI labels "Employee ID" per design; value is still submitted as `email`.
+ */
+import { Loader2, LogIn, User, Users } from 'lucide-react'
 import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 
 import { useAppDispatch } from '@/app/store/hooks'
 import { Button } from '@/components/ui/button'
-import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
@@ -18,6 +20,7 @@ import { normalizeAuthUser } from '../utils/authUser'
 import { getLandingRouteForUserRole } from '../utils/landingRoute'
 import { hasPasswordResetState, PASSWORD_RESET_DONE_MESSAGE } from '../utils/passwordReset'
 import { getSafeReturnPath } from '../utils/returnPath'
+import { HrmsBrandLockup } from './HrmsBrandLockup'
 import { PasswordInput } from './PasswordInput'
 
 type FormErrors = {
@@ -27,6 +30,9 @@ type FormErrors = {
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
+const inputShell =
+  'h-11 rounded-xl border-[#E2E6EF] bg-white text-[#17213A] placeholder:text-[#98A2B3] focus-visible:border-[#14B8A6] focus-visible:ring-[#14B8A6]/25'
+
 export function LoginForm() {
   const navigate = useNavigate()
   const location = useLocation()
@@ -34,10 +40,10 @@ export function LoginForm() {
   const [login, { isLoading }] = useLoginMutation()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [rememberMe, setRememberMe] = useState(false)
+  /** Client-only; not shown in the reference UI — defaults off. */
+  const rememberMe = false
   const [errors, setErrors] = useState<FormErrors>({})
   const [formError, setFormError] = useState<string | null>(null)
-  // Set by the reset-password screen after a successful reset (no auto sign-in).
   const [toastMessage, setToastMessage] = useState<string | null>(() =>
     hasPasswordResetState(location.state) ? PASSWORD_RESET_DONE_MESSAGE : null,
   )
@@ -52,9 +58,9 @@ export function LoginForm() {
     const nextErrors: FormErrors = {}
 
     if (!email.trim()) {
-      nextErrors.email = 'Email is required.'
+      nextErrors.email = 'Employee ID is required.'
     } else if (!EMAIL_PATTERN.test(email.trim())) {
-      nextErrors.email = 'Enter a valid email address.'
+      nextErrors.email = 'Enter a valid employee ID (email address).'
     }
 
     if (!password) {
@@ -101,33 +107,36 @@ export function LoginForm() {
   }
 
   return (
-    <div className="relative w-full max-w-[420px]">
+    <div className="relative w-full max-w-[440px]">
       {toastMessage ? (
         <div
           role="status"
-          className="fixed bottom-6 left-1/2 z-50 w-[min(92vw,420px)] -translate-x-1/2 rounded-xl border border-brand-200 bg-white px-4 py-3 text-center text-sm text-slate-700 shadow-lg"
+          className="fixed bottom-6 left-1/2 z-50 w-[min(92vw,420px)] -translate-x-1/2 rounded-xl border border-[#CCFBF1] bg-white px-4 py-3 text-center text-sm text-[#17213A] shadow-lg"
         >
           {toastMessage}
         </div>
       ) : null}
 
-      <div className="rounded-3xl border border-slate-100 bg-white p-8 shadow-[0_20px_50px_-24px_rgba(79,70,229,0.35)] sm:p-9">
-        <div className="mb-8 flex flex-col items-center text-center">
-          <HireKarmaMark className="mb-4 h-12 w-12 rounded-2xl" />
-          <h2 className="text-2xl font-bold tracking-tight text-slate-900">
+      <div className="rounded-[28px] border border-[#E2E6EF]/80 bg-white p-8 shadow-[0_24px_60px_-28px_rgba(23,33,58,0.35)] sm:p-10">
+        <HrmsBrandLockup className="mb-8" compact />
+
+        <div className="mb-7">
+          <h2 className="text-3xl font-bold tracking-tight text-[#17213A]">
             Welcome Back
           </h2>
-          <p className="mt-1.5 text-sm text-slate-500">
+          <p className="mt-1.5 text-sm text-[#667085]">
             Sign in to your HRMS account
           </p>
         </div>
 
         <form className="space-y-5" onSubmit={handleSubmit} noValidate>
           <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="email" className="text-[#17213A]">
+              Employee ID
+            </Label>
             <div className="relative">
-              <Mail
-                className="pointer-events-none absolute top-1/2 left-3.5 h-4 w-4 -translate-y-1/2 text-slate-400"
+              <User
+                className="pointer-events-none absolute top-1/2 left-3.5 h-4 w-4 -translate-y-1/2 text-[#98A2B3]"
                 aria-hidden="true"
               />
               <Input
@@ -135,7 +144,7 @@ export function LoginForm() {
                 name="email"
                 type="email"
                 autoComplete="username"
-                placeholder="Enter your email"
+                placeholder="Enter your employee ID"
                 value={email}
                 onChange={(event) => {
                   setEmail(event.target.value)
@@ -146,6 +155,7 @@ export function LoginForm() {
                 aria-invalid={Boolean(errors.email)}
                 aria-describedby={errors.email ? 'email-error' : undefined}
                 className={cn(
+                  inputShell,
                   'pl-10',
                   errors.email && 'border-red-400 focus-visible:ring-red-200',
                 )}
@@ -160,10 +170,12 @@ export function LoginForm() {
 
           <div className="space-y-2">
             <div className="flex items-center justify-between gap-3">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password" className="text-[#17213A]">
+                Password
+              </Label>
               <Link
                 to="/forgot-password"
-                className="text-sm font-medium text-brand-500 transition-colors hover:text-brand-600"
+                className="text-sm font-medium text-[#0F766E] transition-colors hover:text-[#115E59]"
               >
                 Forgot Password?
               </Link>
@@ -183,6 +195,7 @@ export function LoginForm() {
               error={Boolean(errors.password)}
               aria-invalid={Boolean(errors.password)}
               aria-describedby={errors.password ? 'password-error' : undefined}
+              className={inputShell}
             />
             {errors.password ? (
               <p id="password-error" className="text-xs text-red-500">
@@ -191,24 +204,10 @@ export function LoginForm() {
             ) : null}
           </div>
 
-          <div className="flex items-center gap-2.5">
-            <Checkbox
-              id="remember-me"
-              checked={rememberMe}
-              onCheckedChange={(checked) => setRememberMe(checked === true)}
-            />
-            <Label
-              htmlFor="remember-me"
-              className="cursor-pointer font-medium text-slate-600"
-            >
-              Remember me
-            </Label>
-          </div>
-
           {formError ? (
             <p
               role="alert"
-              className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600"
+              className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600"
             >
               {formError}
             </p>
@@ -216,9 +215,9 @@ export function LoginForm() {
 
           <Button
             type="submit"
-            className="w-full"
             size="lg"
             disabled={isLoading}
+            className="h-12 w-full rounded-xl bg-[#0F766E] text-base font-semibold text-white shadow-[0_10px_24px_-12px_rgba(15,118,110,0.8)] transition-colors hover:bg-[#115E59] focus-visible:ring-[#14B8A6]"
           >
             {isLoading ? (
               <>
@@ -226,20 +225,37 @@ export function LoginForm() {
                 Signing in...
               </>
             ) : (
-              'Sign In'
+              <>
+                <LogIn className="h-4 w-4" aria-hidden="true" />
+                Sign In
+              </>
             )}
           </Button>
         </form>
 
-        <p className="mt-7 text-center text-sm text-slate-500">
-          Don&apos;t have an account?{' '}
-          <Link
-            to="/contact-administrator"
-            className="font-semibold text-brand-500 transition-colors hover:text-brand-600"
-          >
+        <div className="relative my-7">
+          <div className="absolute inset-0 flex items-center" aria-hidden="true">
+            <div className="w-full border-t border-[#E2E6EF]" />
+          </div>
+          <div className="relative flex justify-center text-xs">
+            <span className="bg-white px-3 text-[#667085]">
+              Don&apos;t have an account?
+            </span>
+          </div>
+        </div>
+
+        <Button
+          type="button"
+          variant="outline"
+          size="lg"
+          asChild
+          className="h-12 w-full rounded-xl border-[#14B8A6] bg-[#F0FDFA] text-base font-semibold text-[#0F766E] hover:bg-[#CCFBF1] hover:text-[#115E59]"
+        >
+          <Link to="/contact-administrator">
+            <Users className="h-4 w-4" aria-hidden="true" />
             Contact Administrator
           </Link>
-        </p>
+        </Button>
       </div>
     </div>
   )

@@ -166,8 +166,8 @@ function SidebarNavItem({
     cn(
       'group flex h-10 w-full items-center rounded-xl text-sm font-medium transition-[background-color,color,padding,gap] duration-300 ease-in-out',
       active
-        ? 'bg-brand-500 text-white shadow-sm'
-        : 'text-slate-300 hover:bg-white/10 hover:text-white',
+        ? 'bg-[#0F766E] text-white shadow-sm'
+        : 'text-slate-300 hover:bg-[#14B8A6]/15 hover:text-white',
       collapsed ? 'justify-center gap-0 px-0' : 'gap-3 px-3',
     )
 

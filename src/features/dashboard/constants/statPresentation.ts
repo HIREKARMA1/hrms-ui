@@ -11,29 +11,30 @@ export const DASHBOARD_STAT_CARD_ORDER: DashboardStatCardId[] = [
   'inactive',
 ]
 
+/** Presentation only — no fabricated trend percentages. */
 export const STAT_PRESENTATION_BY_ID: Record<DashboardStatCardId, StatPresentation> = {
   total: {
     label: 'Total Employees',
     icon: 'users',
-    trend: { value: '+6.4% from last month', positive: true },
-    iconClassName: 'bg-brand-50 text-brand-600',
+    trend: { value: 'From organization summary', positive: true },
+    iconClassName: 'bg-[#CCFBF1] text-[#0F766E]',
   },
   active: {
     label: 'Active Employees',
     icon: 'userCheck',
-    trend: { value: '+5.8% from last month', positive: true },
-    iconClassName: 'bg-emerald-50 text-emerald-600',
+    trend: { value: 'From organization summary', positive: true },
+    iconClassName: 'bg-[#CCFBF1] text-[#0F766E]',
   },
   leave: {
     label: 'On Leave',
     icon: 'calendarDays',
-    trend: { value: '+20% from last month', positive: true },
-    iconClassName: 'bg-amber-50 text-amber-600',
+    trend: { value: 'From organization summary', positive: true },
+    iconClassName: 'bg-[#CCFBF1] text-[#0F766E]',
   },
   inactive: {
     label: 'Inactive Employees',
     icon: 'userX',
-    trend: { value: '-3.2% from last month', positive: false },
-    iconClassName: 'bg-rose-50 text-rose-600',
+    trend: { value: 'From organization summary', positive: false },
+    iconClassName: 'bg-[#EEF0F6] text-[#667085]',
   },
 }
