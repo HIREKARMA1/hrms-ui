@@ -19,7 +19,7 @@ export const ADMIN_LEADS_TABS = [
 
 export const HR_LEADS_TABS = ['Overview', 'My Leads', 'Team Leads', 'Pipeline'] as const
 
-export const EMPLOYEE_LEADS_TABS = ['My Leads'] as const
+export const EMPLOYEE_LEADS_TABS = ['My Leads', 'Pipeline'] as const
 
 export type AdminLeadsTabId = (typeof ADMIN_LEADS_TABS)[number]
 export type HrLeadsTabId = (typeof HR_LEADS_TABS)[number]

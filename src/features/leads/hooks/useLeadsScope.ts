@@ -3,7 +3,6 @@ import { useMemo } from 'react'
 import { useAuthenticatedUser } from '@/features/auth/hooks/useAuthenticatedUser'
 import type { UserRole } from '@/features/leave/constants/userRoles'
 import {
-  isEmployeeExperience,
   isHrAdminExperience,
   isSuperAdminExperience,
 } from '@/features/leave/constants/userRoles'
@@ -24,12 +23,11 @@ export function useLeadsScope(role: UserRole, scope: LeadsListScope) {
     [leads, scope, actorId],
   )
 
-  // Role-based UI limits for manage/edit/delete; create and assign are
-  // permission-driven so employees with leads:create / leads:assign can do both.
-  // leads:read alone grants none of the write actions.
-  const canManageLeads = !isEmployeeExperience(role)
+  // Create / update / assign / notes / analytics are permission-driven so
+  // employees and managers with leads:update can move and edit scoped leads.
+  // Delete stays admin-only. leads:read alone grants no write actions.
   const canCreateLeads = canAccess('leads.create')
-  const canEditLead = canManageLeads && canAccess('leads.update')
+  const canEditLead = canAccess('leads.update')
   const canDeleteLeads =
     (isHrAdminExperience(role) || isSuperAdminExperience(role)) && canAccess('leads.delete')
   const canAssignLeads = canAccess('leads.assign')
@@ -41,7 +39,6 @@ export function useLeadsScope(role: UserRole, scope: LeadsListScope) {
     leads,
     scopedLeads,
     actorId,
-    canManageLeads,
     canCreateLeads,
     canDeleteLeads,
     canEditLead,

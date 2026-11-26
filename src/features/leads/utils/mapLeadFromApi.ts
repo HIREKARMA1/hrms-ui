@@ -86,7 +86,12 @@ export function mapBackendLeadToUi(row: BackendLead): Lead {
     estimatedValue: row.estimatedValue,
     attachmentUrl: row.attachmentUrl,
     assignedEmployeeId: row.assignedEmployee?.id ?? null,
-    assignedEmployeeName: employeeDisplayName(row.assignedEmployee),
+    // Owner column: assigned employee profile name, else creator profile / email.
+    assignedEmployeeName:
+      employeeDisplayName(row.assignedEmployee) ??
+      employeeDisplayName(row.createdByEmployee ?? null) ??
+      row.createdByUser?.email ??
+      null,
     assignedByEmployeeId: row.assignedByEmployee?.id ?? null,
     assignedByEmployeeName:
       employeeDisplayName(row.assignedByEmployee ?? null) ??
@@ -129,17 +134,18 @@ export function mapBackendLeadToUi(row: BackendLead): Lead {
 
 export function buildCreateLeadBody(input: LeadInput): CreateLeadBody {
   const body: CreateLeadBody = {
-    fullName: input.leadName.trim(),
     email: input.email.trim().toLowerCase(),
     phone: input.phone.trim(),
     sourceId: (input.sourceId ?? '').trim(),
     priority: leadPriorityToApi(input.priority),
   }
+  const fullName = input.leadName.trim()
+  if (fullName) body.fullName = fullName
   const company = input.companyName.trim()
   if (company) body.companyName = company
   if (input.categoryId?.trim()) body.categoryId = input.categoryId.trim()
   if (input.estimatedValue?.trim()) {
-    const value = Number(input.estimatedValue)
+    const value = Number.parseInt(input.estimatedValue.replace(/\D/g, ''), 10)
     if (Number.isFinite(value) && value >= 0) body.estimatedValue = value
   }
   if (input.attachmentUrl?.trim()) body.attachmentUrl = input.attachmentUrl.trim()
@@ -159,7 +165,7 @@ export function buildUpdateLeadBody(input: LeadInput): UpdateLeadBody {
     attachmentUrl: input.attachmentUrl?.trim() ? input.attachmentUrl.trim() : null,
   }
   if (input.estimatedValue?.trim()) {
-    const value = Number(input.estimatedValue)
+    const value = Number.parseInt(input.estimatedValue.replace(/\D/g, ''), 10)
     if (Number.isFinite(value) && value >= 0) body.estimatedValue = value
     else body.estimatedValue = null
   } else {

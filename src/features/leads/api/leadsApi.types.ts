@@ -94,7 +94,8 @@ export type ListLeadsArgs = {
 
 /** POST /leads */
 export type CreateLeadBody = {
-  fullName: string
+  /** Optional on create; server defaults when omitted. */
+  fullName?: string
   email: string
   phone: string
   companyName?: string
