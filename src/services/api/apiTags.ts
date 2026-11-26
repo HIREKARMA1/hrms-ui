@@ -17,6 +17,11 @@ export const API_TAGS = [
   'Lead',
   'Dashboard',
   'RecruitmentJob',
+  'RecruitmentCandidate',
+  'RecruitmentApplication',
+  'RecruitmentInterview',
+  'RecruitmentOffer',
+  'RecruitmentAnalytics',
   'OrganisationOnboarding',
 ] as const
 

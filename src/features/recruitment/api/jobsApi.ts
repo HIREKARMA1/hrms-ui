@@ -193,6 +193,14 @@ export function normalizeJob(raw: unknown): BackendJob | null {
       row.applicationDeadline === null || row.applicationDeadline === undefined
         ? null
         : readString(row.applicationDeadline),
+    referenceName:
+      row.referenceName === null || row.referenceName === undefined
+        ? null
+        : readString(row.referenceName),
+    referenceEmail:
+      row.referenceEmail === null || row.referenceEmail === undefined
+        ? null
+        : readString(row.referenceEmail),
     status: status as JobPostingStatus,
     isActive: readBoolean(row.isActive, true),
     applicationCount,
