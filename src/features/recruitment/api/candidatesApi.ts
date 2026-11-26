@@ -293,6 +293,16 @@ export const candidatesApi = baseApi.injectEndpoints({
       providesTags: (result) => pageTags(result),
     }),
 
+    /** GET /recruitment/candidates/me — own candidate via account email */
+    getMyCandidate: build.query<BackendCandidate, void>({
+      query: () => '/recruitment/candidates/me',
+      transformResponse: (response: unknown) => normalizeCandidateEnvelope(response),
+      providesTags: (result) =>
+        result
+          ? [{ type: 'RecruitmentCandidate' as const, id: result.id }, LIST_TAG]
+          : [LIST_TAG],
+    }),
+
     /** GET /recruitment/candidates/:id */
     getCandidate: build.query<BackendCandidate, string>({
       query: (id) => `/recruitment/candidates/${encodeURIComponent(id)}`,
@@ -378,6 +388,7 @@ export const candidatesApi = baseApi.injectEndpoints({
 export const {
   useListCandidatesQuery,
   useSearchCandidatesQuery,
+  useGetMyCandidateQuery,
   useGetCandidateQuery,
   useCreateCandidateMutation,
   useUpdateCandidateMutation,

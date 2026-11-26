@@ -75,8 +75,19 @@ function readString(value: unknown): string | null {
   return typeof value === 'string' ? value : null
 }
 
+/**
+ * Accepts JSON numbers and Prisma Decimal string forms from the jobs API
+ * (e.g. minExperienceYears / salaryMin returned as `"3"` / `"800000"`).
+ */
 function readNumber(value: unknown): number | null {
-  return typeof value === 'number' && Number.isFinite(value) ? value : null
+  if (typeof value === 'number' && Number.isFinite(value)) return value
+  if (typeof value === 'string') {
+    const trimmed = value.trim()
+    if (!trimmed) return null
+    const num = Number(trimmed)
+    return Number.isFinite(num) ? num : null
+  }
+  return null
 }
 
 function readBoolean(value: unknown, fallback: boolean): boolean {
