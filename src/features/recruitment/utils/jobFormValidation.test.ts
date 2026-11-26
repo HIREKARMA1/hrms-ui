@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
 import {
-  JOB_REFERENCE_FIELDS_IN_OPENAPI,
   buildCreateJobBody,
   buildUpdateJobBody,
   validateCreateJobForm,
@@ -9,8 +8,6 @@ import {
 
 const valid = {
   title: 'Backend Engineer',
-  referenceName: 'Asha Rao',
-  referenceEmail: 'asha.rao@hirekarma.in',
   departmentId: '',
   employmentType: 'FULL_TIME' as const,
   location: 'Bengaluru',
@@ -28,29 +25,30 @@ const valid = {
   status: 'DRAFT' as const,
 }
 
-describe('jobFormValidation reference fields', () => {
-  it('documents that OpenAPI does not yet include reference fields', () => {
-    expect(JOB_REFERENCE_FIELDS_IN_OPENAPI).toBe(false)
-  })
-
-  it('requires reference name and a valid reference email', () => {
-    expect(validateCreateJobForm({ ...valid, referenceName: '' }).referenceName).toBeTruthy()
-    expect(
-      validateCreateJobForm({ ...valid, referenceEmail: 'bad' }).referenceEmail,
-    ).toBeTruthy()
+describe('jobFormValidation', () => {
+  it('does not require reference fields on HR job create', () => {
     expect(validateCreateJobForm(valid)).toEqual({})
   })
 
-  it('serializes reference fields onto the create payload', () => {
-    expect(buildCreateJobBody(valid)).toMatchObject({
-      referenceName: 'Asha Rao',
-      referenceEmail: 'asha.rao@hirekarma.in',
+  it('requires core job fields only', () => {
+    expect(validateCreateJobForm({ ...valid, title: '' }).title).toBeTruthy()
+    expect(validateCreateJobForm({ ...valid, location: '' }).location).toBeTruthy()
+  })
+
+  it('does not serialize reference fields onto the create payload', () => {
+    const body = buildCreateJobBody(valid)
+    expect(body).not.toHaveProperty('referenceName')
+    expect(body).not.toHaveProperty('referenceEmail')
+    expect(body).toMatchObject({
+      title: 'Backend Engineer',
+      location: 'Bengaluru',
+      employmentType: 'FULL_TIME',
     })
   })
 
-  it('includes reference fields in the update patch when changed', () => {
+  it('builds an update patch without reference fields', () => {
     const { body, errors } = buildUpdateJobBody(
-      { ...valid, referenceName: 'New Ref', referenceEmail: 'new.ref@hirekarma.in' },
+      { ...valid, title: 'Senior Backend Engineer' },
       {
         title: valid.title,
         departmentId: null,
@@ -66,15 +64,10 @@ describe('jobFormValidation reference fields', () => {
         requirements: null,
         skills: [],
         applicationDeadline: null,
-        referenceName: 'Asha Rao',
-        referenceEmail: 'asha.rao@hirekarma.in',
         status: 'DRAFT',
       },
     )
     expect(errors).toEqual({})
-    expect(body).toEqual({
-      referenceName: 'New Ref',
-      referenceEmail: 'new.ref@hirekarma.in',
-    })
+    expect(body).toEqual({ title: 'Senior Backend Engineer' })
   })
 })

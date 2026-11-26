@@ -1,6 +1,7 @@
 /**
  * Application history for the signed-in Manager/Employee.
- * Uses GET /recruitment/applications?candidateId=… after resolving candidate by email.
+ * Uses GET /recruitment/applications/me after resolving candidate via
+ * GET /recruitment/candidates/me (jobs:read — no ATS candidates:read required).
  * No status-management controls (PATCH status is for authorized ATS roles).
  */
 import { RefreshCw } from 'lucide-react'
@@ -22,13 +23,16 @@ import {
 import { TablePagination } from '@/components/ui/table-pagination'
 import { getApiErrorMessage } from '@/services/api/errors'
 
-import { APPLICATIONS_PAGE_SIZE, useListApplicationsQuery } from '../api/applicationsApi'
-import { useSearchCandidatesQuery } from '../api/candidatesApi'
+import {
+  APPLICATIONS_PAGE_SIZE,
+  useListMyApplicationsQuery,
+} from '../api/applicationsApi'
+import { useGetMyCandidateQuery } from '../api/candidatesApi'
 import { RecruitmentPageShell } from '../components'
 import { RECRUITMENT_CARD } from '../components/shared/recruitmentUi'
 import { formatApplicationStatus } from '../utils/applicationFormat'
 import { formatPostedDate } from '../utils/jobFormat'
-import { resolveCandidateFromSearch } from '../utils/internalApply'
+import { resolveCandidateFromMe } from '../utils/internalApply'
 import { internalJobsPath, recruitmentWorkspacePrefix } from '../utils/recruitmentRoutes'
 
 export function MyApplicationsPage() {
@@ -38,36 +42,36 @@ export function MyApplicationsPage() {
   const [page, setPage] = useState(1)
 
   const email = user?.email?.trim() ?? ''
-  const candidateSearch = useSearchCandidatesQuery(
-    { q: email, limit: 20, isActive: true },
-    { skip: !email },
-  )
+  const myCandidate = useGetMyCandidateQuery(undefined, { skip: !email })
   const candidateResolution = useMemo(
     () =>
-      resolveCandidateFromSearch({
+      resolveCandidateFromMe({
         email,
-        page: candidateSearch.data,
-        searchError: candidateSearch.isError ? candidateSearch.error : undefined,
+        candidate: myCandidate.data,
+        fetchError: myCandidate.isError ? myCandidate.error : undefined,
+        is404:
+          myCandidate.isError &&
+          (myCandidate.error as { status?: unknown })?.status === 404,
       }),
-    [email, candidateSearch.data, candidateSearch.isError, candidateSearch.error],
+    [email, myCandidate.data, myCandidate.isError, myCandidate.error],
   )
   const candidateId =
     candidateResolution.status === 'resolved' ? candidateResolution.candidateId : null
 
-  const list = useListApplicationsQuery(
+  const list = useListMyApplicationsQuery(
     {
       page,
       limit: APPLICATIONS_PAGE_SIZE,
-      candidateId: candidateId ?? undefined,
       sortBy: 'appliedAt',
       sortOrder: 'desc',
     },
-    { skip: !candidateId },
+    { skip: !email || candidateResolution.status === 'error' },
   )
 
   const items = list.data?.items ?? []
   const pagination = list.data?.pagination
   const totalPages = pagination?.totalPages ?? 0
+  const candidateLookupFailed = candidateResolution.status === 'error'
 
   return (
     <RecruitmentPageShell
@@ -80,8 +84,11 @@ export function MyApplicationsPage() {
           <Button
             type="button"
             variant="outline"
-            disabled={!candidateId || list.isFetching}
-            onClick={() => void list.refetch()}
+            disabled={list.isFetching}
+            onClick={() => {
+              void myCandidate.refetch()
+              void list.refetch()
+            }}
           >
             <RefreshCw className={`h-4 w-4 ${list.isFetching ? 'animate-spin' : ''}`} />
             Refresh
@@ -89,18 +96,16 @@ export function MyApplicationsPage() {
         </div>
       }
     >
-      {candidateResolution.status !== 'resolved' ? (
+      {candidateLookupFailed ? (
         <div className={`${RECRUITMENT_CARD} space-y-3 p-6`}>
           <p role="status" className="text-sm text-amber-900">
-            {candidateResolution.status === 'missing' || candidateResolution.status === 'error'
-              ? candidateResolution.message
-              : 'Candidate profile required to load application history.'}
+            {candidateResolution.message}
           </p>
           <Button type="button" variant="outline" asChild>
             <Link to={internalJobsPath(prefix)}>Back to job board</Link>
           </Button>
         </div>
-      ) : list.isLoading ? (
+      ) : myCandidate.isLoading || list.isLoading ? (
         <div className="space-y-3 p-4">
           <Skeleton className="h-10 w-full" />
           <Skeleton className="h-10 w-full" />
@@ -115,8 +120,13 @@ export function MyApplicationsPage() {
           </Button>
         </div>
       ) : items.length === 0 ? (
-        <div className={`${RECRUITMENT_CARD} p-8 text-center text-sm text-slate-500`}>
-          You have not submitted any applications yet.
+        <div className={`${RECRUITMENT_CARD} space-y-4 p-8 text-center`}>
+          <p className="text-sm text-slate-500">
+            You have not submitted any applications yet.
+          </p>
+          <Button type="button" variant="outline" asChild>
+            <Link to={internalJobsPath(prefix)}>Browse open jobs</Link>
+          </Button>
         </div>
       ) : (
         <div className="overflow-hidden rounded-2xl border border-border-soft bg-white shadow-sm">

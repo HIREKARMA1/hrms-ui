@@ -108,8 +108,6 @@ function makeStore() {
 
 const baseForm = {
   title: 'Frontend Engineer',
-  referenceName: 'Priya Sharma',
-  referenceEmail: 'priya.sharma@hirekarma.in',
   departmentId: 'dept-1',
   employmentType: 'FULL_TIME' as const,
   location: 'Hyderabad',
@@ -158,7 +156,8 @@ describe('create job', () => {
     expect(pathOf(calls[0])).toBe('/recruitment/jobs')
     expect(calls[0].method).toBe('POST')
     expect(calls[0].headers.get('Authorization')).toBe('Bearer access-token')
-    expect(await calls[0].json()).toMatchObject({
+    const body = await calls[0].json()
+    expect(body).toMatchObject({
       title: 'Frontend Engineer',
       departmentId: 'dept-1',
       employmentType: 'FULL_TIME',
@@ -166,30 +165,15 @@ describe('create job', () => {
       workMode: 'HYBRID',
       description: 'Build HRMS UI',
       skills: ['React', 'TypeScript'],
-      referenceName: 'Priya Sharma',
-      referenceEmail: 'priya.sharma@hirekarma.in',
     })
+    expect(body).not.toHaveProperty('referenceName')
+    expect(body).not.toHaveProperty('referenceEmail')
   })
 
-  it('includes reference fields in the serialized create body', () => {
+  it('does not serialize reference fields on HR job create', () => {
     const body = buildCreateJobBody(baseForm)
-    expect(body.referenceName).toBe('Priya Sharma')
-    expect(body.referenceEmail).toBe('priya.sharma@hirekarma.in')
-  })
-
-  it('rejects missing or invalid reference fields without calling the server', async () => {
-    const calls = stubFetch(() => jsonResponse(201, envelope(JOB)))
-    const missing = await submitCreateJob({
-      values: { ...baseForm, referenceName: '', referenceEmail: 'not-an-email' },
-      guard: createSubmitGuard(),
-      send: () => ({ unwrap: async () => JOB }),
-    })
-    expect(missing.status).toBe('invalid')
-    if (missing.status === 'invalid') {
-      expect(missing.errors.referenceName).toBeTruthy()
-      expect(missing.errors.referenceEmail).toBeTruthy()
-    }
-    expect(calls).toHaveLength(0)
+    expect(body).not.toHaveProperty('referenceName')
+    expect(body).not.toHaveProperty('referenceEmail')
   })
 
   it('omits departmentId from the create body when the field is empty', () => {
@@ -431,5 +415,20 @@ describe('normalize', () => {
     )
     expect(page.items).toHaveLength(1)
     expect(page.pagination.total).toBe(1)
+  })
+
+  it('parses Prisma Decimal string experience and salary fields', () => {
+    const job = normalizeJob({
+      ...JOB,
+      minExperienceYears: '2.0',
+      maxExperienceYears: '5.0',
+      salaryMin: '800000',
+      salaryMax: '1200000',
+      salaryCurrency: 'INR',
+    })
+    expect(job?.minExperienceYears).toBe(2)
+    expect(job?.maxExperienceYears).toBe(5)
+    expect(job?.salaryMin).toBe(800000)
+    expect(job?.salaryMax).toBe(1200000)
   })
 })

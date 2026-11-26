@@ -218,6 +218,16 @@ export const applicationsApi = baseApi.injectEndpoints({
       providesTags: (result) => pageTags(result),
     }),
 
+    /** GET /recruitment/applications/me — own applications via account email */
+    listMyApplications: build.query<ApplicationsPage, ListApplicationsArgs | void>({
+      query: (args = {}) => ({
+        url: '/recruitment/applications/me',
+        params: listParams(args ?? {}),
+      }),
+      transformResponse: (response: unknown) => normalizeApplicationsPage(response),
+      providesTags: (result) => pageTags(result),
+    }),
+
     getApplication: build.query<BackendApplication, string>({
       query: (id) => `/recruitment/applications/${encodeURIComponent(id)}`,
       transformResponse: (response: unknown) =>
@@ -266,6 +276,7 @@ export const applicationsApi = baseApi.injectEndpoints({
 
 export const {
   useListApplicationsQuery,
+  useListMyApplicationsQuery,
   useGetApplicationQuery,
   useCreateApplicationMutation,
   useUpdateApplicationStatusMutation,

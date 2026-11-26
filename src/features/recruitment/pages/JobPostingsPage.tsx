@@ -369,15 +369,7 @@ export function JobPostingsPage() {
                     <p className="text-xs text-text-secondary">
                       {formatWorkMode(job.workMode)}
                       {!job.isActive ? ' · Inactive' : ''}
-                      {job.referenceName?.trim()
-                        ? ` · Ref: ${job.referenceName.trim()}`
-                        : ''}
                     </p>
-                    {job.referenceEmail?.trim() ? (
-                      <p className="text-xs text-text-secondary break-all">
-                        {job.referenceEmail.trim()}
-                      </p>
-                    ) : null}
                   </TableCell>
                   <TableCell className="hidden align-middle md:table-cell">
                     {job.department?.name ?? job.departmentId ?? '—'}
