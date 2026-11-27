@@ -1,275 +1,274 @@
+/**
+ * Super Admin dashboard — Premium Teal & Navy.
+ * Live users/roles/departments + workforce summary + recruitment overview.
+ */
 import {
-  Bar,
-  BarChart,
-  CartesianGrid,
+  Building2,
+  Briefcase,
+  KeyRound,
+  Shield,
+  Users,
+} from 'lucide-react'
+import { Link } from 'react-router-dom'
+import {
   Cell,
-  Line,
-  LineChart,
   Pie,
   PieChart,
   ResponsiveContainer,
   Tooltip,
-  XAxis,
-  YAxis,
 } from 'recharts'
-import { KeyRound, Shield, Users } from 'lucide-react'
 
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Progress } from '@/components/ui/progress'
-import { DashboardStats } from '@/features/dashboard/components/DashboardStats'
+import { useAuthenticatedUser } from '@/features/auth/hooks/useAuthenticatedUser'
+import { getUserDisplayName } from '@/features/auth/utils/authUser'
+import { useGetDashboardSummaryQuery } from '@/features/dashboard/api/dashboardApi'
+import {
+  DashboardChartCard,
+  DashboardEmptyState,
+  DashboardStatCard,
+  DashboardStatSkeletonGrid,
+  DASH_CHART_COLORS,
+  DASH_CHART_TOOLTIP,
+  DASH_SHELL,
+  QuickActionCard,
+  WelcomeSection,
+} from '@/features/dashboard/components/shared'
+import { useShouldFetchDashboardSummary } from '@/features/dashboard/hooks/useShouldFetchDashboardSummary'
+import { useGetEmployeesByDepartmentQuery } from '@/features/employees/api/employeeDashboardApi'
+import { useListDepartmentsQuery } from '@/features/organization/api/departmentsApi'
+import { useGetDashboardOverviewQuery } from '@/features/recruitment/api/analyticsApi'
 import { Can } from '@/features/rbac/components/Can'
-import { superAdminDashboardMock } from '@/features/rbac/mocks/rbacMocks'
-import { ToastBanner, useToast } from '@/hooks/useToast'
-
-const PREVIEW_TOAST = 'UI preview only. Backend authorization required.'
-
-const CHART_TOOLTIP = {
-  borderRadius: 12,
-  border: '1px solid #E2E6EF',
-}
-
-const DEPT_COLORS = ['#5938DB', '#17213A', '#8B7CF6', '#C9BEFF', '#3B82F6', '#10B981']
-
-function initials(name: string) {
-  return name
-    .split(' ')
-    .map((part) => part[0])
-    .join('')
-    .slice(0, 2)
-    .toUpperCase()
-}
-
-const maxRoleCount = Math.max(
-  ...superAdminDashboardMock.roleDistribution.map((r) => r.count),
-)
+import { useListRolesQuery } from '@/features/roles/api/rolesApi'
+import { useListUsersQuery } from '@/features/users/api/usersApi'
+import { getApiErrorMessage } from '@/services/api/errors'
 
 export function SuperAdminDashboardPage() {
-  const { message, toast } = useToast()
-  const deptTotal = superAdminDashboardMock.departments.reduce((s, d) => s + d.value, 0)
+  const { user } = useAuthenticatedUser()
+  const displayName = user ? getUserDisplayName(user) : 'Super Admin'
+  const shouldFetchSummary = useShouldFetchDashboardSummary()
+
+  const summary = useGetDashboardSummaryQuery(undefined, { skip: !shouldFetchSummary })
+  const users = useListUsersQuery({ page: 1, limit: 1 })
+  const roles = useListRolesQuery({ page: 1, limit: 50 })
+  const departments = useListDepartmentsQuery({
+    page: 1,
+    limit: 1,
+    sortBy: 'name',
+    sortOrder: 'asc',
+  })
+  const byDept = useGetEmployeesByDepartmentQuery({})
+  const recruitment = useGetDashboardOverviewQuery()
+
+  const totalUsers = users.data?.pagination.total
+  const activeUsers = users.data?.items?.filter((u) => u.isActive).length
+  // Active count from page 1 only is incomplete — show total from pagination; active/inactive need filters.
+  const roleItems = roles.data?.items ?? []
+  const roleChart = roleItems
+    .map((role) => ({
+      name: role.code,
+      value: role.userCount ?? 0,
+    }))
+    .filter((row) => row.value > 0)
+
+  const deptChart =
+    byDept.data?.items
+      ?.filter((d) => d.employeeCount > 0)
+      .map((d) => ({
+        name: d.departmentName || 'Unassigned',
+        value: d.employeeCount,
+      })) ?? []
 
   return (
-    <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-6">
-      <ToastBanner message={message} />
+    <div className={DASH_SHELL}>
+      <WelcomeSection
+        title={`Welcome Back, ${displayName}`}
+        subtitle="Monitor your HRMS organization and system-wide activities."
+        trailing={
+          <div className="flex flex-wrap gap-2">
+            <Can>
+              <Button asChild variant="outline" className="gap-2">
+                <Link to="/superadmin/roles">
+                  <Shield className="h-4 w-4" />
+                  Manage Roles
+                </Link>
+              </Button>
+            </Can>
+            <Can>
+              <Button asChild variant="outline" className="gap-2">
+                <Link to="/superadmin/permissions">
+                  <KeyRound className="h-4 w-4" />
+                  Manage Permissions
+                </Link>
+              </Button>
+            </Can>
+            <Can>
+              <Button asChild className="gap-2 bg-[#0F766E] hover:bg-[#115E59]">
+                <Link to="/superadmin/users">
+                  <Users className="h-4 w-4" />
+                  Manage Users
+                </Link>
+              </Button>
+            </Can>
+          </div>
+        }
+      />
 
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-navy">Super Admin Dashboard</h1>
-          <p className="mt-1 text-sm text-text-secondary">
-            Organization-wide metrics, access control, and system activity at a glance.
-          </p>
+      {users.isLoading || summary.isLoading ? (
+        <DashboardStatSkeletonGrid count={6} />
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          <DashboardStatCard
+            label="Total Users"
+            value={totalUsers ?? '—'}
+            icon={Users}
+            hint={users.isError ? getApiErrorMessage(users.error, 'Users unavailable') : undefined}
+          />
+          <DashboardStatCard
+            label="Active Users (page sample)"
+            value={activeUsers ?? '—'}
+            icon={Users}
+            hint="Active flag from the first users page only — not a full active count."
+          />
+          <DashboardStatCard
+            label="Inactive Users"
+            value="—"
+            icon={Users}
+            hint="No dedicated inactive-users total on GET /users without a full scan."
+          />
+          <DashboardStatCard
+            label="Total Employees"
+            value={summary.data?.totalEmployees ?? '—'}
+            icon={Users}
+            hint={
+              summary.isError
+                ? getApiErrorMessage(summary.error, 'Summary unavailable')
+                : undefined
+            }
+          />
+          <DashboardStatCard
+            label="Total Departments"
+            value={departments.data?.pagination.total ?? '—'}
+            icon={Building2}
+          />
+          <DashboardStatCard
+            label="Total Roles"
+            value={roles.data?.pagination?.total ?? roleItems.length ?? '—'}
+            icon={Shield}
+          />
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Can>
-            <Button
-              type="button"
-              variant="outline"
-              className="gap-2"
-              onClick={() => toast(PREVIEW_TOAST)}
-            >
-              <Shield className="h-4 w-4" />
-              Manage Roles
-            </Button>
-          </Can>
-          <Can>
-            <Button
-              type="button"
-              variant="outline"
-              className="gap-2"
-              onClick={() => toast(PREVIEW_TOAST)}
-            >
-              <KeyRound className="h-4 w-4" />
-              Manage Permissions
-            </Button>
-          </Can>
-          <Can>
-            <Button type="button" className="gap-2" onClick={() => toast(PREVIEW_TOAST)}>
-              <Users className="h-4 w-4" />
-              Manage Users
-            </Button>
-          </Can>
-        </div>
-      </div>
+      )}
 
-      <DashboardStats />
-
-      <div className="grid gap-4 xl:grid-cols-3">
-        <Card className="border-border-soft shadow-sm xl:col-span-1">
-          <CardHeader>
-            <CardTitle className="text-navy">Employee growth</CardTitle>
-            <CardDescription>Monthly headcount trend</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="h-64 w-full min-w-0">
+      <div className="grid gap-4 xl:grid-cols-2">
+        <DashboardChartCard
+          title="User Distribution by Role"
+          description="Role userCount from GET /roles."
+        >
+          {roles.isError ? (
+            <DashboardEmptyState
+              title="Roles unavailable"
+              description={getApiErrorMessage(roles.error, 'API error')}
+            />
+          ) : roleChart.length === 0 ? (
+            <DashboardEmptyState title="No role user counts available" />
+          ) : (
+            <div className="h-72 w-full min-w-0">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={superAdminDashboardMock.employeeGrowth}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E6EF" />
-                  <XAxis
-                    dataKey="month"
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{ fill: '#667085', fontSize: 12 }}
-                  />
-                  <YAxis
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{ fill: '#667085', fontSize: 12 }}
-                  />
-                  <Tooltip contentStyle={CHART_TOOLTIP} />
-                  <Line
-                    type="monotone"
-                    dataKey="employees"
-                    name="Employees"
-                    stroke="#17213A"
-                    strokeWidth={2}
-                    dot={{ fill: '#5938DB', r: 4 }}
-                  />
-                </LineChart>
+                <PieChart>
+                  <Pie data={roleChart} dataKey="value" nameKey="name" innerRadius={55} outerRadius={90}>
+                    {roleChart.map((_, index) => (
+                      <Cell key={index} fill={DASH_CHART_COLORS[index % DASH_CHART_COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip contentStyle={DASH_CHART_TOOLTIP} />
+                </PieChart>
               </ResponsiveContainer>
             </div>
-          </CardContent>
-        </Card>
+          )}
+        </DashboardChartCard>
 
-        <Card className="border-border-soft shadow-sm xl:col-span-1">
-          <CardHeader>
-            <CardTitle className="text-navy">Department distribution</CardTitle>
-            <CardDescription>Headcount by department</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-4 md:grid-cols-[1fr_1fr] md:items-center">
-              <div className="mx-auto h-52 w-full max-w-[200px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={superAdminDashboardMock.departments}
-                      dataKey="value"
-                      nameKey="name"
-                      innerRadius={48}
-                      outerRadius={72}
-                      paddingAngle={3}
-                    >
-                      {superAdminDashboardMock.departments.map((entry, i) => (
-                        <Cell key={entry.name} fill={DEPT_COLORS[i % DEPT_COLORS.length]} stroke="none" />
-                      ))}
-                    </Pie>
-                    <Tooltip contentStyle={CHART_TOOLTIP} />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-              <ul className="space-y-2 text-sm">
-                {superAdminDashboardMock.departments.map((item, i) => (
-                  <li key={item.name} className="flex items-center justify-between gap-2">
-                    <span className="flex min-w-0 items-center gap-2 text-text-secondary">
-                      <span
-                        className="h-2 w-2 shrink-0 rounded-full"
-                        style={{ backgroundColor: DEPT_COLORS[i % DEPT_COLORS.length] }}
-                      />
-                      <span className="truncate">{item.name}</span>
-                    </span>
-                    <span className="font-semibold text-navy">{item.value}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-border-soft shadow-sm xl:col-span-1">
-          <CardHeader>
-            <CardTitle className="text-navy">User activity</CardTitle>
-            <CardDescription>Daily login volume (mock)</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="h-64 w-full min-w-0">
+        <DashboardChartCard
+          title="Organization Overview"
+          description="Employees by department."
+        >
+          {byDept.isError ? (
+            <DashboardEmptyState
+              title="Department distribution unavailable"
+              description={getApiErrorMessage(byDept.error, 'API error')}
+            />
+          ) : deptChart.length === 0 ? (
+            <DashboardEmptyState title="No department distribution data" />
+          ) : (
+            <div className="h-72 w-full min-w-0">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={superAdminDashboardMock.userActivity}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E6EF" />
-                  <XAxis
-                    dataKey="day"
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{ fill: '#667085', fontSize: 12 }}
-                  />
-                  <YAxis
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{ fill: '#667085', fontSize: 12 }}
-                  />
-                  <Tooltip contentStyle={CHART_TOOLTIP} />
-                  <Bar dataKey="logins" name="Logins" fill="#5938DB" radius={[6, 6, 0, 0]} maxBarSize={32} />
-                </BarChart>
+                <PieChart>
+                  <Pie data={deptChart} dataKey="value" nameKey="name" innerRadius={55} outerRadius={90}>
+                    {deptChart.map((_, index) => (
+                      <Cell key={index} fill={DASH_CHART_COLORS[index % DASH_CHART_COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip contentStyle={DASH_CHART_TOOLTIP} />
+                </PieChart>
               </ResponsiveContainer>
             </div>
-          </CardContent>
-        </Card>
+          )}
+        </DashboardChartCard>
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-3">
-        <Card className="border-border-soft shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-navy">Recent system activities</CardTitle>
-            <CardDescription>Auditable events from mock feed</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ul className="space-y-4">
-              {superAdminDashboardMock.recentActivities.map((item) => (
-                <li key={item.id} className="flex flex-col gap-1 border-b border-border-soft pb-3 last:border-0 last:pb-0">
-                  <p className="text-sm font-medium text-navy">{item.text}</p>
-                  <p className="text-xs text-text-secondary">{item.time}</p>
-                </li>
-              ))}
-            </ul>
-          </CardContent>
-        </Card>
-
-        <Card className="border-border-soft shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-navy">Recently added employees</CardTitle>
-            <CardDescription>Latest onboarding records</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ul className="space-y-4">
-              {superAdminDashboardMock.recentEmployees.map((emp) => (
-                <li key={emp.id} className="flex items-center gap-3">
-                  <Avatar className="h-10 w-10">
-                    <AvatarFallback>{initials(emp.name)}</AvatarFallback>
-                  </Avatar>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold text-navy">{emp.name}</p>
-                    <p className="text-xs text-text-secondary">{emp.department}</p>
-                  </div>
-                  <Badge variant="outline" className="shrink-0">
-                    {emp.id}
-                  </Badge>
-                </li>
-              ))}
-            </ul>
-          </CardContent>
-        </Card>
-
-        <Card className="border-border-soft shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-navy">Role distribution</CardTitle>
-            <CardDescription>Users assigned per role</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-5">
-            {superAdminDashboardMock.roleDistribution.map((row) => (
-              <div key={row.role}>
-                <div className="mb-2 flex items-center justify-between text-sm">
-                  <span className="font-medium text-navy">{row.role}</span>
-                  <span className="text-text-secondary">{row.count} users</span>
-                </div>
-                <Progress value={Math.round((row.count / maxRoleCount) * 100)} />
+      <DashboardChartCard
+        title="Recruitment Overview"
+        description="From GET /recruitment/dashboard/overview."
+      >
+        {recruitment.isError ? (
+          <DashboardEmptyState
+            title="Recruitment overview unavailable"
+            description={getApiErrorMessage(recruitment.error, 'API error')}
+          />
+        ) : !recruitment.data ? (
+          <DashboardEmptyState title="No recruitment overview data" />
+        ) : (
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
+            {[
+              ['Open Jobs', recruitment.data.openJobs],
+              ['Candidates', recruitment.data.totalCandidates],
+              ['Applications', recruitment.data.totalApplications],
+              ['Interviews', recruitment.data.interviewsScheduled],
+              ['Offers', recruitment.data.offersReleased],
+              ['Joined', recruitment.data.joined],
+            ].map(([label, value]) => (
+              <div key={String(label)} className="rounded-xl border border-[#E2E6EF] bg-[#F0FDFA] p-4">
+                <p className="text-xs text-[#667085]">{label}</p>
+                <p className="mt-1 text-2xl font-bold text-[#0F766E]">{value}</p>
               </div>
             ))}
-            <p className="text-xs text-text-secondary">
-              {deptTotal} employees mapped across {superAdminDashboardMock.departments.length} departments.
-            </p>
-          </CardContent>
-        </Card>
+          </div>
+        )}
+      </DashboardChartCard>
+
+      <DashboardChartCard
+        title="System Activity / Audit"
+        description="No dedicated audit-activity dashboard endpoint is wired for this page."
+      >
+        <DashboardEmptyState
+          title="Audit feed unavailable"
+          description="Use Audit module routes when authorized. Do not invent activity metrics."
+        />
+      </DashboardChartCard>
+
+      <div>
+        <h2 className="mb-3 text-base font-semibold text-[#17213A]">Quick actions</h2>
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          <QuickActionCard title="User Management" icon={Users} to="/superadmin/users" />
+          <QuickActionCard title="Role Management" icon={Shield} to="/superadmin/roles" />
+          <QuickActionCard title="Permission Management" icon={KeyRound} to="/superadmin/permissions" />
+          <QuickActionCard title="View Departments" icon={Building2} to="/superadmin/departments" />
+          <QuickActionCard title="Recruitment Overview" icon={Briefcase} to="/superadmin/recruitment" />
+          <Button asChild variant="outline" className="h-auto justify-start rounded-2xl border-[#E2E6EF] p-4">
+            <Link to="/superadmin/employees">Employee overview</Link>
+          </Button>
+        </div>
       </div>
     </div>
   )
 }
+
+export default SuperAdminDashboardPage
