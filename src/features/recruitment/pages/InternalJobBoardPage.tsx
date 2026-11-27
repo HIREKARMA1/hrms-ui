@@ -9,6 +9,7 @@ import { Link, useLocation } from 'react-router-dom'
 
 import { useAuthenticatedUser } from '@/features/auth/hooks/useAuthenticatedUser'
 import { useListDepartmentsQuery } from '@/features/organization/api/departmentsApi'
+import { useOptionalFeatureAccess } from '@/features/rbac/hooks/useFeatureAccess'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -44,6 +45,7 @@ import {
   formatSalary,
   formatWorkMode,
 } from '../utils/jobFormat'
+import { resolveDepartmentFilterOptions } from '../utils/departmentFilterOptions'
 import {
   createSubmitGuard,
   resolveCandidateFromMe,
@@ -68,6 +70,10 @@ export function InternalJobBoardPage() {
   const { pathname } = useLocation()
   const prefix = recruitmentWorkspacePrefix(pathname)
   const { user } = useAuthenticatedUser()
+  const { canAccess } = useOptionalFeatureAccess()
+  // OpenAPI: GET /departments → 403 Missing departments:manage.
+  // employee.organization.edit maps to that code; Employees do not receive it.
+  const canListDepartments = canAccess('employee.organization.edit')
 
   const [searchInput, setSearchInput] = useState('')
   const [search, setSearch] = useState('')
@@ -93,13 +99,16 @@ export function InternalJobBoardPage() {
     return () => window.clearTimeout(timer)
   }, [searchInput])
 
-  const departmentsQuery = useListDepartmentsQuery({
-    isActive: true,
-    limit: 100,
-    page: 1,
-    sortBy: 'name',
-    sortOrder: 'asc',
-  })
+  const departmentsQuery = useListDepartmentsQuery(
+    {
+      isActive: true,
+      limit: 100,
+      page: 1,
+      sortBy: 'name',
+      sortOrder: 'asc',
+    },
+    { skip: !canListDepartments },
+  )
 
   const list = useListJobsQuery({
     page,
@@ -116,20 +125,53 @@ export function InternalJobBoardPage() {
     sortOrder: 'desc',
   })
 
+  const departmentOptions = useMemo(
+    () =>
+      resolveDepartmentFilterOptions({
+        canListDepartments,
+        catalogItems: departmentsQuery.data?.items,
+        jobs: list.data?.items,
+        selectedDepartmentId: departmentId,
+        selectedDepartment:
+          list.data?.items.find((job) => job.departmentId === departmentId)?.department ??
+          null,
+      }),
+    [
+      canListDepartments,
+      departmentsQuery.data?.items,
+      list.data?.items,
+      departmentId,
+    ],
+  )
+
   const email = user?.email?.trim() ?? ''
   const myCandidate = useGetMyCandidateQuery(undefined, { skip: !email })
+  const candidateLookupStatus = (myCandidate.error as { status?: unknown } | undefined)?.status
   const candidateResolution = useMemo(
     () =>
       resolveCandidateFromMe({
         email,
         candidate: myCandidate.data,
         fetchError: myCandidate.isError ? myCandidate.error : undefined,
-        is404:
-          myCandidate.isError &&
-          (myCandidate.error as { status?: unknown })?.status === 404,
+        is404: myCandidate.isError && candidateLookupStatus === 404,
+        is403: myCandidate.isError && candidateLookupStatus === 403,
+        isLoading:
+          Boolean(email) &&
+          (myCandidate.isLoading || myCandidate.isFetching) &&
+          !myCandidate.data &&
+          !myCandidate.isError,
       }),
-    [email, myCandidate.data, myCandidate.isError, myCandidate.error],
+    [
+      email,
+      myCandidate.data,
+      myCandidate.isError,
+      myCandidate.error,
+      myCandidate.isLoading,
+      myCandidate.isFetching,
+      candidateLookupStatus,
+    ],
   )
+  const canApplyWithCandidate = candidateResolution.status === 'resolved'
   const myApplications = useListMyApplicationsQuery(
     { limit: 100, page: 1 },
     { skip: !email },
@@ -163,9 +205,13 @@ export function InternalJobBoardPage() {
       setNotice({
         tone: 'error',
         text:
-          candidateResolution.status === 'missing' || candidateResolution.status === 'error'
+          candidateResolution.status === 'missing' ||
+          candidateResolution.status === 'inactive' ||
+          candidateResolution.status === 'error'
             ? candidateResolution.message
-            : 'Cannot resolve candidate profile.',
+            : candidateResolution.status === 'pending'
+              ? 'Still looking up your candidate profile. Try again in a moment.'
+              : 'Cannot resolve candidate profile.',
       })
       return
     }
@@ -210,10 +256,16 @@ export function InternalJobBoardPage() {
           <Button
             type="button"
             variant="outline"
-            onClick={() => void list.refetch()}
-            disabled={list.isFetching}
+            onClick={() => {
+              void list.refetch()
+              void myCandidate.refetch()
+              void myApplications.refetch()
+            }}
+            disabled={list.isFetching || myCandidate.isFetching}
           >
-            <RefreshCw className={`h-4 w-4 ${list.isFetching ? 'animate-spin' : ''}`} />
+            <RefreshCw
+              className={`h-4 w-4 ${list.isFetching || myCandidate.isFetching ? 'animate-spin' : ''}`}
+            />
             Refresh
           </Button>
         </div>
@@ -237,12 +289,36 @@ export function InternalJobBoardPage() {
         </p>
       ) : null}
 
-      {candidateResolution.status !== 'resolved' && email ? (
-        <p role="status" className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-          {candidateResolution.status === 'missing' || candidateResolution.status === 'error'
-            ? candidateResolution.message
-            : null}
+      {email && candidateResolution.status === 'pending' ? (
+        <p role="status" className="rounded-xl border border-[#E2E6EF] bg-white px-4 py-3 text-sm text-[#667085]">
+          Looking up your linked candidate profile…
         </p>
+      ) : null}
+
+      {email &&
+      (candidateResolution.status === 'missing' ||
+        candidateResolution.status === 'inactive' ||
+        candidateResolution.status === 'error') ? (
+        <div
+          role="status"
+          className="space-y-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900"
+        >
+          <p>{candidateResolution.message}</p>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => void myCandidate.refetch()}
+              disabled={myCandidate.isFetching}
+            >
+              Retry profile lookup
+            </Button>
+            <Button type="button" variant="outline" size="sm" asChild>
+              <Link to="/contact-administrator">Contact HR / Administrator</Link>
+            </Button>
+          </div>
+        </div>
       ) : null}
 
       <div className={RECRUITMENT_FILTER_BAR}>
@@ -314,7 +390,7 @@ export function InternalJobBoardPage() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value={ALL}>All departments</SelectItem>
-            {(departmentsQuery.data?.items ?? []).map((dept) => (
+            {departmentOptions.map((dept) => (
               <SelectItem key={dept.id} value={dept.id}>
                 {dept.name}
               </SelectItem>
@@ -390,7 +466,7 @@ export function InternalJobBoardPage() {
                     <Button
                       type="button"
                       className="bg-[#0F766E] hover:bg-[#0D9488]"
-                      disabled={alreadyApplied || applying || candidateResolution.status !== 'resolved'}
+                      disabled={alreadyApplied || applying || !canApplyWithCandidate}
                       onClick={() => void handleApply(job)}
                     >
                       {alreadyApplied ? 'Already applied' : applying ? (
@@ -562,7 +638,7 @@ export function InternalJobBoardPage() {
                 disabled={
                   applying ||
                   appliedJobIds.has(selected.id) ||
-                  candidateResolution.status !== 'resolved'
+                  !canApplyWithCandidate
                 }
                 onClick={() => void handleApply(selected)}
               >

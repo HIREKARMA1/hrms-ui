@@ -80,7 +80,7 @@ export function initialsFromName(name: string): string {
 }
 
 export const DEPARTMENT_CHART_COLORS = [
-  '#5938DB',
+  '#0F766E',
   '#16A34A',
   '#3B82F6',
   '#F59E0B',
@@ -93,7 +93,7 @@ export const DEPARTMENT_CHART_COLORS = [
 ]
 
 export const LEAVE_TYPE_CHART_COLORS = [
-  '#5938DB',
+  '#0F766E',
   '#16A34A',
   '#3B82F6',
   '#F59E0B',

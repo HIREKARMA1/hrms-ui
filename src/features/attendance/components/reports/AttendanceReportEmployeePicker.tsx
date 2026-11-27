@@ -85,7 +85,7 @@ export function AttendanceReportEmployeePicker({
           <div className="max-h-56 overflow-y-auto">
             {isFetching ? (
               <p className={`flex items-center gap-2 p-3 text-sm ${policySecondaryText}`}>
-                <Loader2 className="h-4 w-4 animate-spin text-[#5938DB]" aria-hidden />
+                <Loader2 className="h-4 w-4 animate-spin text-[#0F766E]" aria-hidden />
                 Loading…
               </p>
             ) : rows.length === 0 ? (
@@ -102,8 +102,8 @@ export function AttendanceReportEmployeePicker({
                       <button
                         type="button"
                         className={cn(
-                          'flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2 text-left text-sm transition-colors hover:bg-[#F0EDFF]',
-                          isSelected && 'bg-[#F0EDFF]',
+                          'flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2 text-left text-sm transition-colors hover:bg-[#CCFBF1]',
+                          isSelected && 'bg-[#CCFBF1]',
                         )}
                         onClick={() => {
                           onSelect(record)

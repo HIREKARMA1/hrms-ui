@@ -43,17 +43,30 @@ export function MyApplicationsPage() {
 
   const email = user?.email?.trim() ?? ''
   const myCandidate = useGetMyCandidateQuery(undefined, { skip: !email })
+  const candidateLookupStatus = (myCandidate.error as { status?: unknown } | undefined)?.status
   const candidateResolution = useMemo(
     () =>
       resolveCandidateFromMe({
         email,
         candidate: myCandidate.data,
         fetchError: myCandidate.isError ? myCandidate.error : undefined,
-        is404:
-          myCandidate.isError &&
-          (myCandidate.error as { status?: unknown })?.status === 404,
+        is404: myCandidate.isError && candidateLookupStatus === 404,
+        is403: myCandidate.isError && candidateLookupStatus === 403,
+        isLoading:
+          Boolean(email) &&
+          (myCandidate.isLoading || myCandidate.isFetching) &&
+          !myCandidate.data &&
+          !myCandidate.isError,
       }),
-    [email, myCandidate.data, myCandidate.isError, myCandidate.error],
+    [
+      email,
+      myCandidate.data,
+      myCandidate.isError,
+      myCandidate.error,
+      myCandidate.isLoading,
+      myCandidate.isFetching,
+      candidateLookupStatus,
+    ],
   )
   const candidateId =
     candidateResolution.status === 'resolved' ? candidateResolution.candidateId : null
@@ -96,16 +109,31 @@ export function MyApplicationsPage() {
         </div>
       }
     >
-      {candidateLookupFailed ? (
+      {candidateLookupFailed ||
+      candidateResolution.status === 'missing' ||
+      candidateResolution.status === 'inactive' ? (
         <div className={`${RECRUITMENT_CARD} space-y-3 p-6`}>
           <p role="status" className="text-sm text-amber-900">
-            {candidateResolution.message}
+            {'message' in candidateResolution ? candidateResolution.message : null}
           </p>
-          <Button type="button" variant="outline" asChild>
-            <Link to={internalJobsPath(prefix)}>Back to job board</Link>
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => void myCandidate.refetch()}
+              disabled={myCandidate.isFetching}
+            >
+              Retry profile lookup
+            </Button>
+            <Button type="button" variant="outline" asChild>
+              <Link to="/contact-administrator">Contact HR / Administrator</Link>
+            </Button>
+            <Button type="button" variant="outline" asChild>
+              <Link to={internalJobsPath(prefix)}>Back to job board</Link>
+            </Button>
+          </div>
         </div>
-      ) : myCandidate.isLoading || list.isLoading ? (
+      ) : candidateResolution.status === 'pending' || myCandidate.isLoading || list.isLoading ? (
         <div className="space-y-3 p-4">
           <Skeleton className="h-10 w-full" />
           <Skeleton className="h-10 w-full" />

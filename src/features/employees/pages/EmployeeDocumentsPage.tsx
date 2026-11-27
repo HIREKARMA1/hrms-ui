@@ -135,7 +135,7 @@ export function EmployeeDocumentsPage({
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-[1100px] flex-col gap-6">
+    <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-6 pb-8">
       <div>
         <div className="mb-2 flex flex-wrap gap-2">
           <Badge variant="success">Live employee documents</Badge>

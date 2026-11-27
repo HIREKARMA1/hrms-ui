@@ -52,7 +52,7 @@ export function RoleViewDialog({
                 'shrink-0 border-0 font-medium',
                 role.type === 'system'
                   ? 'bg-sky-50 text-sky-700'
-                  : 'bg-[#F0EDFF] text-[#5938DB]',
+                  : 'bg-[#CCFBF1] text-[#0F766E]',
               )}
             >
               {role.type === 'system' ? 'System' : 'Custom'}

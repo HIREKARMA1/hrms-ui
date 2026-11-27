@@ -1,5 +1,5 @@
 const MODULE_BADGE_STYLES = [
-  'bg-[#F0EDFF] text-[#5938DB]',
+  'bg-[#CCFBF1] text-[#0F766E]',
   'bg-emerald-50 text-emerald-700',
   'bg-sky-50 text-sky-700',
   'bg-amber-50 text-amber-700',

@@ -115,7 +115,7 @@ export function LeadTaxonomyForm({
                       className={cn(
                         'flex-1 rounded-xl border px-3 py-2 text-sm font-semibold transition-colors',
                         kind === 'source'
-                          ? 'border-[#5938DB] bg-[#F0EDFF] text-[#5938DB]'
+                          ? 'border-[#0F766E] bg-[#CCFBF1] text-[#0F766E]'
                           : 'border-hrms-border bg-white text-hrms-navy hover:bg-hrms-page',
                       )}
                     >
@@ -127,7 +127,7 @@ export function LeadTaxonomyForm({
                       className={cn(
                         'flex-1 rounded-xl border px-3 py-2 text-sm font-semibold transition-colors',
                         kind === 'category'
-                          ? 'border-[#5938DB] bg-[#F0EDFF] text-[#5938DB]'
+                          ? 'border-[#0F766E] bg-[#CCFBF1] text-[#0F766E]'
                           : 'border-hrms-border bg-white text-hrms-navy hover:bg-hrms-page',
                       )}
                     >

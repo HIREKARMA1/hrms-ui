@@ -81,7 +81,7 @@ export function HrDashboardPage() {
                   <Bar
                     dataKey="headcount"
                     name="Headcount"
-                    fill="#5938DB"
+                    fill="#0F766E"
                     radius={[0, 6, 6, 0]}
                     maxBarSize={24}
                   />

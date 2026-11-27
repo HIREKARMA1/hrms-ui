@@ -8,22 +8,30 @@
   initial-value: 260px;
 }
 
+/*
+ * Premium Teal & Navy design system (login + dashboards).
+ * Legacy aliases (brand-*, lavender, hrms-primary) map onto this palette so
+ * existing utility classes adopt the approved look without a big-bang rewrite.
+ */
 @theme {
-  --color-brand-50: #f3f1ff;
-  --color-brand-100: #ebe6ff;
-  --color-brand-200: #d9d1ff;
-  --color-brand-300: #bbaeff;
-  --color-brand-400: #9580ff;
-  --color-brand-500: #6d5cf6;
-  --color-brand-600: #5b45eb;
-  --color-brand-700: #4c35d0;
-  --color-brand-800: #3f2da8;
-  --color-brand-900: #352987;
+  /* Brand scale → Primary Teal */
+  --color-brand-50: #f0fdfa;
+  --color-brand-100: #ccfbf1;
+  --color-brand-200: #99f6e4;
+  --color-brand-300: #5eead4;
+  --color-brand-400: #14b8a6;
+  --color-brand-500: #0f766e;
+  --color-brand-600: #115e59;
+  --color-brand-700: #134e4a;
+  --color-brand-800: #115e59;
+  --color-brand-900: #17213a;
+
   --color-hrms-navy: #17213a;
-  --color-hrms-primary: #5938db;
-  --color-hrms-primary-hover: #7055eb;
-  --color-hrms-lavender: #f0edff;
-  --color-hrms-lavender-border: #dcd4ff;
+  --color-hrms-primary: #0f766e;
+  --color-hrms-primary-hover: #115e59;
+  /* Soft teal surfaces (replaces lavender) */
+  --color-hrms-lavender: #ccfbf1;
+  --color-hrms-lavender-border: #99f6e4;
   --color-hrms-page: #f7f8fc;
   --color-hrms-muted-bg: #eef0f6;
   --color-hrms-text-secondary: #667085;
@@ -35,23 +43,21 @@
   --color-hrms-info: #3b82f6;
   --color-hrms-border: #e2e6ef;
   --color-hrms-row-hover: #f3f4f8;
-  --color-hrms-focus: #8b5cf6;
-  --color-brand-50: #f0edff;
-  --color-brand-100: #e4deff;
-  --color-brand-200: #c9beff;
-  --color-brand-300: #a594f8;
-  --color-brand-400: #7055eb;
-  --color-brand-500: #5938db;
-  --color-brand-600: #4a2fc0;
-  --color-brand-700: #3c26a0;
-  --color-brand-800: #2f1e7e;
-  --color-brand-900: #17213a;
+  --color-hrms-focus: #14b8a6;
+
   --color-navy: #17213a;
-  --color-lavender: #f0edff;
+  --color-lavender: #ccfbf1;
   --color-muted-bg: #eef0f6;
   --color-app-bg: #f7f8fc;
   --color-border-soft: #e2e6ef;
   --color-text-secondary: #667085;
+
+  /* Explicit teal tokens for new UI */
+  --color-teal: #0f766e;
+  --color-teal-hover: #115e59;
+  --color-teal-light: #14b8a6;
+  --color-teal-soft: #ccfbf1;
+
   --font-sans: 'Segoe UI', system-ui, -apple-system, sans-serif;
   --font-inter: 'Inter', 'Segoe UI', system-ui, sans-serif;
 }
@@ -76,4 +82,9 @@ body {
   -moz-osx-font-smoothing: grayscale;
   background: #f7f8fc;
   color: #17213a;
+}
+
+/* Shared focus ring for native controls outside component wrappers */
+:focus-visible {
+  outline-color: #14b8a6;
 }

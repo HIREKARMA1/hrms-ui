@@ -33,7 +33,7 @@ export function EmployeeOverviewPage() {
   const range = useMemo(() => dashboardPeriodRange(dateRange), [dateRange])
 
   return (
-    <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-6">
+    <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-6 pb-8">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-navy">

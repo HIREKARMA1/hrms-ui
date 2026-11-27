@@ -14,7 +14,7 @@ const cards = [
     key: 'total',
     label: 'Total Roles',
     icon: Users,
-    accent: 'bg-[#F0EDFF] text-[#5938DB]',
+    accent: 'bg-[#CCFBF1] text-[#0F766E]',
   },
   {
     key: 'system',

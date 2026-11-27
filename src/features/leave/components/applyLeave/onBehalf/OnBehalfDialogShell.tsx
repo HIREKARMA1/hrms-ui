@@ -32,7 +32,7 @@ export function OnBehalfDialogShell({
         >
           <header className="flex shrink-0 items-start gap-3 border-b border-[#E2E6EF] px-6 py-5 pr-14 max-[480px]:px-4">
             <div
-              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#F0EDFF] text-[#5938DB]"
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#CCFBF1] text-[#0F766E]"
               aria-hidden
             >
               <UserRound className="h-[22px] w-[22px]" />
@@ -91,7 +91,7 @@ export function OnBehalfDialogFooterBar({
           <button
             type="button"
             disabled={loading}
-            className="h-[42px] rounded-[10px] bg-[#F0EDFF] px-5 text-sm font-semibold text-[#5938DB] transition-colors hover:bg-[#E8E2FF] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#8B5CF6] disabled:opacity-60"
+            className="h-[42px] rounded-[10px] bg-[#CCFBF1] px-5 text-sm font-semibold text-[#0F766E] transition-colors hover:bg-[#E8E2FF] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#8B5CF6] disabled:opacity-60"
           >
             Cancel
           </button>
@@ -104,7 +104,7 @@ export function OnBehalfDialogFooterBar({
             'inline-flex h-[42px] items-center justify-center gap-2 rounded-[10px] px-5 text-sm font-semibold text-white transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#8B5CF6]',
             primaryDisabled || loading
               ? 'cursor-not-allowed bg-[#B7A8F3]'
-              : 'bg-[#5938DB] hover:bg-[#7055EB]',
+              : 'bg-[#0F766E] hover:bg-[#7055EB]',
           )}
         >
           {loading ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : null}

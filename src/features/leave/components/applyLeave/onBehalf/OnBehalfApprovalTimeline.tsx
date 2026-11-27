@@ -28,7 +28,7 @@ export function OnBehalfApprovalTimeline({
             />
           ) : null}
           <span
-            className="relative z-[1] mt-0.5 h-2.5 w-2.5 shrink-0 rounded-full border-[3px] border-[#5938DB] bg-white"
+            className="relative z-[1] mt-0.5 h-2.5 w-2.5 shrink-0 rounded-full border-[3px] border-[#0F766E] bg-white"
             aria-hidden
           />
           <div className="min-w-0 flex-1 pt-0">
