@@ -27,15 +27,16 @@ export function useBalancesHrOverviewLive(
   orgLeaveTypes: LeaveTypeOption[],
 ) {
   const canFetch = useShouldFetchLeaveList()
-  const year = Number(leaveTodayIso().slice(0, 4))
+  const defaultYear = Number(leaveTodayIso().slice(0, 4))
+  const [year, setYear] = useState(defaultYear)
   const trimmedSearch = search.trim()
   const [page, setPage] = useState(1)
 
   useEffect(() => {
     setPage(1)
-  }, [trimmedSearch])
+  }, [trimmedSearch, year])
 
-  const { data, isError, error, isFetching } = useGetEmployeeLeavePolicyHrOverviewQuery(
+  const { data, isError, error, isFetching, refetch } = useGetEmployeeLeavePolicyHrOverviewQuery(
     {
       page,
       limit: HR_OVERVIEW_PAGE_SIZE,
@@ -81,9 +82,13 @@ export function useBalancesHrOverviewLive(
     onSearchChange(value)
   }
 
+  const yearOptions = [defaultYear - 1, defaultYear, defaultYear + 1]
+
   return {
     canFetch,
     year,
+    setYear,
+    yearOptions,
     page,
     setPage,
     rows,
@@ -92,6 +97,7 @@ export function useBalancesHrOverviewLive(
     showMissingBalancesNotice,
     errorMessage,
     isFetching,
+    refetch,
     total,
     totalPages,
     canGoPrev,

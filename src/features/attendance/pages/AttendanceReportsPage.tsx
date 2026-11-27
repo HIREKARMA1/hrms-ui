@@ -11,10 +11,6 @@ export function AttendanceReportsPage() {
 
       <header className="mb-6">
         <h1 className="text-[26px] font-bold tracking-[-0.4px] text-[#17213A]">Attendance Reports</h1>
-        <p className="mt-1 text-sm text-[#667085]">
-          Processed policy attendance from the live API — employee picker, period summary, and daily
-          policy rows.
-        </p>
       </header>
 
       <HrAttendancePolicyReport />

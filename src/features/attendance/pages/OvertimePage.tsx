@@ -1,130 +1,95 @@
-import { useMemo, useState } from 'react'
-import { Search, Timer, Clock, CheckCircle2, Hourglass } from 'lucide-react'
+import { useCallback, useState } from 'react'
+import { CalendarDays, Clock } from 'lucide-react'
 
-import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
+import { Skeleton } from '@/components/ui/skeleton'
+
+import { AttendanceReportEmployeePicker } from '../components/reports/AttendanceReportEmployeePicker'
+import { AttendancePolicyReportFetchState } from '../components/reports/policyReport/AttendancePolicyReportFetchState'
+import { AttendancePolicyReportEmployeeStrip } from '../components/reports/policyReport/AttendancePolicyReportEmployeeStrip'
+import { AttendancePolicyReportFilterGrid } from '../components/reports/policyReport/AttendancePolicyReportFilterGrid'
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import { ToastBanner, useToast } from '@/hooks/useToast'
-
-import { ApprovalStatusBadge } from '../components/AttendanceStatusBadge'
-import { departments, overtimeRecords } from '../mocks/attendanceMocks'
-import type { ApprovalStatus, OvertimeRecord } from '../types/attendance'
-
-const approvalStatuses = ['All', 'Pending', 'Approved', 'Rejected'] as const
-
-function parseOvertimeMinutes(value: string): number {
-  const hoursMatch = value.match(/(\d+)h/)
-  const minutesMatch = value.match(/(\d+)m/)
-  const hours = hoursMatch ? Number(hoursMatch[1]) : 0
-  const minutes = minutesMatch ? Number(minutesMatch[1]) : 0
-  return hours * 60 + minutes
-}
-
-function formatOvertimeTotal(totalMinutes: number): string {
-  const hours = Math.floor(totalMinutes / 60)
-  const minutes = totalMinutes % 60
-  return `${hours}h ${minutes}m`
-}
+  policyCardClass,
+  policyPrimaryText,
+  policySecondaryText,
+} from '../components/reports/policyReport/attendancePolicyReportUi'
+import type { HrLookupMode } from '../hooks/useHrAttendanceReportActive'
+import { useOvertimeManagementData } from '../hooks/useOvertimeManagementData'
+import { formatAttendanceDate, formatMinutesAsDuration } from '../utils/attendanceReportDisplay'
 
 export function OvertimePage() {
-  const { message, toast } = useToast()
-  const [records, setRecords] = useState<OvertimeRecord[]>(() => [
-    ...overtimeRecords,
-  ])
-  const [search, setSearch] = useState('')
-  const [department, setDepartment] = useState('All')
-  const [status, setStatus] = useState<string>('All')
+  const {
+    canViewEmployeeReports,
+    range,
+    setRange,
+    source,
+    setSource,
+    rangeError,
+    active,
+    lookupReady,
+    submitLookup,
+    onRosterSelect,
+    rows,
+    summary,
+    showResult,
+    isLoading,
+    isFetching,
+  } = useOvertimeManagementData()
 
-  const filtered = useMemo(() => {
-    const query = search.trim().toLowerCase()
-    return records.filter((record) => {
-      const matchesSearch =
-        !query ||
-        record.employeeName.toLowerCase().includes(query) ||
-        record.employeeId.toLowerCase().includes(query)
-      const matchesDepartment =
-        department === 'All' || record.department === department
-      const matchesStatus = status === 'All' || record.status === status
-      return matchesSearch && matchesDepartment && matchesStatus
-    })
-  }, [records, search, department, status])
+  const [mode, setMode] = useState<HrLookupMode>('code')
+  const [employeeCodeInput, setEmployeeCodeInput] = useState('')
+  const [employeeIdInput, setEmployeeIdInput] = useState('')
 
-  const summary = useMemo(() => {
-    const uniqueEmployees = new Set(records.map((record) => record.employeeId))
-    const totalMinutes = records.reduce(
-      (sum, record) => sum + parseOvertimeMinutes(record.overtimeHours),
-      0,
-    )
-    const pendingCount = records.filter((record) => record.status === 'Pending').length
-    const approvedMinutes = records
-      .filter((record) => record.status === 'Approved')
-      .reduce((sum, record) => sum + parseOvertimeMinutes(record.overtimeHours), 0)
+  const handleRosterSelect = useCallback(
+    (record: Parameters<typeof onRosterSelect>[0]) => {
+      onRosterSelect(record)
+      setMode('code')
+      setEmployeeCodeInput(record.profile.employeeId)
+      setEmployeeIdInput(record.server.id)
+    },
+    [onRosterSelect],
+  )
 
-    return {
-      employeeCount: uniqueEmployees.size,
-      totalHours: formatOvertimeTotal(totalMinutes),
-      pendingCount,
-      approvedHours: formatOvertimeTotal(approvedMinutes),
-    }
-  }, [records])
-
-  const updateStatus = (id: string, nextStatus: ApprovalStatus) => {
-    setRecords((prev) =>
-      prev.map((record) =>
-        record.id === id ? { ...record, status: nextStatus } : record,
-      ),
-    )
-    toast(
-      nextStatus === 'Approved'
-        ? 'Overtime approved (UI preview only).'
-        : 'Overtime rejected (UI preview only).',
-    )
-  }
+  const handleSubmit = useCallback(() => {
+    submitLookup(mode, employeeCodeInput, employeeIdInput)
+  }, [employeeCodeInput, employeeIdInput, mode, submitLookup])
 
   const summaryCards = [
     {
-      label: 'Total OT Employees',
-      value: summary.employeeCount,
-      icon: Timer,
-      iconClassName: 'bg-lavender text-brand-500',
+      label: 'OT days',
+      value: showResult ? summary.dayCount : '—',
+      icon: CalendarDays,
+      iconClassName: 'bg-emerald-50 text-[#16A34A]',
     },
     {
-      label: 'Total OT Hours',
-      value: summary.totalHours,
+      label: 'Total overtime',
+      value: showResult ? summary.totalOvertime : '—',
       icon: Clock,
       iconClassName: 'bg-indigo-50 text-indigo-600',
     },
-    {
-      label: 'Pending Approvals',
-      value: summary.pendingCount,
-      icon: Hourglass,
-      iconClassName: 'bg-amber-50 text-[#F59E0B]',
-    },
-    {
-      label: 'Approved OT Hours',
-      value: summary.approvedHours,
-      icon: CheckCircle2,
-      iconClassName: 'bg-emerald-50 text-[#16A34A]',
-    },
   ]
+
+  if (!canViewEmployeeReports) {
+    return (
+      <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-6">
+        <h1 className="text-2xl font-bold tracking-tight text-navy">Overtime</h1>
+        <p className="text-sm text-text-secondary">
+          Your role does not include permission to view employee attendance reports.
+        </p>
+      </div>
+    )
+  }
 
   return (
     <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight text-navy">Overtime</h1>
-        <p className="mt-1 text-sm text-text-secondary">
-          Monitor overtime hours and approve pending requests.
+        <p className={`mt-1 text-xs ${policySecondaryText}`}>
+          Policy-computed overtime from attendance reports (read-only, max 31-day range).
         </p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2">
         {summaryCards.map((card) => (
           <Card key={card.label} className="border-border-soft shadow-sm">
             <CardContent className="flex items-start gap-3 p-5">
@@ -136,7 +101,7 @@ export function OvertimePage() {
               <div>
                 <p className="text-sm text-text-secondary">{card.label}</p>
                 <p className="mt-1 text-2xl font-bold tracking-tight text-navy">
-                  {card.value}
+                  {isFetching && !showResult ? '…' : card.value}
                 </p>
               </div>
             </CardContent>
@@ -144,116 +109,104 @@ export function OvertimePage() {
         ))}
       </div>
 
-      <div className="flex flex-col gap-3 rounded-2xl border border-border-soft bg-white p-4 shadow-sm lg:flex-row lg:items-end lg:flex-wrap">
-        <div className="relative min-w-[220px] flex-1">
-          <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-text-secondary" />
-          <Input
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            placeholder="Search by employee name or ID"
-            className="h-10 pl-9"
-          />
+      <div className={policyCardClass}>
+        <div className="border-b border-[#E2E6EF] px-[22px] py-4">
+          <h2 className={`text-base font-semibold ${policyPrimaryText}`}>Employee overtime</h2>
+          <p className={`mt-1 text-xs ${policySecondaryText}`}>
+            Choose an employee and date range, then load the report to see days with overtime.
+          </p>
         </div>
-
-        <Select value={department} onValueChange={setDepartment}>
-          <SelectTrigger className="w-full lg:w-[170px]">
-            <SelectValue placeholder="Department" />
-          </SelectTrigger>
-          <SelectContent>
-            {departments.map((item) => (
-              <SelectItem key={item} value={item}>
-                {item === 'All' ? 'All Departments' : item}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <Select value={status} onValueChange={setStatus}>
-          <SelectTrigger className="w-full lg:w-[150px]">
-            <SelectValue placeholder="Status" />
-          </SelectTrigger>
-          <SelectContent>
-            {approvalStatuses.map((item) => (
-              <SelectItem key={item} value={item}>
-                {item === 'All' ? 'All Statuses' : item}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <AttendancePolicyReportFilterGrid
+          mode={mode}
+          onModeChange={setMode}
+          employeeCode={employeeCodeInput}
+          onEmployeeCodeChange={setEmployeeCodeInput}
+          employeeId={employeeIdInput}
+          onEmployeeIdChange={setEmployeeIdInput}
+          onSubmit={handleSubmit}
+          employeePicker={
+            <AttendanceReportEmployeePicker
+              selectedCode={employeeCodeInput}
+              onSelect={handleRosterSelect}
+            />
+          }
+          idPrefix="ot"
+          range={range}
+          onRangeChange={setRange}
+          source={source}
+          onSourceChange={setSource}
+          onRefresh={() => void active.refetch()}
+          refreshDisabled={!lookupReady || isFetching || Boolean(rangeError)}
+          isFetching={isFetching}
+        />
+        {showResult && active.data ? (
+          <AttendancePolicyReportEmployeeStrip data={active.data} dayCount={rows.length} />
+        ) : null}
       </div>
 
+      <AttendancePolicyReportFetchState
+        rangeError={rangeError}
+        placeholder={
+          !lookupReady ? 'Choose an employee or enter code / ID, then click Load report.' : null
+        }
+        isLoading={isLoading}
+        isError={lookupReady && active.isError}
+        error={active.error}
+        loadingMessage="Loading attendance report…"
+        errorFallback="Could not load the attendance report."
+      />
+
       <div className="overflow-x-auto rounded-2xl border border-border-soft bg-white shadow-sm">
-        <table className="w-full min-w-[900px] text-left text-sm">
+        <table className="w-full min-w-[640px] text-left text-sm">
           <thead className="bg-muted-bg/70 text-text-secondary">
             <tr>
-              <th className="px-3 py-3 font-medium">Employee</th>
-              <th className="px-3 py-3 font-medium">Employee ID</th>
-              <th className="px-3 py-3 font-medium">Department</th>
               <th className="px-3 py-3 font-medium">Date</th>
-              <th className="px-3 py-3 font-medium">Regular Hours</th>
-              <th className="px-3 py-3 font-medium">Overtime Hours</th>
-              <th className="px-3 py-3 font-medium">Status</th>
-              <th className="px-3 py-3 font-medium">Actions</th>
+              <th className="px-3 py-3 font-medium">Net worked</th>
+              <th className="px-3 py-3 font-medium">Overtime</th>
             </tr>
           </thead>
           <tbody>
-            {filtered.map((record) => (
+            {isLoading && rows.length === 0 ? (
+              <tr>
+                <td colSpan={3} className="px-4 py-8">
+                  <div className="space-y-2">
+                    <Skeleton className="h-8 w-full" />
+                    <Skeleton className="h-8 w-full" />
+                    <Skeleton className="h-8 w-3/4" />
+                  </div>
+                </td>
+              </tr>
+            ) : null}
+            {rows.map((record) => (
               <tr key={record.id} className="border-t border-border-soft">
-                <td className="px-3 py-3 font-medium text-navy">
-                  {record.employeeName}
-                </td>
-                <td className="px-3 py-3 text-text-secondary">{record.employeeId}</td>
-                <td className="px-3 py-3 text-text-secondary">{record.department}</td>
-                <td className="px-3 py-3 text-text-secondary">{record.date}</td>
-                <td className="px-3 py-3 text-text-secondary">{record.regularHours}</td>
                 <td className="px-3 py-3 text-text-secondary">
-                  {record.overtimeHours}
+                  {formatAttendanceDate(record.date)}
                 </td>
-                <td className="px-3 py-3">
-                  <ApprovalStatusBadge status={record.status} />
+                <td className="px-3 py-3 text-text-secondary">
+                  {formatMinutesAsDuration(record.workingMinutes)}
                 </td>
-                <td className="px-3 py-3">
-                  {record.status === 'Pending' ? (
-                    <div className="flex flex-wrap gap-1">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="h-8 border-rose-200 text-[#EF4444] hover:bg-rose-50"
-                        onClick={() => updateStatus(record.id, 'Rejected')}
-                      >
-                        Reject
-                      </Button>
-                      <Button
-                        type="button"
-                        size="sm"
-                        className="h-8"
-                        onClick={() => updateStatus(record.id, 'Approved')}
-                      >
-                        Approve
-                      </Button>
-                    </div>
-                  ) : (
-                    <span className="text-text-secondary">—</span>
-                  )}
+                <td className="px-3 py-3 font-medium text-navy">
+                  {formatMinutesAsDuration(record.overtimeMinutes)}
                 </td>
               </tr>
             ))}
-            {filtered.length === 0 ? (
+            {!isLoading && !lookupReady && rows.length === 0 ? (
               <tr>
-                <td
-                  colSpan={8}
-                  className="px-4 py-10 text-center text-text-secondary"
-                >
-                  No overtime records match the selected filters.
+                <td colSpan={3} className="px-4 py-10 text-center text-text-secondary">
+                  Load a report to see overtime days.
+                </td>
+              </tr>
+            ) : null}
+            {!isLoading && lookupReady && showResult && rows.length === 0 ? (
+              <tr>
+                <td colSpan={3} className="px-4 py-10 text-center text-text-secondary">
+                  No overtime minutes in this date range for this employee.
                 </td>
               </tr>
             ) : null}
           </tbody>
         </table>
       </div>
-
-      <ToastBanner message={message} />
     </div>
   )
 }

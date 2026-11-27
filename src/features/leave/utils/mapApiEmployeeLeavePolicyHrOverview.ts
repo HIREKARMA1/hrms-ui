@@ -13,8 +13,12 @@ function resolveEmployeeCode(item: ApiEmployeeLeavePolicyHrOverviewItem): string
   return (item.employeeCode ?? item.employee?.employeeCode ?? item.employee?.code ?? '').trim()
 }
 
+/** Maps API `paidLeaveAvailable` / `sickLeaveAvailable` to org leave type codes. */
+const HR_OVERVIEW_PAID_LEAVE_CODE = 'EARNED'
+const HR_OVERVIEW_SICK_LEAVE_CODE = 'SICK'
+
 function resolveEmployeeName(item: ApiEmployeeLeavePolicyHrOverviewItem): string {
-  const direct = item.employeeName?.trim()
+  const direct = item.employeeName?.trim() || item.name?.trim()
   if (direct) return direct
   const employee = item.employee
   if (!employee) return item.employeeCode?.trim() || 'Unknown employee'
@@ -72,6 +76,17 @@ function balancesFromRecord(record: Record<string, number> | undefined): Record<
   return out
 }
 
+function balancesFromSummaryFields(item: ApiEmployeeLeavePolicyHrOverviewItem): Record<string, number> {
+  const out: Record<string, number> = {}
+  if (typeof item.paidLeaveAvailable === 'number' && Number.isFinite(item.paidLeaveAvailable)) {
+    out[HR_OVERVIEW_PAID_LEAVE_CODE] = item.paidLeaveAvailable
+  }
+  if (typeof item.sickLeaveAvailable === 'number' && Number.isFinite(item.sickLeaveAvailable)) {
+    out[HR_OVERVIEW_SICK_LEAVE_CODE] = item.sickLeaveAvailable
+  }
+  return out
+}
+
 function balancesFromItem(item: ApiEmployeeLeavePolicyHrOverviewItem): Record<string, number> {
   const fromRecord = balancesFromRecord(item.balanceByType)
   if (Object.keys(fromRecord).length > 0) return fromRecord
@@ -83,7 +98,9 @@ function balancesFromItem(item: ApiEmployeeLeavePolicyHrOverviewItem): Record<st
     if (!code) continue
     out[code] = availableFromBalanceRow(row)
   }
-  return out
+  if (Object.keys(out).length > 0) return out
+
+  return balancesFromSummaryFields(item)
 }
 
 export function mapApiHrOverviewItemToTableRow(
@@ -129,6 +146,9 @@ export function resolveHrOverviewBalanceTypeCodes(
   rows: HrOverviewBalanceTableRow[],
   orgLeaveTypes?: { code: string; isActive?: boolean }[],
 ): string[] {
+  if (!hrOverviewRowsHaveBalanceValues(rows)) {
+    return []
+  }
   const set = new Set(collectHrOverviewBalanceTypeCodes(rows))
   for (const type of orgLeaveTypes ?? []) {
     if (type.isActive === false) continue

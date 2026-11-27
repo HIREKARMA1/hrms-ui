@@ -112,11 +112,11 @@ function attendanceChildren(prefix: string): RoleNavItem['children'] {
       path: `${prefix}/attendance/weekly-off`,
       feature: 'attendance.weeklyOff',
     },
-    {
-      title: 'Holiday Management',
-      path: `${prefix}/attendance/holidays`,
-      feature: 'attendance.holidays',
-    },
+    // {
+    //   title: 'Holiday Management',
+    //   path: `${prefix}/attendance/holidays`,
+    //   feature: 'attendance.holidays',
+    // },
     {
       title: 'Attendance Reports',
       path: `${prefix}/attendance/reports`,
@@ -188,12 +188,12 @@ const superAdminNav: RoleNavItem[] = [
     iconName: 'Building2',
     feature: 'employee.organization.view',
   },
-  {
-    title: 'Designations',
-    path: '/superadmin/designations',
-    iconName: 'BadgeCheck',
-    feature: 'employee.organization.view',
-  },
+  // {
+  //   title: 'Designations',
+  //   path: '/superadmin/designations',
+  //   iconName: 'BadgeCheck',
+  //   feature: 'employee.organization.view',
+  // },
   {
     title: 'Employee Documents',
     path: '/superadmin/documents',
@@ -245,11 +245,11 @@ const superAdminNav: RoleNavItem[] = [
     path: '/superadmin/performance',
     iconName: 'Target',
   },
-  {
-    title: 'Reports & Analytics',
-    path: '/superadmin/reports',
-    iconName: 'BarChart3',
-  },
+  // {
+  //   title: 'Reports & Analytics',
+  //   path: '/superadmin/reports',
+  //   iconName: 'BarChart3',
+  // },
   {
     title: 'Audit Logs',
     path: '/superadmin/audit-logs',
@@ -311,12 +311,12 @@ const hrAdminNav: RoleNavItem[] = [
     iconName: 'Building2',
     feature: 'employee.organization.view',
   },
-  {
-    title: 'Designations',
-    path: '/hradmin/designations',
-    iconName: 'BadgeCheck',
-    feature: 'employee.organization.view',
-  },
+  // {
+  //   title: 'Designations',
+  //   path: '/hradmin/designations',
+  //   iconName: 'BadgeCheck',
+  //   feature: 'employee.organization.view',
+  // },
   {
     title: 'Recruitment & ATS',
     path: '/hradmin/recruitment',
@@ -368,11 +368,11 @@ const hrAdminNav: RoleNavItem[] = [
     path: '/hradmin/performance',
     iconName: 'Target',
   },
-  {
-    title: 'Reports & Analytics',
-    path: '/hradmin/reports',
-    iconName: 'BarChart3',
-  },
+  // {
+  //   title: 'Reports & Analytics',
+  //   path: '/hradmin/reports',
+  //   iconName: 'BarChart3',
+  // },
   {
     title: 'Organization Settings',
     path: '/hradmin/organization-settings',

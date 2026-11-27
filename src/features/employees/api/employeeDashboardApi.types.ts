@@ -46,29 +46,64 @@ export type AbsentTodayData = {
   pagination: DashboardPagination
 }
 
+export type OnLeaveTodayItem = {
+  leaveRequestId: string
+  employeeId: string
+  employeeCode: string
+  employeeName: string
+  department: DashboardDepartmentRef
+  leaveType: {
+    id: string
+    code: string
+    name: string
+    isPaid: boolean
+  }
+  startDate: string
+  endDate: string
+  dayPortion: 'FULL_DAY' | 'FIRST_HALF' | 'SECOND_HALF'
+  durationDays?: number
+  status: string
+  reason: string | null
+}
+
 export type OnLeaveTodayData = {
   date: string
   timezone: string
   empty: boolean
-  items: Array<{
-    employeeId: string
-    employeeCode: string
-    employeeName: string
-    department: DashboardDepartmentRef
-  }>
+  items: OnLeaveTodayItem[]
   pagination: DashboardPagination
+}
+
+export type LateArrivalsShiftInfo = {
+  name?: string
+  startTime?: string
+  endTime?: string
+  graceMinutes?: number
+  latestOnTimeCheckIn?: string
+}
+
+export type LateArrivalItem = {
+  employeeId: string
+  employeeCode: string
+  employeeName: string
+  department: DashboardDepartmentRef
+  attendanceDate?: string
+  shiftName?: string
+  shiftStartTime?: string
+  checkInTime: string | null
+  lateMinutes: number
+  status?: string
+  halfDay?: boolean
 }
 
 export type LateArrivalsData = {
   date: string
   timezone: string
+  workingDay?: boolean
+  nonWorkingDay?: unknown
+  shift?: LateArrivalsShiftInfo
   empty: boolean
-  items: Array<{
-    employeeId: string
-    employeeCode: string
-    employeeName: string
-    department: DashboardDepartmentRef
-  }>
+  items: LateArrivalItem[]
   pagination: DashboardPagination
   skippedEmployees?: number
 }
@@ -136,6 +171,28 @@ export type NewJoinersData = {
   pagination: DashboardPagination
 }
 
+export type RecentlyAddedItem = {
+  employeeId: string
+  employeeCode: string
+  employeeName: string
+  department: DashboardDepartmentRef
+  designation: string
+  dateOfJoining: string
+  employmentStatus: string
+  createdAt: string
+}
+
+export type RecentlyAddedData = {
+  date: string
+  timezone: string
+  days: number
+  periodStart: string
+  periodEnd: string
+  empty: boolean
+  items: RecentlyAddedItem[]
+  pagination: DashboardPagination
+}
+
 export type ByDepartmentItem = {
   departmentId: string | null
   departmentCode: string | null
@@ -148,6 +205,29 @@ export type ByDepartmentData = {
   totalEmployees: number
   empty: boolean
   items: ByDepartmentItem[]
+}
+
+export type ByDepartmentQueryArgs = {
+  search?: string
+  employmentStatus?: 'ACTIVE' | 'ON_LEAVE' | 'PROBATION' | 'TERMINATED'
+}
+
+export type EmploymentStatusBucket = 'ACTIVE' | 'ON_LEAVE' | 'PROBATION' | 'TERMINATED'
+
+export type ByStatusItem = {
+  employmentStatus: EmploymentStatusBucket
+  employeeCount: number
+}
+
+export type ByStatusData = {
+  departmentId: string | null
+  totalEmployees: number
+  empty: boolean
+  items: ByStatusItem[]
+}
+
+export type ByStatusQueryArgs = {
+  departmentId?: string
 }
 
 export type AttendanceAnalyticsSummary = {
@@ -230,23 +310,35 @@ export type LeaveAnalyticsData = {
   byLeaveType: LeaveAnalyticsByTypeItem[]
 }
 
+export type TerminatedItem = {
+  employeeId: string
+  employeeCode: string
+  employeeName: string
+  department: DashboardDepartmentRef
+  designation: string
+  dateOfJoining: string
+  employmentStatus: 'TERMINATED'
+}
+
 export type TerminatedData = {
   empty: boolean
-  items: Array<{
-    employeeId: string
-    employeeCode: string
-    employeeName: string
-    department: DashboardDepartmentRef
-    designation: string
-    dateOfJoining: string
-    employmentStatus: 'TERMINATED'
-  }>
+  items: TerminatedItem[]
   pagination: DashboardPagination
+}
+
+export type OnProbationItem = {
+  employeeId: string
+  employeeCode: string
+  employeeName: string
+  department: DashboardDepartmentRef
+  designation: string
+  dateOfJoining: string
+  employmentStatus: 'PROBATION'
 }
 
 export type OnProbationData = {
   empty: boolean
-  items: unknown[]
+  items: OnProbationItem[]
   pagination: DashboardPagination
 }
 
@@ -264,4 +356,6 @@ export type DashboardListArgs = {
   month?: number
   search?: string
   departmentId?: string
+  /** YYYY-MM-DD for late-arrivals (default today). */
+  date?: string
 }

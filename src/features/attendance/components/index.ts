@@ -1,4 +1,7 @@
 export { AttendanceStats } from './AttendanceStats'
+export { AttendanceOverviewRecentActivity } from './AttendanceOverviewRecentActivity'
+export { AttendanceOverviewRegularizations } from './AttendanceOverviewRegularizations'
+export { AttendanceOverviewTodaySummary } from './AttendanceOverviewTodaySummary'
 export {
   AttendanceTrendChart,
   DepartmentAttendanceChart,

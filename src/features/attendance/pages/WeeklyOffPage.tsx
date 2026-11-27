@@ -28,10 +28,6 @@ export function WeeklyOffPage() {
 
       <div>
         <h1 className="text-2xl font-bold tracking-tight text-navy">Weekly Off</h1>
-        <p className="mt-1 text-sm text-text-secondary">
-          Company-wide weekly off rules (calendar). Department or employee overrides are not
-          supported by the API yet.
-        </p>
         {form.policyUpdatedAt ? (
           <p className="mt-1 text-xs text-text-secondary">
             Last updated: {new Date(form.policyUpdatedAt).toLocaleString()}

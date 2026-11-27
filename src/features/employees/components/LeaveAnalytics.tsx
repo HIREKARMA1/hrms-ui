@@ -13,11 +13,23 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { getApiErrorMessage } from '@/services/api/errors'
 
 import { useGetLeaveAnalyticsQuery } from '../api/employeeDashboardApi'
-import { LEAVE_TYPE_CHART_COLORS } from '../utils/dashboardDateRange'
+import {
+  formatDashboardDate,
+  LEAVE_TYPE_CHART_COLORS,
+} from '../utils/dashboardDateRange'
 
-export function LeaveAnalytics() {
-  const { data, isLoading, isError, error } = useGetLeaveAnalyticsQuery()
+type LeaveAnalyticsProps = {
+  startDate: string
+  endDate: string
+}
+
+export function LeaveAnalytics({ startDate, endDate }: LeaveAnalyticsProps) {
+  const { data, isLoading, isError, error } = useGetLeaveAnalyticsQuery({
+    startDate,
+    endDate,
+  })
   const summary = data?.summary
+  const periodLabel = `${formatDashboardDate(startDate)} – ${formatDashboardDate(endDate)}`
 
   const leaveTypeDistribution = useMemo(
     () =>
@@ -33,7 +45,9 @@ export function LeaveAnalytics() {
     <Card className="h-full border-border-soft shadow-sm">
       <CardHeader>
         <CardTitle>Leave Analytics</CardTitle>
-        <CardDescription>Leave request status and type mix</CardDescription>
+        <CardDescription>
+          Leave request status and type mix · {periodLabel}
+        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-5">
         {isLoading ? (

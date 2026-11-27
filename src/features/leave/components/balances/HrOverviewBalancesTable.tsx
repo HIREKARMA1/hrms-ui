@@ -57,15 +57,19 @@ export function HrOverviewBalancesTable({
             <tr>
               <th className={leaveThClass('left', 'w-[26%]')}>Employee</th>
               <th className={leaveThClass('left', 'w-[18%]')}>Department</th>
-              {typeCodes.map((code) => (
-                <th
-                  key={code}
-                  className={leaveThClass('right', 'w-[10%]')}
-                  title={leaveTypeLabelByCode.get(code) ?? code}
-                >
-                  {code}
-                </th>
-              ))}
+              {typeCodes.length > 0 ? (
+                typeCodes.map((code) => (
+                  <th
+                    key={code}
+                    className={leaveThClass('right', 'w-[10%]')}
+                    title={leaveTypeLabelByCode.get(code) ?? code}
+                  >
+                    {code}
+                  </th>
+                ))
+              ) : (
+                <th className={leaveThClass('left', 'w-[28%]')}>Leave balances</th>
+              )}
             </tr>
           </thead>
           <tbody>
@@ -89,11 +93,19 @@ export function HrOverviewBalancesTable({
                   ) : null}
                 </td>
                 <td className={leaveTdClass('left', 'font-normal')}>{row.departmentName}</td>
-                {typeCodes.map((code) => (
-                  <td key={code} className={leaveTdClass('right', 'font-normal')}>
-                    {row.balancesByCode[code] ?? '—'}
+                {typeCodes.length > 0 ? (
+                  typeCodes.map((code) => (
+                    <td key={code} className={leaveTdClass('right', 'font-normal')}>
+                      {typeof row.balancesByCode[code] === 'number'
+                        ? row.balancesByCode[code]
+                        : '—'}
+                    </td>
+                  ))
+                ) : (
+                  <td className={leaveTdClass('left', 'font-normal text-hrms-text-muted')}>
+                    Not assigned — select row to configure policies
                   </td>
-                ))}
+                )}
               </tr>
             ))}
           </tbody>

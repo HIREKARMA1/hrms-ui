@@ -5,11 +5,15 @@ import type {
   AbsentTodayData,
   AttendanceAnalyticsData,
   ByDepartmentData,
+  ByDepartmentQueryArgs,
+  ByStatusData,
+  ByStatusQueryArgs,
   DashboardDateRangeArgs,
   DashboardListArgs,
   LateArrivalsData,
   LeaveAnalyticsData,
   NewJoinersData,
+  RecentlyAddedData,
   OnLeaveTodayData,
   OnProbationData,
   PresentTodayData,
@@ -60,7 +64,12 @@ export const employeeDashboardApi = baseApi.injectEndpoints({
     getLateArrivalsToday: build.query<LateArrivalsData, DashboardListArgs | void>({
       query: (args) => ({
         url: '/dashboard/attendance/late-arrivals',
-        params: cleanParams({ page: args?.page ?? 1, limit: args?.limit ?? 1 }),
+        params: cleanParams({
+          page: args?.page ?? 1,
+          limit: args?.limit ?? 1,
+          date: args?.date,
+          departmentId: args?.departmentId,
+        }),
       }),
       transformResponse: (response: ApiResponse<LateArrivalsData>) => unwrapData(response),
     }),
@@ -112,12 +121,23 @@ export const employeeDashboardApi = baseApi.injectEndpoints({
       transformResponse: (response: ApiResponse<NewJoinersData>) => unwrapData(response),
     }),
 
-    getEmployeesByDepartment: build.query<ByDepartmentData, { search?: string } | void>({
+    getEmployeesByDepartment: build.query<ByDepartmentData, ByDepartmentQueryArgs | void>({
       query: (args) => ({
         url: '/dashboard/employees/by-department',
-        params: cleanParams({ search: args?.search }),
+        params: cleanParams({
+          search: args?.search,
+          employmentStatus: args?.employmentStatus,
+        }),
       }),
       transformResponse: (response: ApiResponse<ByDepartmentData>) => unwrapData(response),
+    }),
+
+    getEmployeesByStatus: build.query<ByStatusData, ByStatusQueryArgs | void>({
+      query: (args) => ({
+        url: '/dashboard/employees/by-status',
+        params: cleanParams({ departmentId: args?.departmentId }),
+      }),
+      transformResponse: (response: ApiResponse<ByStatusData>) => unwrapData(response),
     }),
 
     getAttendanceAnalytics: build.query<AttendanceAnalyticsData, DashboardDateRangeArgs | void>({
@@ -149,7 +169,7 @@ export const employeeDashboardApi = baseApi.injectEndpoints({
         url: '/dashboard/employees/terminated',
         params: cleanParams({
           page: args?.page ?? 1,
-          limit: args?.limit ?? 1,
+          limit: args?.limit ?? 10,
           departmentId: args?.departmentId,
           search: args?.search,
         }),
@@ -162,12 +182,26 @@ export const employeeDashboardApi = baseApi.injectEndpoints({
         url: '/dashboard/employees/on-probation',
         params: cleanParams({
           page: args?.page ?? 1,
-          limit: args?.limit ?? 1,
+          limit: args?.limit ?? 10,
           departmentId: args?.departmentId,
           search: args?.search,
         }),
       }),
       transformResponse: (response: ApiResponse<OnProbationData>) => unwrapData(response),
+    }),
+
+    getRecentlyAddedEmployees: build.query<RecentlyAddedData, DashboardListArgs | void>({
+      query: (args) => ({
+        url: '/dashboard/employees/recently-added',
+        params: cleanParams({
+          page: args?.page ?? 1,
+          limit: args?.limit ?? 10,
+          days: args?.days ?? 30,
+          departmentId: args?.departmentId,
+          search: args?.search,
+        }),
+      }),
+      transformResponse: (response: ApiResponse<RecentlyAddedData>) => unwrapData(response),
     }),
   }),
 })
@@ -181,8 +215,10 @@ export const {
   useGetUpcomingAnniversariesQuery,
   useGetNewJoinersQuery,
   useGetEmployeesByDepartmentQuery,
+  useGetEmployeesByStatusQuery,
   useGetAttendanceAnalyticsQuery,
   useGetLeaveAnalyticsQuery,
   useGetTerminatedEmployeesQuery,
   useGetOnProbationEmployeesQuery,
+  useGetRecentlyAddedEmployeesQuery,
 } = employeeDashboardApi

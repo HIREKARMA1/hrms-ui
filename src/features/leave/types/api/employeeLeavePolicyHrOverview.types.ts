@@ -13,8 +13,19 @@ export type EmployeeLeavePolicyHrOverviewQuery = {
 export type ApiEmployeeLeavePolicyHrOverviewItem = {
   id?: string
   employeeId?: string
+  /** Full name when API returns `name` instead of `employeeName`. */
+  name?: string
   employeeName?: string
   employeeCode?: string
+  year?: number
+  designation?: string
+  annualPaidLeaveAllocation?: number
+  annualSickLeaveAllocation?: number
+  paidLeaveUsed?: number
+  sickLeaveUsed?: number
+  paidLeaveAvailable?: number
+  sickLeaveAvailable?: number
+  totalLopDays?: number
   departmentId?: string
   department?: string | { id?: string; name?: string; title?: string }
   departmentName?: string
@@ -33,12 +44,20 @@ export type ApiEmployeeLeavePolicyHrOverviewItem = {
   balanceByType?: Record<string, number>
 }
 
+export type EmployeeLeavePolicyHrOverviewPagination = {
+  page?: number
+  limit?: number
+  total?: number
+  totalPages?: number
+}
+
 export type EmployeeLeavePolicyHrOverviewData = {
   items: ApiEmployeeLeavePolicyHrOverviewItem[]
   total: number
   page: number
   limit: number
   totalPages?: number
+  pagination?: EmployeeLeavePolicyHrOverviewPagination
 }
 
 /** Table row for HR Balances live section. */

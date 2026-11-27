@@ -16,11 +16,14 @@ function toRoleNavChildren(items: { title: string; path: string }[]): RoleNavChi
   return items.map(({ title, path }) => ({ title, path }))
 }
 
+/** Leave → Calendar hidden from sidebar (use Office Calendar). Route `/leave/calendar` still works. */
 function toLeaveNavChildren(items: { title: string; path: string }[]): RoleNavChild[] {
-  return items.map(({ title, path }) => {
-    const feature = leaveTabFeature(title as LeavePageTabId)
-    return feature ? { title, path, feature } : { title, path }
-  })
+  return items
+    .filter(({ title }) => title !== 'Calendar')
+    .map(({ title, path }) => {
+      const feature = leaveTabFeature(title as LeavePageTabId)
+      return feature ? { title, path, feature } : { title, path }
+    })
 }
 
 export function leaveNavChildrenForRbac(

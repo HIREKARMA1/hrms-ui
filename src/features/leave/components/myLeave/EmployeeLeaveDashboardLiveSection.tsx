@@ -55,10 +55,6 @@ export function EmployeeLeaveDashboardLiveSection({
     <Card>
       <CardHeader className="border-b border-hrms-border pb-3">
         <CardTitle className="text-base font-semibold text-hrms-navy">Leave dashboard (live)</CardTitle>
-        <p className="text-xs font-normal text-hrms-text-muted">
-          Server dashboard for {view?.year ?? year} (employee leave policy dashboard API). Balance cards below use leave
-          balance for apply validation.
-        </p>
       </CardHeader>
       <CardContent className="space-y-4 p-4 text-sm">
         {errorMessage ? (

@@ -12,9 +12,15 @@ export function enrichHrOverviewBalanceTableRows(
   employees: LeaveEmployee[],
 ): HrOverviewBalanceDisplayRow[] {
   const byId = new Map(employees.map((employee) => [employee.id, employee]))
+  const byCode = new Map<string, LeaveEmployee>()
+  for (const employee of employees) {
+    const code = employee.employeeCode?.trim().toUpperCase()
+    if (code) byCode.set(code, employee)
+  }
 
   return rows.map((row) => {
-    const snapshot = byId.get(row.employeeId)
+    const codeKey = row.employeeCode?.trim().toUpperCase() ?? ''
+    const snapshot = byId.get(row.employeeId) ?? (codeKey ? byCode.get(codeKey) : undefined)
     const code = row.employeeCode?.trim() ?? ''
     const apiName = row.employeeName.trim()
 

@@ -40,19 +40,27 @@ export function DatePicker({
   id,
 }: DatePickerProps) {
   const [open, setOpen] = useState(false)
-  const selected = parseIsoDate(value)
-  const max = maxDate ? parseIsoDate(maxDate) : undefined
-  const min = minDate ? parseIsoDate(minDate) : undefined
+  const selected = useMemo(() => parseIsoDate(value), [value])
+  const max = useMemo(() => (maxDate ? parseIsoDate(maxDate) : undefined), [maxDate])
+  const min = useMemo(() => (minDate ? parseIsoDate(minDate) : undefined), [minDate])
   const startMonth = useMemo(() => min ?? new Date(1950, 0), [min])
   const endMonth = useMemo(
     () => max ?? new Date(new Date().getFullYear() + 5, 11),
     [max],
   )
-  const [month, setMonth] = useState<Date>(selected ?? new Date())
+  const [month, setMonth] = useState<Date>(() => parseIsoDate(value) ?? new Date())
 
   useEffect(() => {
-    if (selected) setMonth(selected)
-  }, [selected])
+    if (!value) return
+    const next = parseIsoDate(value)
+    if (!next) return
+    setMonth((prev) => (toIsoDate(prev) === value ? prev : next))
+  }, [value])
+
+  const disabledDays = useMemo(
+    () => [...(max ? [{ after: max }] : []), ...(min ? [{ before: min }] : [])],
+    [max, min],
+  )
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -80,10 +88,7 @@ export function DatePicker({
           captionLayout="dropdown"
           startMonth={startMonth}
           endMonth={endMonth}
-          disabled={[
-            ...(max ? [{ after: max }] : []),
-            ...(min ? [{ before: min }] : []),
-          ]}
+          disabled={disabledDays}
           onSelect={(date) => {
             onChange(date ? toIsoDate(date) : '')
             setOpen(false)

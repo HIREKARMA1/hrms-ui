@@ -13,12 +13,14 @@ import { Feature } from '@/features/rbac/components/Feature'
 
 import { AttendanceAnalytics } from '../components/AttendanceAnalytics'
 import { DepartmentDistribution } from '../components/DepartmentDistribution'
+import { EmploymentStatusDistribution } from '../components/EmploymentStatusDistribution'
 import { EmployeeAttrition } from '../components/EmployeeAttrition'
 import { EmployeeStatsCards } from '../components/EmployeeStatsCards'
+import { PresentTodayEmployees } from '../components/PresentTodayEmployees'
 import { LeaveAnalytics } from '../components/LeaveAnalytics'
-import { MonthlyPayrollOverview } from '../components/MonthlyPayrollOverview'
 import { NewJoiners } from '../components/NewJoiners'
-import { NoticePeriodEmployees } from '../components/NoticePeriodEmployees'
+import { OnProbationEmployees } from '../components/OnProbationEmployees'
+import { TerminatedEmployees } from '../components/TerminatedEmployees'
 import { RecentlyAddedEmployees } from '../components/RecentlyAddedEmployees'
 import { UpcomingBirthdays } from '../components/UpcomingBirthdays'
 import { WorkAnniversaries } from '../components/WorkAnniversaries'
@@ -37,9 +39,6 @@ export function EmployeeOverviewPage() {
           <h1 className="text-2xl font-bold tracking-tight text-navy">
             Employee Management
           </h1>
-          <p className="mt-1 text-sm text-text-secondary">
-            Overview of your organization&apos;s workforce and employee analytics.
-          </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
@@ -69,7 +68,10 @@ export function EmployeeOverviewPage() {
       </div>
 
       <Feature name="employee.stats">
-        <EmployeeStatsCards />
+        <div className="flex flex-col gap-6">
+          <EmployeeStatsCards />
+          <PresentTodayEmployees />
+        </div>
       </Feature>
 
       <Feature name="employee.workforceExtended">
@@ -85,12 +87,16 @@ export function EmployeeOverviewPage() {
         </Feature>
       </div>
 
+      <Feature name="employee.newJoiners">
+        <NewJoiners />
+      </Feature>
+
       <div className="grid gap-4 xl:grid-cols-2">
-        <Feature name="employee.newJoiners">
-          <NewJoiners />
+        <Feature name="employee.onProbation">
+          <OnProbationEmployees />
         </Feature>
-        <Feature name="employee.noticePeriod">
-          <NoticePeriodEmployees />
+        <Feature name="employee.terminated">
+          <TerminatedEmployees />
         </Feature>
       </div>
 
@@ -98,25 +104,25 @@ export function EmployeeOverviewPage() {
         <Feature name="employee.departmentDistribution">
           <DepartmentDistribution />
         </Feature>
-        <Feature name="employee.attendanceAnalytics">
-          <AttendanceAnalytics />
+        <Feature name="employee.statusDistribution">
+          <EmploymentStatusDistribution />
         </Feature>
       </div>
 
+      <Feature name="employee.attendanceAnalytics">
+        <AttendanceAnalytics startDate={range.startDate} endDate={range.endDate} />
+      </Feature>
+
       <div className="grid gap-4 xl:grid-cols-2">
         <Feature name="employee.leaveAnalytics">
-          <LeaveAnalytics />
+          <LeaveAnalytics startDate={range.startDate} endDate={range.endDate} />
         </Feature>
         <Feature name="employee.attrition">
           <EmployeeAttrition />
         </Feature>
       </div>
 
-      <Feature name="employee.payrollOverview">
-        <MonthlyPayrollOverview />
-      </Feature>
-
-      <Feature name="employee.workforceExtended">
+      <Feature name="employee.recentlyAdded">
         <RecentlyAddedEmployees />
       </Feature>
     </div>

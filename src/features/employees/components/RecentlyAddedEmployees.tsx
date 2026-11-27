@@ -1,3 +1,10 @@
+/**
+ * GET /dashboard/employees/recently-added — by Employee.createdAt.
+ */
+
+import { UserRoundPlus } from 'lucide-react'
+import { useMemo, useState } from 'react'
+
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -16,108 +23,182 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { useOptionalFeatureAccess } from '@/features/rbac/hooks/useFeatureAccess'
+import { TablePagination } from '@/components/ui/table-pagination'
+import { DashboardLiveEmpty } from '@/features/dashboard/components/shared/DashboardLiveEmpty'
+import { useListDepartmentsQuery } from '@/features/organization/api/departmentsApi'
 import { getApiErrorMessage } from '@/services/api/errors'
 
-import { useListEmployeesQuery } from '../api/employeesApi'
-import { getQueryViewState } from '../utils/queryViewState'
+import { useGetRecentlyAddedEmployeesQuery } from '../api/employeeDashboardApi'
+import {
+  formatDashboardDate,
+  formatDashboardDateTime,
+  initialsFromName,
+} from '../utils/dashboardDateRange'
+import { formatEmploymentStatusLabel } from '../utils/formatNewJoinersCaption'
+import { formatRecentlyAddedSubtitle } from '../utils/formatRecentlyAddedCaption'
+import { RecentlyAddedFilters } from './RecentlyAddedFilters'
 
-const RECENT_COUNT = 5
+const PAGE_SIZE = 10
 
-function initials(firstName: string, lastName: string) {
-  return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase() || '?'
+function statusBadgeVariant(status: string): 'success' | 'secondary' | 'warning' | 'default' {
+  if (status === 'ACTIVE') return 'success'
+  if (status === 'PROBATION' || status === 'ON_LEAVE') return 'warning'
+  if (status === 'TERMINATED') return 'secondary'
+  return 'default'
 }
 
-/** Newest employees from GET /employees (ordered by createdAt desc). */
 export function RecentlyAddedEmployees() {
-  const { canAccess } = useOptionalFeatureAccess()
-  const allowed = canAccess('employee.directory')
-  const { data, isLoading, isError, error } = useListEmployeesQuery(
-    { skip: 0, take: RECENT_COUNT },
-    { skip: !allowed },
-  )
-  const items = data?.items ?? []
-  const viewState = getQueryViewState({
-    isLoading,
-    isError,
-    hasData: Boolean(data),
-    itemCount: items.length,
+  const [page, setPage] = useState(1)
+  const [days, setDays] = useState(30)
+  const [departmentId, setDepartmentId] = useState('all')
+  const [search, setSearch] = useState('')
+
+  const departmentsQuery = useListDepartmentsQuery({
+    isActive: true,
+    limit: 100,
+    page: 1,
   })
+  const departmentOptions = useMemo(
+    () =>
+      (departmentsQuery.data?.items ?? []).map((dept) => ({
+        id: dept.id,
+        name: dept.name,
+      })),
+    [departmentsQuery.data?.items],
+  )
+
+  const queryArgs = useMemo(
+    () => ({
+      page,
+      limit: PAGE_SIZE,
+      days,
+      departmentId: departmentId === 'all' ? undefined : departmentId,
+      search: search.trim() || undefined,
+    }),
+    [page, days, departmentId, search],
+  )
+
+  const { data, isLoading, isError, isFetching, error } =
+    useGetRecentlyAddedEmployeesQuery(queryArgs)
+
+  const items = data?.items ?? []
+  const total = data?.pagination.total ?? 0
+  const totalPages = data?.pagination.totalPages ?? 1
+  const subtitle = isLoading
+    ? 'Loading recently added employees…'
+    : formatRecentlyAddedSubtitle(data)
 
   return (
     <Card className="h-full border-border-soft shadow-sm">
-      <CardHeader>
-        <CardTitle>Recently Added Employees</CardTitle>
-        <CardDescription>Latest employees added to the directory</CardDescription>
+      <CardHeader className="gap-3">
+        <div className="space-y-1">
+          <CardTitle className="flex items-center gap-2">
+            <UserRoundPlus className="h-4 w-4 text-brand-500" />
+            Recently Added
+          </CardTitle>
+          <CardDescription>
+            {subtitle}
+            {isFetching && !isLoading ? (
+              <span className="text-text-secondary"> · Updating…</span>
+            ) : null}
+          </CardDescription>
+        </div>
+        <RecentlyAddedFilters
+          days={days}
+          onDaysChange={(value) => {
+            setDays(value)
+            setPage(1)
+          }}
+          departmentId={departmentId}
+          onDepartmentChange={(value) => {
+            setDepartmentId(value)
+            setPage(1)
+          }}
+          departments={departmentOptions}
+          departmentsLoading={departmentsQuery.isLoading}
+          search={search}
+          onSearchChange={(value) => {
+            setSearch(value)
+            setPage(1)
+          }}
+        />
       </CardHeader>
-      <CardContent>
-        {!allowed ? (
-          <p className="text-sm text-text-secondary">
-            You need access to the employee directory to see recent additions.
-          </p>
-        ) : viewState === 'error' ? (
+      <CardContent className="space-y-4">
+        {isLoading ? (
+          <div className="space-y-2">
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+          </div>
+        ) : isError ? (
           <p className="text-sm text-rose-700">
-            {getApiErrorMessage(error, 'Could not load recent employees.')}
+            {getApiErrorMessage(error, 'Could not load recently added employees.')}
           </p>
-        ) : viewState === 'empty' ? (
-          <p className="text-sm text-text-secondary">No employees have been added yet.</p>
+        ) : data?.empty === true || items.length === 0 ? (
+          <DashboardLiveEmpty
+            title="No recent additions"
+            description="Nobody was added in this window with the current filters."
+          />
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Employee</TableHead>
-                <TableHead>Department</TableHead>
-                <TableHead>Designation</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Joined</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {viewState === 'loading'
-                ? Array.from({ length: 3 }, (_, i) => (
-                    <TableRow key={`skeleton-${i}`}>
-                      {Array.from({ length: 5 }, (__, j) => (
-                        <TableCell key={j}>
-                          <Skeleton className="h-4 w-full" />
-                        </TableCell>
-                      ))}
-                    </TableRow>
-                  ))
-                : items.map(({ profile, server }) => (
-                    <TableRow key={server.id}>
-                      <TableCell>
-                        <div className="flex items-center gap-2.5">
-                          <Avatar className="h-8 w-8">
-                            <AvatarFallback className="text-xs">
-                              {initials(profile.firstName, profile.lastName)}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <p className="font-medium text-navy">
-                              {profile.firstName} {profile.lastName}
-                            </p>
-                            <p className="text-xs text-text-secondary">{profile.employeeCode}</p>
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-text-secondary">
-                        {profile.department || '—'}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="secondary">{profile.designation}</Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={profile.employmentStatus === 'Active' ? 'success' : 'warning'}>
-                          {profile.employmentStatus}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-text-secondary">
-                        {profile.dateOfJoining || '—'}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-            </TableBody>
-          </Table>
+          <>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Employee</TableHead>
+                  <TableHead>Code</TableHead>
+                  <TableHead>Department</TableHead>
+                  <TableHead>Designation</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Joining date</TableHead>
+                  <TableHead>Created</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {items.map((employee) => (
+                  <TableRow key={employee.employeeId}>
+                    <TableCell>
+                      <div className="flex items-center gap-2.5">
+                        <Avatar className="h-8 w-8">
+                          <AvatarFallback className="text-xs">
+                            {initialsFromName(employee.employeeName)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <span className="font-medium">{employee.employeeName}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-text-secondary">{employee.employeeCode}</TableCell>
+                    <TableCell className="text-text-secondary">
+                      {employee.department?.name ?? 'Unassigned'}
+                    </TableCell>
+                    <TableCell className="text-text-secondary">
+                      {employee.designation?.trim() || '—'}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={statusBadgeVariant(employee.employmentStatus)}>
+                        {formatEmploymentStatusLabel(employee.employmentStatus)}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-text-secondary">
+                      {formatDashboardDate(employee.dateOfJoining)}
+                    </TableCell>
+                    <TableCell className="text-text-secondary">
+                      {formatDashboardDateTime(employee.createdAt)}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+
+            {totalPages > 1 ? (
+              <TablePagination
+                page={page}
+                totalPages={totalPages}
+                total={total}
+                itemLabel="employees"
+                onPageChange={setPage}
+              />
+            ) : null}
+          </>
         )}
       </CardContent>
     </Card>

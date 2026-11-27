@@ -3,12 +3,22 @@ export type StatTrend = {
   positive: boolean
 }
 
+export type DashboardStatIcon =
+  | 'users'
+  | 'userCheck'
+  | 'calendarDays'
+  | 'userX'
+  | 'hourglass'
+
 export type DashboardStat = {
   id: string
   label: string
   value: string
-  icon: 'users' | 'userCheck' | 'calendarDays' | 'userX'
-  trend: StatTrend
+  icon: DashboardStatIcon
+  /** Shown on mock/placeholder dashboards when analytics are not wired. */
+  trend?: StatTrend
+  /** Shown on live summary cards from GET /dashboard/summary. */
+  footline?: string
   iconClassName: string
 }
 
