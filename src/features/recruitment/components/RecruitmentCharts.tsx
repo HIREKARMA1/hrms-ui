@@ -34,7 +34,7 @@ import { STAGE_BAR_FILL } from '../utils/pipelineStageStyle'
 
 import { RECRUITMENT_CARD } from './shared/recruitmentUi'
 
-const PIE_COLORS = ['#5938DB', '#7C5CFC', '#A78BFA', '#C4B5FD', '#DDD6FE']
+const PIE_COLORS = ['#0F766E', '#7C5CFC', '#A78BFA', '#C4B5FD', '#DDD6FE']
 
 export function PipelineFunnelChart({ pipeline }: { pipeline: RecruitmentPipeline }) {
   const counts = new Map(pipeline.stages.map((s) => [s.status, s.count]))
@@ -113,7 +113,7 @@ export function MonthlyApplicationsChart() {
               />
               <Bar
                 dataKey="applications"
-                fill="#5938DB"
+                fill="#0F766E"
                 radius={[6, 6, 0, 0]}
                 maxBarSize={28}
               />
@@ -161,7 +161,7 @@ export function HiringTrendsChart() {
               <Line
                 type="monotone"
                 dataKey="offers"
-                stroke="#5938DB"
+                stroke="#0F766E"
                 strokeWidth={2}
                 dot={{ r: 3 }}
               />

@@ -21,7 +21,7 @@ import {
 
 export function AttendanceOverviewPage() {
   return (
-    <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-6">
+    <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-6 pb-8">
       <div>
         <h1 className="text-2xl font-bold tracking-tight text-navy">
           Attendance Overview

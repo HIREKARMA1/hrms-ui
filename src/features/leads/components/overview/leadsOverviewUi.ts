@@ -13,7 +13,7 @@ export const OVERVIEW_CARD_HEADER = 'flex shrink-0 items-start gap-3 border-b bo
 export const OVERVIEW_CARD_BODY = 'min-h-0 flex-1 p-5'
 
 export const OVERVIEW_ICON_TILE =
-  'flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-[#F0EDFF] text-[#5938DB]'
+  'flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-[#CCFBF1] text-[#0F766E]'
 
 export const OVERVIEW_ICON_TILE_AMBER =
   'flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-[#FEF3C7] text-[#B45309]'

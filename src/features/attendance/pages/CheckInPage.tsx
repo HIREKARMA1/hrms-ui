@@ -188,19 +188,19 @@ export function CheckInPage() {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-6">
+    <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-6 pb-8">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight text-navy">Check In</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-navy">Check In / Check Out</h1>
         <p className="mt-1 text-sm text-text-secondary">
           Mark attendance, manage breaks, and track your working hours for today.
         </p>
       </div>
 
       <div className="grid gap-4 xl:grid-cols-3">
-        <Card className="border-border-soft shadow-sm xl:col-span-1">
+        <Card className="xl:col-span-1">
           <CardContent className="flex items-center gap-4 p-6">
             <Avatar className="h-14 w-14">
-              <AvatarFallback className="bg-lavender text-lg font-semibold text-brand-500">
+              <AvatarFallback className="bg-teal-soft text-lg font-semibold text-teal">
                 {user ? getUserInitials(user) : 'U'}
               </AvatarFallback>
             </Avatar>

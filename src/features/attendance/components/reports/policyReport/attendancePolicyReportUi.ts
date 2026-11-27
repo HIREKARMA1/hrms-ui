@@ -8,10 +8,10 @@ export const policyControlClass =
   'h-[42px] w-full rounded-[10px] border border-[#E2E6EF] bg-white text-[#17213A] transition-colors hover:bg-[#F3F4F8] focus-visible:border-[#8B5CF6] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#8B5CF6] focus-visible:ring-[3px] focus-visible:ring-[rgba(139,92,246,0.18)]'
 
 export const policyPrimaryButtonClass =
-  'h-[42px] w-full gap-2 rounded-[10px] bg-[#5938DB] text-sm font-semibold text-white hover:bg-[#7055EB] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#8B5CF6]'
+  'h-[42px] w-full gap-2 rounded-[10px] bg-[#0F766E] text-sm font-semibold text-white hover:bg-[#7055EB] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#8B5CF6]'
 
 export const policySecondaryButtonClass =
-  'h-[42px] w-full gap-2 rounded-[10px] bg-[#F0EDFF] text-sm font-semibold text-[#5938DB] hover:bg-[#E8E2FF] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#8B5CF6]'
+  'h-[42px] w-full gap-2 rounded-[10px] bg-[#CCFBF1] text-sm font-semibold text-[#0F766E] hover:bg-[#E8E2FF] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#8B5CF6]'
 
 export const policyFilterGridClass =
   'grid grid-cols-1 items-end gap-x-[18px] gap-y-4 p-[22px] min-[560px]:grid-cols-2 min-[1100px]:grid-cols-4'

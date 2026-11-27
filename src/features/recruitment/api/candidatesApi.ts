@@ -103,8 +103,10 @@ export function normalizeCandidate(raw: unknown): BackendCandidate | null {
   const id = readString(row.id)
   const fullName = readString(row.fullName)
   const email = readString(row.email)
-  const phone = readString(row.phone)
-  if (!id || !fullName || !email || !phone) return null
+  // Phone is required on CreateCandidateDto, but /candidates/me responses must
+  // still resolve when phone is blank so Apply Now can use the real candidateId.
+  const phone = readString(row.phone) ?? ''
+  if (!id || !fullName || !email) return null
 
   const resumesRaw = Array.isArray(row.resumes)
     ? row.resumes
@@ -293,10 +295,19 @@ export const candidatesApi = baseApi.injectEndpoints({
       providesTags: (result) => pageTags(result),
     }),
 
-    /** GET /recruitment/candidates/me — own candidate via account email */
-    getMyCandidate: build.query<BackendCandidate, void>({
+    /**
+     * GET /recruitment/candidates/me — active candidate whose email matches the
+     * authenticated user (OpenAPI: CandidatesController_findMine). Used by the
+     * internal job board; does not create or link profiles.
+     */
+    getMyCandidate: build.query<BackendCandidate | null, void>({
       query: () => '/recruitment/candidates/me',
-      transformResponse: (response: unknown) => normalizeCandidateEnvelope(response),
+      transformResponse: (response: unknown): BackendCandidate | null => {
+        const root = asRecord(response)
+        const data = root?.data !== undefined ? root.data : response
+        if (data === null || data === undefined) return null
+        return normalizeCandidateEnvelope(response)
+      },
       providesTags: (result) =>
         result
           ? [{ type: 'RecruitmentCandidate' as const, id: result.id }, LIST_TAG]

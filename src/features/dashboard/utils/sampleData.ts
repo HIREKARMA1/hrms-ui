@@ -52,7 +52,7 @@ export const attendanceData: AttendancePoint[] = [
 ]
 
 export const departmentDistribution: DepartmentShare[] = [
-  { name: 'Engineering', value: 86, color: '#6d5cf6' },
+  { name: 'Engineering', value: 86, color: '#0F766E' },
   { name: 'Product', value: 42, color: '#8b7cf8' },
   { name: 'HR', value: 28, color: '#34d399' },
   { name: 'Finance', value: 24, color: '#f59e0b' },

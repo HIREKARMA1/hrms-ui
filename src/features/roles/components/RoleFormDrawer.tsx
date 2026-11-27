@@ -75,7 +75,7 @@ export function RoleFormDrawer({
       >
         <SheetHeader className="border-b border-border-soft px-4 py-5 pr-12 sm:px-6">
           <div className="flex min-w-0 items-center gap-3">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#F0EDFF] text-brand-500">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#CCFBF1] text-brand-500">
               <Shield className="h-5 w-5" strokeWidth={1.9} />
             </span>
             <SheetTitle className="truncate text-xl font-bold text-navy">

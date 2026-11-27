@@ -259,7 +259,7 @@ export function InterviewSchedulingPage() {
           <Button
             type="button"
             variant="link"
-            className="h-auto p-0 text-[#5938DB]"
+            className="h-auto p-0 text-[#0F766E]"
             onClick={() => {
               setJobFilter('__all__')
               setSearchParams({})

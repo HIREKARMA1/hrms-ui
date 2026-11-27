@@ -122,4 +122,44 @@ describe('candidatesApi', () => {
     expect(normalizeCandidate({ id: 'x' })).toBeNull()
     expect(normalizeCandidate(CANDIDATE)?.email).toBe('ada@example.test')
   })
+
+  it('still resolves /candidates/me when phone is blank so Apply can use the id', () => {
+    expect(
+      normalizeCandidate({
+        ...CANDIDATE,
+        phone: null,
+      })?.id,
+    ).toBe('can-1')
+  })
+
+  it('GET /recruitment/candidates/me returns the linked candidate id', async () => {
+    let seenPath = ''
+    stubFetch((request) => {
+      seenPath = pathOf(request)
+      return jsonResponse(200, envelope(CANDIDATE))
+    })
+    const store = makeStore()
+    const candidate = await store
+      .dispatch(candidatesApi.endpoints.getMyCandidate.initiate())
+      .unwrap()
+    expect(seenPath).toBe('/recruitment/candidates/me')
+    expect(candidate?.id).toBe('can-1')
+  })
+
+  it('GET /recruitment/candidates/me treats empty data as no linked profile', async () => {
+    stubFetch(() => jsonResponse(200, envelope(null)))
+    const store = makeStore()
+    const candidate = await store
+      .dispatch(candidatesApi.endpoints.getMyCandidate.initiate())
+      .unwrap()
+    expect(candidate).toBeNull()
+  })
+
+  it('GET /recruitment/candidates/me surfaces 404 without inventing an id', async () => {
+    stubFetch(() => jsonResponse(404, { statusCode: 404, message: 'Not found' }))
+    const store = makeStore()
+    const result = await store.dispatch(candidatesApi.endpoints.getMyCandidate.initiate())
+    expect(result.error).toBeTruthy()
+    expect((result.error as { status?: unknown }).status).toBe(404)
+  })
 })

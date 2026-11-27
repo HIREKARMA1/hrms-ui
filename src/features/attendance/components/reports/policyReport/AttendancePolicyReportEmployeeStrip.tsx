@@ -38,7 +38,7 @@ export function AttendancePolicyReportEmployeeStrip({
     <div className="flex flex-col gap-4 border-t border-[#E2E6EF] bg-[#F7F8FC] px-[22px] py-[18px] rounded-b-[14px] sm:flex-row sm:items-center sm:justify-between">
       <div className="flex items-center gap-3">
         <div
-          className="flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-full bg-[#F0EDFF] text-sm font-semibold text-[#5938DB]"
+          className="flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-full bg-[#CCFBF1] text-sm font-semibold text-[#0F766E]"
           aria-hidden
         >
           {initials(name)}

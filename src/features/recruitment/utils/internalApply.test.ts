@@ -110,6 +110,58 @@ describe('internalApply', () => {
     ).toBe('missing')
   })
 
+  it('keeps Apply gated while /candidates/me is loading', () => {
+    expect(
+      resolveCandidateFromMe({
+        email: 'ada@hirekarma.in',
+        candidate: undefined,
+        isLoading: true,
+      }),
+    ).toEqual({ status: 'pending' })
+  })
+
+  it('treats inactive linked profiles as blocked, not inventable', () => {
+    const inactive = resolveCandidateFromMe({
+      email: 'inactive@hirekarma.in',
+      candidate: PAGE.items[1],
+    })
+    expect(inactive.status).toBe('inactive')
+  })
+
+  it('rejects /candidates/me payloads whose email does not match the account', () => {
+    const mismatch = resolveCandidateFromMe({
+      email: 'other@hirekarma.in',
+      candidate: PAGE.items[0],
+    })
+    expect(mismatch.status).toBe('error')
+  })
+
+  it('surfaces resolution failures without fabricating a candidateId', () => {
+    const failed = resolveCandidateFromMe({
+      email: 'ada@hirekarma.in',
+      candidate: undefined,
+      fetchError: { status: 500, data: { message: 'lookup failed' } },
+    })
+    expect(failed.status).toBe('error')
+    expect(
+      resolveCandidateFromMe({
+        email: 'ada@hirekarma.in',
+        candidate: null,
+      }).status,
+    ).toBe('missing')
+  })
+
+  it('reports 403 on /candidates/me as a permission error, not a missing profile', () => {
+    const forbidden = resolveCandidateFromMe({
+      email: 'ada@hirekarma.in',
+      candidate: undefined,
+      is403: true,
+      fetchError: { status: 403, data: { message: 'Forbidden' } },
+    })
+    expect(forbidden.status).toBe('error')
+    expect(forbidden.message).toMatch(/permission/i)
+  })
+
   it('allows empty optional reference and cover letter fields', () => {
     expect(
       validateApplyReference({ referenceName: '', referenceEmail: '', coverLetter: '' }),

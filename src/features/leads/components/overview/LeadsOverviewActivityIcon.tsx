@@ -13,7 +13,7 @@ export function LeadsOverviewActivityIcon({ type, summary }: LeadsOverviewActivi
   const isWon = lower.includes('won')
   const isLost = lower.includes('lost')
 
-  let shell = 'bg-[#F0EDFF] text-[#5938DB]'
+  let shell = 'bg-[#CCFBF1] text-[#0F766E]'
   let Icon = Plus
 
   if (isWon) {
@@ -23,7 +23,7 @@ export function LeadsOverviewActivityIcon({ type, summary }: LeadsOverviewActivi
     shell = 'bg-[#FEE2E2] text-[#B91C1C]'
     Icon = X
   } else if (type === 'created') {
-    shell = 'bg-[#F0EDFF] text-[#5938DB]'
+    shell = 'bg-[#CCFBF1] text-[#0F766E]'
     Icon = Plus
   } else if (type === 'status') {
     shell = 'bg-[#DBEAFE] text-[#1D4ED8]'

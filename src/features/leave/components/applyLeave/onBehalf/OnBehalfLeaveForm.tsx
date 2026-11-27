@@ -175,8 +175,8 @@ export function OnBehalfLeaveForm(props: OnBehalfLeaveFormProps) {
 
         <OnBehalfDialogField label="Attachment" htmlFor="leave-file">
           <div className="flex flex-wrap items-center gap-2">
-            <label className="inline-flex h-10 cursor-pointer items-center gap-1.5 rounded-[10px] border border-[#E2E6EF] bg-white px-4 text-sm font-semibold text-[#17213A] transition-colors hover:bg-[#F0EDFF] focus-within:outline focus-within:outline-2 focus-within:outline-[#8B5CF6]">
-              <Paperclip className="h-4 w-4 text-[#5938DB]" aria-hidden />
+            <label className="inline-flex h-10 cursor-pointer items-center gap-1.5 rounded-[10px] border border-[#E2E6EF] bg-white px-4 text-sm font-semibold text-[#17213A] transition-colors hover:bg-[#CCFBF1] focus-within:outline focus-within:outline-2 focus-within:outline-[#8B5CF6]">
+              <Paperclip className="h-4 w-4 text-[#0F766E]" aria-hidden />
               Choose file
               <input
                 id="leave-file"

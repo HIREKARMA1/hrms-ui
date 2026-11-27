@@ -2,7 +2,8 @@
  * Internal job application helpers using production contracts only.
  * POST /recruitment/applications requires `jobPostingId` + `candidateId`.
  * Resolve the signed-in user's candidate via GET /recruitment/candidates/me
- * (jobs:read). Legacy search-by-email helpers remain for tests/compatibility.
+ * (OpenAPI: active candidate whose email matches the authenticated user).
+ * There is no ensure/create-self endpoint — never invent a candidateId.
  */
 import type { BackendCandidate, CandidatesPage } from '../api/candidatesApi.types'
 import type {
@@ -18,8 +19,10 @@ export { createSubmitGuard }
 export type { SubmitGuard }
 
 export type ResolveCandidateOutcome =
+  | { status: 'pending' }
   | { status: 'resolved'; candidateId: string }
   | { status: 'missing'; message: string }
+  | { status: 'inactive'; message: string }
   | { status: 'error'; message: string }
 
 export type ApplyOutcome =
@@ -28,8 +31,17 @@ export type ApplyOutcome =
   | { status: 'success'; application: BackendApplication }
   | { status: 'error'; message: string }
 
-const MISSING_CANDIDATE_MESSAGE =
-  'No active candidate profile matches your account email. Ask HR to create a recruitment candidate record for you before applying. Do not invent a candidateId.'
+/** User-facing copy when GET /recruitment/candidates/me finds no active profile. */
+export function missingCandidateMessage(accountEmail?: string | null): string {
+  const email = accountEmail?.trim()
+  const emailClause = email
+    ? ` matching your account email (${email})`
+    : ' matching your account email'
+  return `No active recruitment candidate profile${emailClause} was found. Ask HR to create a candidate record with this exact email so you can apply for internal jobs.`
+}
+
+const INACTIVE_CANDIDATE_MESSAGE =
+  'Your linked recruitment candidate profile is inactive. Ask HR to reactivate it before applying for internal jobs.'
 
 /** Jobs eligible for the internal board: published and active. */
 export function isJobEligibleForInternalApply(job: Pick<BackendJob, 'status' | 'isActive'>): boolean {
@@ -48,12 +60,18 @@ export function findCandidateIdByEmail(
   return match?.id ?? null
 }
 
-/** Prefer GET /recruitment/candidates/me for Manager/Employee panels. */
+/**
+ * Prefer GET /recruitment/candidates/me for Manager/Employee panels.
+ * Association is server-side email match on the authenticated account — not a
+ * client-side unverified search, and not a fabricated id.
+ */
 export function resolveCandidateFromMe(input: {
   email: string | null | undefined
-  candidate: BackendCandidate | undefined
+  candidate: BackendCandidate | null | undefined
   fetchError?: unknown
   is404?: boolean
+  is403?: boolean
+  isLoading?: boolean
 }): ResolveCandidateOutcome {
   const email = input.email?.trim()
   if (!email) {
@@ -63,8 +81,16 @@ export function resolveCandidateFromMe(input: {
         'Your account has no email, so a candidate profile cannot be resolved for applications.',
     }
   }
+  if (input.isLoading) return { status: 'pending' }
   if (input.is404) {
-    return { status: 'missing', message: MISSING_CANDIDATE_MESSAGE }
+    return { status: 'missing', message: missingCandidateMessage(email) }
+  }
+  if (input.is403) {
+    return {
+      status: 'error',
+      message:
+        'You do not have permission to look up your recruitment candidate profile (GET /recruitment/candidates/me). Ask an administrator to grant the internal job-board candidate permission — do not invent a candidateId.',
+    }
   }
   if (input.fetchError) {
     return {
@@ -75,12 +101,24 @@ export function resolveCandidateFromMe(input: {
       ),
     }
   }
-  if (input.candidate?.id && input.candidate.isActive) {
+  if (input.candidate?.id) {
+    const candidateEmail = input.candidate.email.trim().toLowerCase()
+    if (candidateEmail && candidateEmail !== email.toLowerCase()) {
+      return {
+        status: 'error',
+        message:
+          'The candidate profile returned by the server does not match your account email. Applying was blocked to avoid using the wrong candidate record.',
+      }
+    }
+    if (!input.candidate.isActive) {
+      return { status: 'inactive', message: INACTIVE_CANDIDATE_MESSAGE }
+    }
     return { status: 'resolved', candidateId: input.candidate.id }
   }
-  return { status: 'missing', message: MISSING_CANDIDATE_MESSAGE }
+  return { status: 'missing', message: missingCandidateMessage(email) }
 }
 
+/** Legacy ATS search-by-email helper (HR tools / tests). Prefer /candidates/me for apply. */
 export function resolveCandidateFromSearch(input: {
   email: string | null | undefined
   page: CandidatesPage | undefined
@@ -107,7 +145,7 @@ export function resolveCandidateFromSearch(input: {
   if (!candidateId) {
     return {
       status: 'missing',
-      message: MISSING_CANDIDATE_MESSAGE,
+      message: missingCandidateMessage(email),
     }
   }
   return { status: 'resolved', candidateId }
