@@ -7,8 +7,7 @@ import type { LeadsListScope } from '../../constants/leadsDemoActor'
 import { useLeads } from '../../hooks/useLeads'
 import { useLeadsScope } from '../../hooks/useLeadsScope'
 import type { Lead, LeadStatus } from '../../types/lead'
-import { leadToInput } from '../../utils/leadForm'
-import { LeadsMockBanner } from '../LeadsMockBanner'
+import { LeadDeleteConfirmDialog } from '../LeadDeleteConfirmDialog'
 import { LeadsPipelineClosedSection } from './LeadsPipelineClosedSection'
 import { LeadsPipelineTable } from './LeadsPipelineTable'
 import { ACTIVE_PIPELINE_STATUSES } from './pipelineStages'
@@ -36,10 +35,12 @@ export function LeadsPipelineTab({ role, onOpenEdit }: LeadsPipelineTabProps) {
     canEditLead,
     canDeleteLeads,
   } = useLeadsScope(role, scope)
-  const { updateLead } = useLeads()
+  const { updateLeadStatus } = useLeads()
 
   const [search, setSearch] = useState('')
   const [priorityFilter, setPriorityFilter] = useState('All')
+  const [deleteTarget, setDeleteTarget] = useState<Lead | null>(null)
+  const [deleting, setDeleting] = useState(false)
   const [statusFilter, setStatusFilter] = useState<PipelineStatusFilter>('All active')
 
   const filteredLeads = useMemo(() => {
@@ -51,7 +52,7 @@ export function LeadsPipelineTab({ role, onOpenEdit }: LeadsPipelineTabProps) {
         lead.id.toLowerCase().includes(q) ||
         lead.leadName.toLowerCase().includes(q) ||
         lead.companyName.toLowerCase().includes(q) ||
-        lead.contactPerson.toLowerCase().includes(q)
+        lead.email.toLowerCase().includes(q)
       )
     })
   }, [scopedLeads, search, priorityFilter])
@@ -84,27 +85,23 @@ export function LeadsPipelineTab({ role, onOpenEdit }: LeadsPipelineTabProps) {
   const handleMove = useCallback(
     async (lead: Lead, status: LeadStatus) => {
       if (!canEditLead) return
-      const input = leadToInput(lead)
-      input.status = status
-      await updateLead(lead.id, input)
+      await updateLeadStatus(lead.id, status)
     },
-    [canEditLead, updateLead],
+    [canEditLead, updateLeadStatus],
   )
 
-  const handleDelete = useCallback(
-    async (lead: Lead) => {
+  const handleDeleteRequest = useCallback(
+    (lead: Lead) => {
       if (!canDeleteLeads) return
-      if (!window.confirm(`Delete lead ${lead.id}?`)) return
-      await deleteLead(lead.id)
+      setDeleteTarget(lead)
     },
-    [canDeleteLeads, deleteLead],
+    [canDeleteLeads],
   )
 
   const openLead = useCallback((id: string) => setSelectedLeadId(id), [setSelectedLeadId])
 
   return (
     <div className="space-y-4">
-      <LeadsMockBanner />
       <LeadsPipelineToolbar
         search={search}
         onSearchChange={setSearch}
@@ -138,7 +135,7 @@ export function LeadsPipelineTab({ role, onOpenEdit }: LeadsPipelineTabProps) {
           canEdit={canEditLead}
           canDelete={canDeleteLeads}
           onMove={handleMove}
-          onDelete={handleDelete}
+          onDelete={handleDeleteRequest}
         />
       </section>
 
@@ -152,7 +149,26 @@ export function LeadsPipelineTab({ role, onOpenEdit }: LeadsPipelineTabProps) {
         canEdit={canEditLead}
         canDelete={canDeleteLeads}
         onMoveLead={handleMove}
-        onDeleteLead={handleDelete}
+        onDeleteLead={handleDeleteRequest}
+      />
+
+      <LeadDeleteConfirmDialog
+        lead={deleteTarget}
+        open={Boolean(deleteTarget)}
+        loading={deleting}
+        onOpenChange={(open) => {
+          if (!open && !deleting) setDeleteTarget(null)
+        }}
+        onConfirm={async () => {
+          if (!deleteTarget || !canDeleteLeads) return
+          setDeleting(true)
+          try {
+            await deleteLead(deleteTarget.id)
+            setDeleteTarget(null)
+          } finally {
+            setDeleting(false)
+          }
+        }}
       />
     </div>
   )

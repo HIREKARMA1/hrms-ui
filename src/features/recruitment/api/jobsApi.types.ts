@@ -37,7 +37,12 @@ export type BackendJobHistoryEntry = {
   note?: string | null
 }
 
-/** Public job posting payload used by list/detail/mutations. */
+/**
+ * Production OpenAPI CreateJobDto / UpdateJobDto do not document
+ * `referenceName` or `referenceEmail`. Fields are optional on the client so
+ * values can be sent and echoed if the API starts accepting them; until then
+ * persistence is a backend contract gap.
+ */
 export type BackendJob = {
   id: string
   title: string
@@ -56,6 +61,10 @@ export type BackendJob = {
   requirements: string | null
   skills: string[]
   applicationDeadline: string | null
+  /** Internal referrer name — not in production OpenAPI job DTOs. */
+  referenceName: string | null
+  /** Internal referrer email — not in production OpenAPI job DTOs. */
+  referenceEmail: string | null
   status: JobPostingStatus
   isActive: boolean
   applicationCount: number
@@ -107,6 +116,10 @@ export type CreateJobBody = {
   skills?: string[]
   applicationDeadline?: string
   status?: JobPostingStatus
+  /** Sent for internal workflow; not documented on production CreateJobDto. */
+  referenceName?: string
+  /** Sent for internal workflow; not documented on production CreateJobDto. */
+  referenceEmail?: string
 }
 
 /** PATCH /recruitment/jobs/:id — description is excluded (use description endpoint). */
@@ -126,6 +139,10 @@ export type UpdateJobBody = {
   skills?: string[]
   applicationDeadline?: string | null
   status?: JobPostingStatus
+  /** Sent for internal workflow; not documented on production UpdateJobDto. */
+  referenceName?: string
+  /** Sent for internal workflow; not documented on production UpdateJobDto. */
+  referenceEmail?: string
 }
 
 /** PATCH /recruitment/jobs/:id/description */

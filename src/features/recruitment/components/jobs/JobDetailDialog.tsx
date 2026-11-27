@@ -18,6 +18,7 @@ import {
   formatEmploymentType,
   formatExperience,
   formatPostedDate,
+  formatSalary,
   formatWorkMode,
 } from '../../utils/jobFormat'
 import { ApiJobStatusBadge } from './ApiJobStatusBadge'
@@ -126,9 +127,7 @@ export function JobDetailDialog({
               <div>
                 <dt className="text-xs uppercase tracking-wide text-slate-400">Salary</dt>
                 <dd>
-                  {job.salaryMin === null && job.salaryMax === null
-                    ? '—'
-                    : `${job.salaryCurrency ?? ''} ${job.salaryMin ?? '—'} – ${job.salaryMax ?? '—'}`.trim()}
+                  {formatSalary(job.salaryMin, job.salaryMax, job.salaryCurrency)}
                 </dd>
               </div>
             </dl>

@@ -5,6 +5,8 @@ import type {
   ApiApprovalWorkflowItem,
   ApprovalWorkflowDetailView,
   ApprovalWorkflowsListData,
+  CreateApprovalWorkflowBody,
+  UpdateApprovalWorkflowBody,
 } from '../types/api/leaveApprovalWorkflows.types'
 import type { ApiLeaveRequestItem } from '../types/api/leaveList.types'
 import type { LeaveApprovalPendingData } from '../types/api/leaveApprovalPending.types'
@@ -12,7 +14,19 @@ import type { ApiApprovalHistoryItem, LeaveApprovalHistoryData } from '../types/
 import type { LeaveRequest, LeaveStep } from '../types/leaveRequest'
 import { mapApiApprovalHistoryToSteps } from '../utils/mapApiApprovalHistory'
 import { mapApiApprovalWorkflowItemToDetail } from '../utils/mapApiApprovalWorkflows'
-import { mapApiLeaveListToRequests } from '../utils/mapApiLeaveRequest'
+import { mapLeaveRequest, optionalNote } from './leaveMappers'
+import { mapPendingApprovalsToRequests } from '../utils/mapApiLeaveRequest'
+
+function workflowNoteBody(note?: string): Record<string, string> {
+  const trimmed = optionalNote(note)
+  return trimmed ? { note: trimmed } : {}
+}
+
+function readWorkflowLeaveResponse(data: unknown): LeaveRequest {
+  const mapped = mapLeaveRequest(data)
+  if (!mapped) throw new Error('Invalid leave response after workflow action')
+  return mapped
+}
 
 function normalizeApprovalWorkflows(raw: unknown): ApprovalWorkflowsListData {
   if (Array.isArray(raw)) {
@@ -76,7 +90,7 @@ function normalizeApprovalWorkflowDetail(raw: unknown): ApiApprovalWorkflowItem 
 
 export const leaveApprovalApi = baseApi.injectEndpoints({
   endpoints: (build) => ({
-    /** GET /leave-approval/workflows — configured approval workflows (read-only). */
+    /** GET /leave-approval/workflows — configured approval workflows. */
     getApprovalWorkflows: build.query<ApprovalWorkflowsListData, void>({
       query: () => ({ url: '/leave-approval/workflows' }),
       transformResponse: (response: ApiResponse<unknown>) =>
@@ -88,12 +102,7 @@ export const leaveApprovalApi = baseApi.injectEndpoints({
       query: () => ({ url: '/leave-approval/pending' }),
       transformResponse: (response: ApiResponse<unknown>) => {
         const pending = normalizePendingApprovals(unwrapData(response))
-        return mapApiLeaveListToRequests({
-          items: pending.items,
-          total: pending.items.length,
-          page: 1,
-          limit: pending.items.length || 1,
-        })
+        return mapPendingApprovalsToRequests(pending.items)
       },
       providesTags: (result) =>
         result
@@ -125,6 +134,77 @@ export const leaveApprovalApi = baseApi.injectEndpoints({
         mapApiApprovalWorkflowItemToDetail(normalizeApprovalWorkflowDetail(unwrapData(response))),
       providesTags: (_result, _error, id) => [{ type: 'Leave', id: `APPROVAL-WORKFLOW-${id}` }],
     }),
+    /** POST /leave-approval/workflows — create workflow. */
+    createApprovalWorkflow: build.mutation<ApprovalWorkflowDetailView, CreateApprovalWorkflowBody>({
+      query: (body) => ({ url: '/leave-approval/workflows', method: 'POST', body }),
+      transformResponse: (response: ApiResponse<unknown>) =>
+        mapApiApprovalWorkflowItemToDetail(normalizeApprovalWorkflowDetail(unwrapData(response))),
+      invalidatesTags: [{ type: 'Leave', id: 'APPROVAL-WORKFLOWS' }],
+    }),
+    /** PATCH /leave-approval/workflows/:id — update workflow. */
+    updateApprovalWorkflow: build.mutation<
+      ApprovalWorkflowDetailView,
+      { id: string; body: UpdateApprovalWorkflowBody }
+    >({
+      query: ({ id, body }) => ({
+        url: `/leave-approval/workflows/${encodeURIComponent(id)}`,
+        method: 'PATCH',
+        body,
+      }),
+      transformResponse: (response: ApiResponse<unknown>) =>
+        mapApiApprovalWorkflowItemToDetail(normalizeApprovalWorkflowDetail(unwrapData(response))),
+      invalidatesTags: (_result, _error, { id }) => [
+        { type: 'Leave', id: 'APPROVAL-WORKFLOWS' },
+        { type: 'Leave', id: `APPROVAL-WORKFLOW-${id}` },
+      ],
+    }),
+    /** DELETE /leave-approval/workflows/:id — deactivate workflow. */
+    deactivateApprovalWorkflow: build.mutation<void, string>({
+      query: (id) => ({
+        url: `/leave-approval/workflows/${encodeURIComponent(id)}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: (_result, _error, id) => [
+        { type: 'Leave', id: 'APPROVAL-WORKFLOWS' },
+        { type: 'Leave', id: `APPROVAL-WORKFLOW-${id}` },
+      ],
+    }),
+    /** POST /leave-approval/:leaveRequestId/approve — current workflow level. */
+    approveWorkflowLeave: build.mutation<LeaveRequest, { leaveRequestId: string; note?: string }>({
+      query: ({ leaveRequestId, note }) => ({
+        url: `/leave-approval/${encodeURIComponent(leaveRequestId)}/approve`,
+        method: 'POST',
+        body: workflowNoteBody(note),
+      }),
+      transformResponse: (response: ApiResponse<unknown>) =>
+        readWorkflowLeaveResponse(unwrapData(response)),
+      invalidatesTags: (_result, _error, { leaveRequestId }) => [
+        { type: 'Leave', id: 'APPROVAL-PENDING' },
+        { type: 'Leave', id: 'LIST' },
+        { type: 'Leave', id: 'CALENDAR' },
+        { type: 'Leave', id: 'BALANCE' },
+        { type: 'Leave', id: `APPROVAL-HISTORY-${leaveRequestId}` },
+        { type: 'Leave', id: leaveRequestId },
+      ],
+    }),
+    /** POST /leave-approval/:leaveRequestId/reject — current workflow level. */
+    rejectWorkflowLeave: build.mutation<LeaveRequest, { leaveRequestId: string; note?: string }>({
+      query: ({ leaveRequestId, note }) => ({
+        url: `/leave-approval/${encodeURIComponent(leaveRequestId)}/reject`,
+        method: 'POST',
+        body: workflowNoteBody(note),
+      }),
+      transformResponse: (response: ApiResponse<unknown>) =>
+        readWorkflowLeaveResponse(unwrapData(response)),
+      invalidatesTags: (_result, _error, { leaveRequestId }) => [
+        { type: 'Leave', id: 'APPROVAL-PENDING' },
+        { type: 'Leave', id: 'LIST' },
+        { type: 'Leave', id: 'CALENDAR' },
+        { type: 'Leave', id: 'BALANCE' },
+        { type: 'Leave', id: `APPROVAL-HISTORY-${leaveRequestId}` },
+        { type: 'Leave', id: leaveRequestId },
+      ],
+    }),
   }),
 })
 
@@ -133,4 +213,9 @@ export const {
   useGetApprovalWorkflowByIdQuery,
   useGetPendingApprovalsQuery,
   useGetLeaveApprovalHistoryQuery,
+  useApproveWorkflowLeaveMutation,
+  useRejectWorkflowLeaveMutation,
+  useCreateApprovalWorkflowMutation,
+  useUpdateApprovalWorkflowMutation,
+  useDeactivateApprovalWorkflowMutation,
 } = leaveApprovalApi

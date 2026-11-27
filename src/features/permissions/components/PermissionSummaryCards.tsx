@@ -14,7 +14,7 @@ const cards = [
     key: 'total',
     label: 'Total Permissions',
     icon: Shield,
-    accent: 'bg-[#F0EDFF] text-[#5938DB]',
+    accent: 'bg-[#CCFBF1] text-[#0F766E]',
   },
   {
     key: 'used',

@@ -170,7 +170,7 @@ export function AttendancePolicyDaysTable({ days, onDaySelect }: AttendancePolic
                   <td className={cn(tdClass, 'text-right')}>
                     <button
                       type="button"
-                      className="inline-flex h-[34px] w-[34px] items-center justify-center rounded-[9px] border border-[#E2E6EF] bg-white text-[#7055EB] transition-colors hover:bg-[#F0EDFF] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#8B5CF6]"
+                      className="inline-flex h-[34px] w-[34px] items-center justify-center rounded-[9px] border border-[#E2E6EF] bg-white text-[#7055EB] transition-colors hover:bg-[#CCFBF1] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#8B5CF6]"
                       aria-label={`View attendance for ${day.date}`}
                       onClick={() => onDaySelect?.(day)}
                     >

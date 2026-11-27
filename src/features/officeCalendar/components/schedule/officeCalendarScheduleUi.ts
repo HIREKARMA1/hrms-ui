@@ -10,6 +10,12 @@ export const SCHEDULE_MOTION =
 export const SCHEDULE_NAV_BTN =
   'inline-flex h-11 min-w-11 items-center justify-center rounded-[10px] border border-gray-300 bg-white text-hrms-navy hover:brightness-[0.96]'
 
+export const SCHEDULE_STEPPER =
+  'inline-flex items-stretch overflow-hidden rounded-[10px] border border-gray-300 bg-white shadow-sm'
+
+export const SCHEDULE_STEPPER_LABEL =
+  'flex min-w-[11rem] items-center justify-center px-4 text-base font-bold text-hrms-navy sm:min-w-[13rem]'
+
 export const SCHEDULE_CELL_SELECTED =
   'z-[1] bg-hrms-lavender ring-2 ring-inset ring-hrms-primary shadow-[inset_0_0_0_1px] shadow-hrms-primary/20'
 

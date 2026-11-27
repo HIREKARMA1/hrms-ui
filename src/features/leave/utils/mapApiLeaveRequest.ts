@@ -1,3 +1,4 @@
+import { mapLeaveRequest } from '../api/leaveMappers'
 import type { ApiLeaveRequestItem, LeaveListData } from '../types/api/leaveList.types'
 import type { LeaveRequest, LeaveRequestStatus } from '../types/leaveRequest'
 
@@ -40,12 +41,27 @@ function resolveEmployeeDisplayName(item: ApiLeaveRequestItem): string | undefin
   return parts || undefined
 }
 
+function resolveAppliedOn(item: ApiLeaveRequestItem): string {
+  const raw = item.appliedAt ?? item.createdAt ?? item.startDate
+  if (raw?.trim()) return raw.trim().slice(0, 10)
+  return new Date().toISOString().slice(0, 10)
+}
+
+function workflowStepLabel(status: LeaveRequestStatus, item: ApiLeaveRequestItem): string {
+  const multiLevel = Boolean(item.workflowId)
+  if (status !== 'Pending') return status
+  if (multiLevel) {
+    return typeof item.currentLevel === 'number' ? `Pending: level ${item.currentLevel}` : 'Pending'
+  }
+  return 'Pending: HR'
+}
+
 export function mapApiLeaveRequestItem(item: ApiLeaveRequestItem): LeaveRequest {
   const status = mapStatus(String(item.status))
-  const appliedOn =
-    item.appliedAt ?? item.createdAt ?? item.startDate ?? new Date().toISOString()
-
+  const appliedOn = resolveAppliedOn(item)
   const employeeId = resolveApiEmployeeId(item)
+  const multiLevelWorkflow = Boolean(item.workflowId)
+  const lop = item.lopDays ?? item.lwpDays
 
   return {
     id: item.id,
@@ -55,14 +71,16 @@ export function mapApiLeaveRequestItem(item: ApiLeaveRequestItem): LeaveRequest 
     fromDate: item.startDate,
     toDate: item.endDate,
     days: resolveDays(item),
-    lwpDays: item.lwpDays,
+    lwpDays: typeof lop === 'number' && lop > 0 ? lop : item.lwpDays,
     segments: [],
     reason: item.reason?.trim() ? item.reason : '—',
     appliedOn,
     status,
-    currentLevel: null,
-    currentStepLabel: status,
+    currentLevel: status === 'Pending' && !multiLevelWorkflow ? 'HR' : null,
+    currentStepLabel: workflowStepLabel(status, item),
     escalated: false,
+    multiLevelWorkflow: multiLevelWorkflow || undefined,
+    convertedToLwp: typeof lop === 'number' && lop > 0 ? true : undefined,
     steps: [
       {
         id: `${item.id}-applied`,
@@ -75,6 +93,27 @@ export function mapApiLeaveRequestItem(item: ApiLeaveRequestItem): LeaveRequest 
   }
 }
 
+/** Maps pending-queue rows; prefers strict `mapLeaveRequest` when the API sends workflow fields. */
+export function mapPendingApprovalItem(item: ApiLeaveRequestItem): LeaveRequest {
+  const employeeId = resolveApiEmployeeId(item)
+  const forMapper = {
+    ...item,
+    employeeId: employeeId || item.employeeId,
+    leaveTypeId: item.leaveTypeId ?? item.leaveType?.id ?? '',
+    dayPortion: item.dayPortion ?? 'FULL_DAY',
+    totalDays: resolveDays(item),
+    lopDays: item.lopDays ?? item.lwpDays ?? 0,
+    createdAt: item.createdAt ?? item.appliedAt ?? item.startDate,
+    workflowId: item.workflowId ?? null,
+    currentLevel: item.currentLevel ?? null,
+  }
+  return mapLeaveRequest(forMapper) ?? mapApiLeaveRequestItem(item)
+}
+
 export function mapApiLeaveListToRequests(data: LeaveListData): LeaveRequest[] {
   return data.items.map(mapApiLeaveRequestItem)
+}
+
+export function mapPendingApprovalsToRequests(items: ApiLeaveRequestItem[]): LeaveRequest[] {
+  return items.map(mapPendingApprovalItem)
 }

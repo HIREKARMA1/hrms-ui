@@ -1,5 +1,5 @@
 /**
- * HR Requests → Encashment segment: GET /leave-encashments.
+ * HR Requests → Encashment segment: GET /leave-encashments + detail by id.
  */
 
 import { useMemo, useState } from 'react'
@@ -7,7 +7,8 @@ import { useMemo, useState } from 'react'
 import { getApiErrorMessage } from '@/services/api/errors'
 
 import { useGetEncashmentRequestsQuery } from '../../api/leaveEncashmentsApi'
-import { useShouldFetchLeaveList } from '../../hooks/useShouldFetchLeaveList'
+import { useCanFetchLeaveEncashments } from '../../hooks/useCanFetchLeaveEncashments'
+import { useLeavePermissions } from '../../hooks/useLeavePermissions'
 import type { HrEncashmentRequestRow } from '../../types/api/leaveEncashmentList.types'
 import {
   filterHrEncashmentRows,
@@ -21,15 +22,22 @@ type HrEncashmentRequestsLiveSectionProps = {
   search: string
   onSearchChange: (value: string) => void
   employeeName: (id: string) => string
+  onApprove?: (id: string) => void
+  onReject?: (id: string) => void
+  busyId?: string | null
 }
 
 export function HrEncashmentRequestsLiveSection({
   search,
   onSearchChange,
   employeeName,
+  onApprove,
+  onReject,
+  busyId,
 }: HrEncashmentRequestsLiveSectionProps) {
   const [detailRow, setDetailRow] = useState<HrEncashmentRequestRow | null>(null)
-  const canFetch = useShouldFetchLeaveList()
+  const canFetch = useCanFetchLeaveEncashments()
+  const permissions = useLeavePermissions()
   const { data, isError, error, isFetching } = useGetEncashmentRequestsQuery(
     { page: 1, limit: 100 },
     { skip: !canFetch },
@@ -55,7 +63,7 @@ export function HrEncashmentRequestsLiveSection({
       <HrEncashmentRequestsTable
         rows={[]}
         employeeName={employeeName}
-        emptyLabel="Sign in with leaves:read to load encashment requests from the API."
+        emptyLabel="You need leave encashments read access to load requests from the API."
       />
     )
   }
@@ -63,16 +71,11 @@ export function HrEncashmentRequestsLiveSection({
   return (
     <div className="space-y-4">
       {errorMessage ? (
-        <p
-          className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-900"
-          role="alert"
-        >
+        <p className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-900" role="alert">
           {errorMessage}
         </p>
       ) : null}
-      {isFetching ? (
-        <p className="text-xs text-hrms-text-muted">Loading encashment requests…</p>
-      ) : null}
+      {isFetching ? <p className="text-xs text-hrms-text-muted">Loading encashment requests…</p> : null}
       <LeaveTableFilters
         searchId="hr-encashment-search"
         searchPlaceholder="Search employee, type or status"
@@ -85,6 +88,9 @@ export function HrEncashmentRequestsLiveSection({
         rows={rows}
         employeeName={employeeName}
         onView={setDetailRow}
+        onApprove={onApprove}
+        onReject={onReject}
+        busyId={busyId}
         emptyLabel={
           allRows.length === 0
             ? 'No encashment requests returned from the API.'
@@ -97,6 +103,8 @@ export function HrEncashmentRequestsLiveSection({
         employeeName={detailRow ? resolveEncashmentEmployeeLabel(detailRow, employeeName) : ''}
         onOpenChange={(open) => !open && setDetailRow(null)}
         useLiveApi={canFetch}
+        canCancel={permissions.canCancelEncashment}
+        onCancelled={() => setDetailRow(null)}
       />
     </div>
   )

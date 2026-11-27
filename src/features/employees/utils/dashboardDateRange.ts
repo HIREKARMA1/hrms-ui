@@ -7,6 +7,13 @@ function toIsoDate(date: Date): string {
   return `${y}-${m}-${d}`
 }
 
+/** Local calendar today as YYYY-MM-DD (for dashboard `date` query params). */
+export function todayIsoDate(now = new Date()): string {
+  const day = new Date(now)
+  day.setHours(0, 0, 0, 0)
+  return toIsoDate(day)
+}
+
 function startOfWeek(date: Date): Date {
   const next = new Date(date)
   const day = next.getDay()
@@ -45,6 +52,19 @@ export function formatDashboardDate(isoDate: string): string {
   return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
 }
 
+/** Display timestamp from ISO-8601 (e.g. employee `createdAt`). */
+export function formatDashboardDateTime(isoDateTime: string): string {
+  const date = new Date(isoDateTime)
+  if (Number.isNaN(date.getTime())) return isoDateTime
+  return date.toLocaleString('en-GB', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
 /** Chart x-axis label from YYYY-MM-DD. */
 export function formatDashboardAxisLabel(isoDate: string): string {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(isoDate)) return isoDate
@@ -60,7 +80,7 @@ export function initialsFromName(name: string): string {
 }
 
 export const DEPARTMENT_CHART_COLORS = [
-  '#5938DB',
+  '#0F766E',
   '#16A34A',
   '#3B82F6',
   '#F59E0B',
@@ -73,7 +93,7 @@ export const DEPARTMENT_CHART_COLORS = [
 ]
 
 export const LEAVE_TYPE_CHART_COLORS = [
-  '#5938DB',
+  '#0F766E',
   '#16A34A',
   '#3B82F6',
   '#F59E0B',

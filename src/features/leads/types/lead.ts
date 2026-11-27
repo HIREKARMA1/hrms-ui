@@ -1,5 +1,6 @@
 /**
- * Lead management domain types for CRM lifecycle UI and mock service.
+ * Lead management domain types for CRM lifecycle UI.
+ * Backend enums live in `api/leadsApi.types.ts`; UI uses display labels.
  */
 
 export type LeadPriority = 'High' | 'Medium' | 'Low'
@@ -54,12 +55,23 @@ export type Lead = {
   website: string
   industry: string
   companySize: string
+  /** Display name from taxonomy. */
   source: string
+  sourceId: string
+  /** Display name from taxonomy. */
   category: string
+  categoryId: string | null
   priority: LeadPriority
   status: LeadStatus
+  estimatedValue: string | null
+  attachmentUrl: string | null
   assignedEmployeeId: string | null
   assignedEmployeeName: string | null
+  /** Who performed the last assignment (or creator on auto-assign). */
+  assignedByEmployeeId: string | null
+  assignedByEmployeeName: string | null
+  createdByEmployeeId: string | null
+  createdByEmployeeName: string | null
   description: string
   requirements: string
   notes: LeadNote[]

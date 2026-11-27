@@ -1,6 +1,7 @@
 import { baseApi } from '@/services/api/baseApi'
 import { unwrapData, type ApiResponse } from '@/services/api/types'
 
+import type { BackendEncashmentPolicy, CreateEncashmentPolicyBody } from './leaveApi.types'
 import type {
   ApiLeaveEncashmentPolicyItem,
   LeaveEncashmentPoliciesData,
@@ -37,6 +38,16 @@ function normalizeEncashmentList(raw: unknown): LeaveEncashmentListData {
   return { items: [] }
 }
 
+function readEncashmentPolicyRecord(raw: unknown): BackendEncashmentPolicy | null {
+  if (!raw || typeof raw !== 'object') return null
+  const item = raw as Record<string, unknown>
+  if (typeof item.id !== 'string' || typeof item.leaveTypeId !== 'string') return null
+  if (typeof item.ratePerDay !== 'number' || typeof item.currency !== 'string') return null
+  if (typeof item.minDays !== 'number' || typeof item.maxDaysPerRequest !== 'number') return null
+  if (typeof item.effectiveFrom !== 'string') return null
+  return item as unknown as BackendEncashmentPolicy
+}
+
 function normalizeEncashmentDetail(raw: unknown): ApiEncashmentRequestItem {
   if (raw && typeof raw === 'object' && 'encashment' in raw) {
     return (raw as { encashment: ApiEncashmentRequestItem }).encashment
@@ -52,12 +63,22 @@ function normalizeEncashmentDetail(raw: unknown): ApiEncashmentRequestItem {
 
 export const leaveEncashmentsApi = baseApi.injectEndpoints({
   endpoints: (build) => ({
-    /** GET /leave-encashments/policies — encashment policy rules (read-only). */
+    /** GET /leave-encashments/policies (leave_encashments:approve). HR Accruals only. */
     getEncashmentPolicies: build.query<LeaveEncashmentPoliciesData, void>({
       query: () => ({ url: '/leave-encashments/policies' }),
       transformResponse: (response: ApiResponse<unknown>) =>
         normalizeEncashmentPolicies(unwrapData(response)),
       providesTags: [{ type: 'Leave', id: 'ENCASHMENT-POLICIES' }],
+    }),
+    /** POST /leave-encashments/policies (leave_encashments:create). */
+    createEncashmentPolicy: build.mutation<BackendEncashmentPolicy, CreateEncashmentPolicyBody>({
+      query: (body) => ({ url: '/leave-encashments/policies', method: 'POST', body }),
+      transformResponse: (response: ApiResponse<unknown>) => {
+        const mapped = readEncashmentPolicyRecord(unwrapData(response))
+        if (!mapped) throw new Error('Invalid encashment policy response')
+        return mapped
+      },
+      invalidatesTags: [{ type: 'Leave', id: 'ENCASHMENT-POLICIES' }],
     }),
     /** GET /leave-encashments — encashment request list (HR Requests). */
     getEncashmentRequests: build.query<LeaveEncashmentListData, LeaveEncashmentListQuery | void>({
@@ -91,6 +112,7 @@ export const leaveEncashmentsApi = baseApi.injectEndpoints({
 
 export const {
   useGetEncashmentPoliciesQuery,
+  useCreateEncashmentPolicyMutation,
   useGetEncashmentRequestsQuery,
   useGetEncashmentByIdQuery,
 } = leaveEncashmentsApi

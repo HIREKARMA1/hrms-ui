@@ -370,7 +370,7 @@ function DepartmentsSection() {
     : null
 
   return (
-    <div className="mx-auto flex w-full max-w-[1200px] flex-col gap-5">
+    <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-5 pb-8">
       <ToastBanner message={message} />
 
       <header className="space-y-1">
@@ -1119,7 +1119,7 @@ function DesignationsSection() {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-[1200px] flex-col gap-5">
+    <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-5 pb-8">
       <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div className="space-y-1">
           <h1 className="text-2xl font-semibold tracking-tight text-[#17213A]">

@@ -31,12 +31,16 @@ function percentOf(value: number, total: number) {
  */
 export function EmployeeStatsCards() {
   const { canAccess } = useOptionalFeatureAccess()
+  const canStats = canAccess('employee.stats')
   const canReadLeaves = canAccess('employee.leaveAnalytics')
   const { summary, isLoading, isError, error } = useEmployeeSummary()
 
-  const presentQuery = useGetPresentTodayQuery({ page: 1, limit: 1 })
-  const absentQuery = useGetAbsentTodayQuery({ page: 1, limit: 1 })
-  const lateQuery = useGetLateArrivalsTodayQuery({ page: 1, limit: 1 })
+  const presentQuery = useGetPresentTodayQuery(
+    { page: 1, limit: 1 },
+    { skip: !canStats },
+  )
+  const absentQuery = useGetAbsentTodayQuery({ page: 1, limit: 1 }, { skip: !canStats })
+  const lateQuery = useGetLateArrivalsTodayQuery({ page: 1, limit: 1 }, { skip: !canStats })
   const onLeaveQuery = useGetOnLeaveTodayQuery(
     { page: 1, limit: 1 },
     { skip: !canReadLeaves },

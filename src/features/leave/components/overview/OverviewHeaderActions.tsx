@@ -8,9 +8,7 @@
 
 import { useState } from 'react'
 
-
-
-import { Button } from '@/components/ui/button'
+import { Download, Plus, RefreshCw } from 'lucide-react'
 
 
 
@@ -29,7 +27,7 @@ import { useLeave } from '../../hooks/useLeave'
 
 import { useLeaveToast } from '../../hooks/useLeaveToast'
 
-import { LEAVE_SECONDARY_BUTTON } from '../shared/leaveUi'
+import { OV_BTN_PRIMARY, OV_BTN_SECONDARY, OV_FOCUS } from './overviewVisual'
 
 import { HrApplyOnBehalfDialog } from '../hrRequests/HrApplyOnBehalfDialog'
 
@@ -66,31 +64,27 @@ export function OverviewHeaderActions({ snapshot, onNavigate }: { snapshot: Leav
   <>
 
       {permissions.canCreateOnBehalf ? (
-        <Button type="button" onClick={() => setApplyOpen(true)}>
-
+        <button type="button" className={cn(OV_BTN_PRIMARY, OV_FOCUS)} onClick={() => setApplyOpen(true)}>
+          <Plus className="h-4 w-4" aria-hidden />
           Apply on behalf
-
-        </Button>
+        </button>
       ) : null}
 
       {permissions.canRunAccrual ? (
-        <Button
+        <button
           type="button"
-          variant="outline"
-          className={cn(LEAVE_SECONDARY_BUTTON)}
+          className={cn(OV_BTN_SECONDARY, OV_FOCUS)}
           onClick={() => (fromServer ? onNavigate('Accruals & Year-End', { accrualConfirm: true }) : setAccrualOpen(true))}
         >
-
+          <RefreshCw className="h-4 w-4" aria-hidden />
           Run accrual
-
-        </Button>
+        </button>
       ) : null}
 
-      <Button type="button" variant="outline" className={cn(LEAVE_SECONDARY_BUTTON)} onClick={() => onNavigate('Reports')}>
-
+      <button type="button" className={cn(OV_BTN_SECONDARY, OV_FOCUS)} onClick={() => onNavigate('Reports')}>
+        <Download className="h-4 w-4" aria-hidden />
         Download report
-
-      </Button>
+      </button>
 
       {isSuperAdminExperience(viewer.role) && !fromServer ? <OverviewSuperAdminActions /> : null}
 

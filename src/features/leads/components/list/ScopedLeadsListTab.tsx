@@ -6,13 +6,16 @@ import { cn } from '@/lib/utils'
 import { Input } from '@/components/ui/input'
 
 import type { LeadsListScope } from '../../constants/leadsDemoActor'
-import type { Lead } from '../../types/lead'
+import type { Lead, LeadStatus } from '../../types/lead'
 import { LEAD_PRIORITIES, LEAD_STATUSES } from '../../constants/leadOptions'
 import { useLeadsScope } from '../../hooks/useLeadsScope'
+import { leadCompanyLabel } from '../../utils/leadDisplay'
 import type { UserRole } from '@/features/leave/constants/userRoles'
+import { LeadDeleteConfirmDialog } from '../LeadDeleteConfirmDialog'
 import { LeadPriorityPill } from '../LeadPriorityPill'
 import { LeadStatusPill } from '../LeadStatusPill'
-import { LeadsMockBanner } from '../LeadsMockBanner'
+import { LeadTaxonomyAddControls } from '../taxonomy/LeadTaxonomyAddControls'
+import { AssignLeadDialog } from './AssignLeadDialog'
 import { LeadsListRowActions } from './LeadsListRowActions'
 import {
   LEADS_FILTER_BAR,
@@ -43,14 +46,24 @@ export function ScopedLeadsListTab({
     scopedLeads,
     setSelectedLeadId,
     deleteLead,
+    updateLeadStatus,
     canCreateLeads,
     canEditLead,
     canDeleteLeads,
+    canAssignLeads,
   } = useLeadsScope(role, scope)
-  const showActions = canEditLead || canDeleteLeads
+  const showActions = canEditLead || canDeleteLeads || canAssignLeads
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('All')
   const [priorityFilter, setPriorityFilter] = useState('All')
+  const [assignLead, setAssignLead] = useState<Lead | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<Lead | null>(null)
+  const [deleting, setDeleting] = useState(false)
+
+  async function handleMove(lead: Lead, status: LeadStatus) {
+    if (!canEditLead) return
+    await updateLeadStatus(lead.id, status)
+  }
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
@@ -69,7 +82,6 @@ export function ScopedLeadsListTab({
 
   return (
     <div className="space-y-4">
-      <LeadsMockBanner />
       <p className="text-base font-semibold text-hrms-navy">{title}</p>
       <div className={`${LEADS_FILTER_BAR} flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between`}>
         <div className="relative max-w-md flex-1">
@@ -106,6 +118,7 @@ export function ScopedLeadsListTab({
               </option>
             ))}
           </select>
+          <LeadTaxonomyAddControls />
           {canCreateLeads && onOpenCreate ? (
             <Button type="button" className="gap-2" onClick={onOpenCreate}>
               <Plus className="h-4 w-4" />
@@ -119,12 +132,13 @@ export function ScopedLeadsListTab({
           <thead className={LEADS_TABLE_THEAD}>
             <tr>
               <th className="px-4 py-3 font-medium">Lead ID</th>
-              <th className="px-4 py-3 font-medium">Lead / company</th>
+              <th className="px-4 py-3 font-medium">Company</th>
               <th className="px-4 py-3 font-medium">Contact</th>
               <th className="px-4 py-3 font-medium">Source</th>
               <th className="px-4 py-3 font-medium">Priority</th>
               <th className="px-4 py-3 font-medium">Status</th>
               <th className="px-4 py-3 font-medium">Owner</th>
+              <th className="px-4 py-3 font-medium">Assigned by</th>
               {showActions ? <th className="px-4 py-3 font-medium">Actions</th> : null}
             </tr>
           </thead>
@@ -137,12 +151,11 @@ export function ScopedLeadsListTab({
               >
                 <td className="px-4 py-3 font-mono text-xs text-hrms-text-secondary">{lead.id}</td>
                 <td className="px-4 py-3">
-                  <p className="font-medium text-hrms-navy">{lead.leadName}</p>
-                  <p className="text-xs text-hrms-text-muted">{lead.companyName}</p>
+                  <p className="font-medium text-hrms-navy">{leadCompanyLabel(lead)}</p>
                 </td>
                 <td className="px-4 py-3 text-hrms-text-secondary">
-                  <p>{lead.contactPerson}</p>
-                  <p className="text-xs">{lead.email}</p>
+                  <p>{lead.email}</p>
+                  <p className="text-xs">{lead.phone}</p>
                 </td>
                 <td className="px-4 py-3 text-hrms-text-secondary">{lead.source}</td>
                 <td className="px-4 py-3">
@@ -154,16 +167,23 @@ export function ScopedLeadsListTab({
                 <td className="px-4 py-3 text-hrms-text-secondary">
                   {lead.assignedEmployeeName ?? '—'}
                 </td>
+                <td className="px-4 py-3 text-hrms-text-secondary">
+                  {lead.assignedByEmployeeName ?? lead.createdByEmployeeName ?? '—'}
+                </td>
                 {showActions ? (
                   <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                     <LeadsListRowActions
-                      leadLabel={lead.leadName}
+                      leadLabel={leadCompanyLabel(lead)}
+                      currentStatus={lead.status}
+                      onMove={(status) => void handleMove(lead, status)}
+                      onAssign={() => setAssignLead(lead)}
                       onEdit={() => onOpenEdit(lead)}
                       onDelete={() => {
                         if (!canDeleteLeads) return
-                        if (!window.confirm(`Delete lead ${lead.id}?`)) return
-                        void deleteLead(lead.id)
+                        setDeleteTarget(lead)
                       }}
+                      showMove={canEditLead}
+                      showAssign={canAssignLeads}
                       showEdit={canEditLead}
                       showDelete={canDeleteLeads}
                     />
@@ -179,6 +199,33 @@ export function ScopedLeadsListTab({
           </p>
         ) : null}
       </div>
+      {canAssignLeads ? (
+        <AssignLeadDialog
+          lead={assignLead}
+          open={Boolean(assignLead)}
+          onOpenChange={(open) => {
+            if (!open) setAssignLead(null)
+          }}
+        />
+      ) : null}
+      <LeadDeleteConfirmDialog
+        lead={deleteTarget}
+        open={Boolean(deleteTarget)}
+        loading={deleting}
+        onOpenChange={(open) => {
+          if (!open && !deleting) setDeleteTarget(null)
+        }}
+        onConfirm={async () => {
+          if (!deleteTarget || !canDeleteLeads) return
+          setDeleting(true)
+          try {
+            await deleteLead(deleteTarget.id)
+            setDeleteTarget(null)
+          } finally {
+            setDeleting(false)
+          }
+        }}
+      />
     </div>
   )
 }

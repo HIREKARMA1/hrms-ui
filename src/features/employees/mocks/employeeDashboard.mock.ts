@@ -154,7 +154,7 @@ export const noticePeriodEmployees: NoticePeriodEmployee[] = [
 ]
 
 export const departmentDistribution: DepartmentDistributionItem[] = [
-  { department: 'Engineering', count: 86, percentage: 34.7, color: '#5938DB' },
+  { department: 'Engineering', count: 86, percentage: 34.7, color: '#0F766E' },
   { department: 'HR', count: 22, percentage: 8.9, color: '#7055EB' },
   { department: 'Finance', count: 24, percentage: 9.7, color: '#16A34A' },
   { department: 'Product', count: 38, percentage: 15.3, color: '#3B82F6' },
@@ -202,7 +202,7 @@ export const leaveStatusSummary: LeaveStatusSummary = {
 }
 
 export const leaveTypeDistribution: LeaveTypeDistribution[] = [
-  { type: 'Casual Leave', count: 18, color: '#5938DB' },
+  { type: 'Casual Leave', count: 18, color: '#0F766E' },
   { type: 'Sick Leave', count: 14, color: '#EF4444' },
   { type: 'Earned Leave', count: 16, color: '#16A34A' },
   { type: 'Paid Leave', count: 10, color: '#3B82F6' },
@@ -250,20 +250,20 @@ export const workforceExtendedSummary: WorkforceExtendedSummary = {
 }
 
 export const branchDistribution: NamedCountItem[] = [
-  { name: 'Hyderabad HQ', count: 110, percentage: 44.4, color: '#5938DB' },
+  { name: 'Hyderabad HQ', count: 110, percentage: 44.4, color: '#0F766E' },
   { name: 'Bengaluru', count: 72, percentage: 29.0, color: '#3B82F6' },
   { name: 'Pune', count: 40, percentage: 16.1, color: '#16A34A' },
   { name: 'Remote', count: 26, percentage: 10.5, color: '#F59E0B' },
 ]
 
 export const genderDistribution: NamedCountItem[] = [
-  { name: 'Female', count: 108, percentage: 43.5, color: '#5938DB' },
+  { name: 'Female', count: 108, percentage: 43.5, color: '#0F766E' },
   { name: 'Male', count: 132, percentage: 53.2, color: '#3B82F6' },
   { name: 'Other / Prefer not to say', count: 8, percentage: 3.3, color: '#94A3B8' },
 ]
 
 export const employmentTypeDistribution: NamedCountItem[] = [
-  { name: 'Full-time', count: 198, percentage: 79.8, color: '#5938DB' },
+  { name: 'Full-time', count: 198, percentage: 79.8, color: '#0F766E' },
   { name: 'Contract', count: 28, percentage: 11.3, color: '#F59E0B' },
   { name: 'Intern', count: 16, percentage: 6.5, color: '#3B82F6' },
   { name: 'Part-time', count: 6, percentage: 2.4, color: '#16A34A' },

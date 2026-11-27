@@ -310,11 +310,12 @@ describe('getModulePageAccess (RoleModulePage direct-URL rule)', () => {
 // ---------------------------------------------------------------------------
 
 describe('sidebar visibility', () => {
-  it('Employee (14 permissions) sees no employee-management or org navigation', () => {
+  it('Employee (17 permissions) sees no employee-management or org navigation', () => {
     const employeePerms = [
       'leaves:create', 'leaves:read', 'leaves:cancel', 'leave_types:read', 'holidays:read',
       'leave_encashments:create', 'leave_encashments:read', 'leave_encashments:cancel',
-      'employee_leave_policies:read', 'leads:create', 'leads:read', 'leads:update', 'leads:notes', 'leads:analytics',
+      'employee_leave_policies:read', 'leads:create', 'leads:read', 'leads:update', 'leads:assign',
+      'leads:notes', 'leads:analytics', 'lead_sources:manage', 'lead_categories:manage',
     ]
     const visible = collectNavPaths(filterNavigation(ROLE_UI_CONFIG.EMPLOYEE.navigation, 'EMPLOYEE', employeePerms))
     expect(visible.size).toBeGreaterThan(0)

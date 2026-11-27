@@ -54,7 +54,7 @@ export function AttendanceTrendChart() {
               <Bar
                 dataKey="present"
                 name="Present"
-                fill="#5938DB"
+                fill="#0F766E"
                 radius={[6, 6, 0, 0]}
                 maxBarSize={24}
               />
@@ -101,7 +101,7 @@ export function DepartmentAttendanceChart() {
                 }}
               />
               <Legend />
-              <Bar dataKey="present" name="Present" stackId="a" fill="#5938DB" />
+              <Bar dataKey="present" name="Present" stackId="a" fill="#0F766E" />
               <Bar dataKey="late" name="Late" stackId="a" fill="#F59E0B" />
               <Bar dataKey="onLeave" name="On Leave" stackId="a" fill="#3B82F6" />
               <Bar

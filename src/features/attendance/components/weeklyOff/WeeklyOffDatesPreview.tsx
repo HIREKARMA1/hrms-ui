@@ -4,7 +4,7 @@
 import { useMemo, useState } from 'react'
 
 import { Badge } from '@/components/ui/badge'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import {
   Select,
@@ -53,9 +53,6 @@ export function WeeklyOffDatesPreview() {
     <Card className="border-border-soft shadow-sm">
       <CardHeader>
         <CardTitle className="text-navy">Generated off dates</CardTitle>
-        <CardDescription>
-          From GET /calendar/weekly-offs/dates for the selected month (Asia/Kolkata).
-        </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         <div className="grid gap-4 sm:grid-cols-2">

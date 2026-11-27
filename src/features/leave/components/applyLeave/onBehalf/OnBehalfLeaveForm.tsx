@@ -1,8 +1,13 @@
 import { Calendar, ChevronDown, Paperclip } from 'lucide-react'
+import { useMemo } from 'react'
 
 import { cn } from '@/lib/utils'
 
 import { LEAVE_TYPE_LABELS } from '../../../constants/leaveTypeCodes'
+import type { ApplyLeaveTypeOption } from '../../../utils/applyLeaveTypeOptionsFromBalance'
+import { applyLeavePolicyDisplayHint } from '../../../utils/applyLeavePolicyDisplayHint'
+import { ApplyLeaveBalanceStrip } from '../ApplyLeaveBalanceStrip'
+import { ApplyLeaveTypeSelect } from '../ApplyLeaveTypeSelect'
 import type { LeaveSettings, LeaveTypePolicy } from '../../../types/leaveSettings'
 import type { HalfDayPortion } from '../../../types/leaveRequest'
 import type { LeaveValidationResult } from '../../../utils/validateLeaveRequest'
@@ -37,22 +42,29 @@ type OnBehalfLeaveFormProps = {
   setConvertLwp: (v: boolean) => void
   touched: Record<string, boolean>
   setTouched: (fn: (t: Record<string, boolean>) => Record<string, boolean>) => void
-}
-
-function PolicyHint({ policy }: { policy: LeaveTypePolicy }) {
-  const max = policy.maxConsecutiveDays ?? '—'
-  const notice = policy.minNoticeDays
-  return (
-    <p className="text-[12.5px] text-[#667085]">
-      Max{' '}
-      <span className="font-semibold text-[#17213A]">{max}</span> consecutive days ·{' '}
-      <span className="font-semibold text-[#17213A]">{notice}</span> day(s) notice
-    </p>
-  )
+  balanceTypeOptions?: ApplyLeaveTypeOption[] | null
+  balanceTypesLoading?: boolean
 }
 
 export function OnBehalfLeaveForm(props: OnBehalfLeaveFormProps) {
-  const enabled = props.settings.leaveTypes.filter((item) => item.enabled)
+  const balanceOptions = props.balanceTypeOptions
+  const demoOptions = useMemo(() => {
+    if (balanceOptions) return undefined
+    return props.settings.leaveTypes
+      .filter((item) => item.enabled)
+      .map((item) => ({
+        code: item.code,
+        label: LEAVE_TYPE_LABELS[item.code as keyof typeof LEAVE_TYPE_LABELS] ?? item.label,
+        available: props.balanceFor(item.code),
+      }))
+  }, [balanceOptions, props.balanceFor, props.settings.leaveTypes])
+
+  const typeSelectDisabled = Boolean(
+    props.balanceTypesLoading && balanceOptions && balanceOptions.length === 0,
+  )
+  const policyHint = applyLeavePolicyDisplayHint(props.policy)
+  const selectedBalanceRow = balanceOptions?.find((row) => row.code === props.leaveTypeCode)
+  const selectedAvail = props.balanceFor(props.leaveTypeCode)
   const needCert =
     props.policy?.medicalCertificateAfterDays !== null &&
     (props.preview?.daysCounted ?? 0) >= (props.policy?.medicalCertificateAfterDays ?? 999)
@@ -62,30 +74,23 @@ export function OnBehalfLeaveForm(props: OnBehalfLeaveFormProps) {
       <section className="space-y-4 border-b border-[#E2E6EF] px-6 py-[22px] max-[480px]:px-4">
         <h3 className={obSectionTitleClass}>Leave details</h3>
         <OnBehalfDialogField label="Leave type" htmlFor="leave-type" required>
-          <div className="relative">
-            <select
-              id="leave-type"
-              className={obSelectClass}
-              value={props.leaveTypeCode}
-              onChange={(e) => props.setLeaveTypeCode(e.target.value)}
-            >
-              {enabled.map((item) => {
-                const bal = props.balanceFor(item.code)
-                return (
-                  <option key={item.code} value={item.code}>
-                    {LEAVE_TYPE_LABELS[item.code as keyof typeof LEAVE_TYPE_LABELS] ?? item.label}
-                    {bal === null ? '' : ` (${bal}d)`}
-                  </option>
-                )
-              })}
-            </select>
-            <ChevronDown
-              className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#98A2B3]"
-              aria-hidden
-            />
-          </div>
+          <ApplyLeaveTypeSelect
+            id="leave-type"
+            value={props.leaveTypeCode}
+            options={balanceOptions ?? []}
+            demoOptions={demoOptions}
+            loading={Boolean(props.balanceTypesLoading && balanceOptions && balanceOptions.length === 0)}
+            disabled={typeSelectDisabled}
+            triggerClassName={obSelectClass}
+            onChange={props.setLeaveTypeCode}
+          />
         </OnBehalfDialogField>
-        {props.policy ? <PolicyHint policy={props.policy} /> : null}
+        <ApplyLeaveBalanceStrip
+          available={selectedAvail}
+          used={selectedBalanceRow?.used}
+          pending={selectedBalanceRow?.pending}
+        />
+        {policyHint ? <p className="text-[12.5px] text-[#667085]">{policyHint}</p> : null}
       </section>
 
       <section className="space-y-4 border-b border-[#E2E6EF] px-6 py-[22px] max-[480px]:px-4">
@@ -170,8 +175,8 @@ export function OnBehalfLeaveForm(props: OnBehalfLeaveFormProps) {
 
         <OnBehalfDialogField label="Attachment" htmlFor="leave-file">
           <div className="flex flex-wrap items-center gap-2">
-            <label className="inline-flex h-10 cursor-pointer items-center gap-1.5 rounded-[10px] border border-[#E2E6EF] bg-white px-4 text-sm font-semibold text-[#17213A] transition-colors hover:bg-[#F0EDFF] focus-within:outline focus-within:outline-2 focus-within:outline-[#8B5CF6]">
-              <Paperclip className="h-4 w-4 text-[#5938DB]" aria-hidden />
+            <label className="inline-flex h-10 cursor-pointer items-center gap-1.5 rounded-[10px] border border-[#E2E6EF] bg-white px-4 text-sm font-semibold text-[#17213A] transition-colors hover:bg-[#CCFBF1] focus-within:outline focus-within:outline-2 focus-within:outline-[#8B5CF6]">
+              <Paperclip className="h-4 w-4 text-[#0F766E]" aria-hidden />
               Choose file
               <input
                 id="leave-file"

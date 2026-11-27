@@ -36,7 +36,7 @@ export function AttendancePolicyReportFetchState({
       {placeholder ? <p className={`text-sm ${policySecondaryText}`}>{placeholder}</p> : null}
       {isLoading ? (
         <div className={`${policyCardClass} flex items-center gap-2 px-[22px] py-4 text-sm ${policySecondaryText}`}>
-          <Loader2 className="h-4 w-4 animate-spin text-[#5938DB]" aria-hidden />
+          <Loader2 className="h-4 w-4 animate-spin text-[#0F766E]" aria-hidden />
           {loadingMessage}
         </div>
       ) : null}

@@ -27,7 +27,7 @@ type OfficeCalendarScheduleLegendProps = {
 
 export function OfficeCalendarScheduleLegend({ counts, hidden, onToggle }: OfficeCalendarScheduleLegendProps) {
   return (
-    <div className="flex flex-wrap items-center justify-between gap-2 border-t border-gray-200 px-[22px] py-2.5">
+    <div className="flex flex-wrap items-center gap-2 border-t border-gray-200 px-[22px] py-2.5">
       <div className="flex flex-wrap items-center gap-2">
         {OFFICE_CALENDAR_SCHEDULE_CATEGORIES.map((category) => {
           const active = !hidden.has(category)
@@ -52,12 +52,14 @@ export function OfficeCalendarScheduleLegend({ counts, hidden, onToggle }: Offic
             </button>
           )
         })}
-        <span className="inline-flex h-8 items-center gap-1.5 rounded-full border border-gray-200 bg-white px-2.5 text-xs font-semibold text-gray-600">
+        <span
+          className="inline-flex h-8 items-center gap-1.5 rounded-full border border-gray-200 bg-white px-2.5 text-xs font-semibold text-gray-600"
+          title="Highlighted date on the grid is today"
+        >
           <span className="h-2 w-2 rounded-full bg-hrms-primary" aria-hidden />
-          Today
+          Current day
         </span>
       </div>
-      <p className="text-xs text-gray-500">Click a type to show or hide it</p>
     </div>
   )
 }

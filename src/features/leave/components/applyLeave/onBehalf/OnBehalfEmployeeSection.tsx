@@ -24,7 +24,7 @@ export function OnBehalfEmployeeSection({
       <h3 className={obSectionTitleClass}>Employee</h3>
       <div className="flex items-center gap-3 rounded-xl border border-[#E2E6EF] bg-white px-3.5 py-3">
         <span
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#F0EDFF] text-sm font-semibold text-[#5938DB]"
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#CCFBF1] text-sm font-semibold text-[#0F766E]"
           aria-hidden
         >
           {initials(employee.name)}

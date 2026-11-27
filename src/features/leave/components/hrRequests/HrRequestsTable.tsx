@@ -11,6 +11,7 @@ import type { LeaveRequest } from '../../types/leaveRequest'
 import type { LeaveEmployee } from '../../types/employee'
 import { resolveEmploymentStatus } from '../../utils/employmentStatus'
 import { formatDate } from '../../utils/formatDate'
+import { canUserActOnLeaveRequest } from '../../utils/leaveWorkflowApproval'
 import { EmploymentStatusPill } from '../EmploymentStatusPill'
 import { LeaveStatusPill } from '../LeaveStatusPill'
 import { LeaveTypeChip } from '../LeaveTypeChip'
@@ -22,6 +23,8 @@ type HrRequestsTableProps = {
   rows: LeaveRequest[]
   employees: LeaveEmployee[]
   requests: LeaveRequest[]
+  /** Pending ids the current user may approve/reject (action segment queue). */
+  actionableRequestIds: ReadonlySet<string>
   onView: (row: LeaveRequest) => void
   onApprove: (id: string) => void
   onReject: (id: string) => void
@@ -33,7 +36,17 @@ function hrRowCancelVisible(row: LeaveRequest) {
   return row.status !== 'Cancelled' && row.status !== 'Rejected'
 }
 
-export function HrRequestsTable({ rows, employees, requests, onView, onApprove, onReject, onCancel, busyId }: HrRequestsTableProps) {
+export function HrRequestsTable({
+  rows,
+  employees,
+  requests,
+  actionableRequestIds,
+  onView,
+  onApprove,
+  onReject,
+  onCancel,
+  busyId,
+}: HrRequestsTableProps) {
   const permissions = useLeavePermissions()
   const byId = Object.fromEntries(employees.map((item) => [item.id, item]))
 
@@ -57,8 +70,8 @@ export function HrRequestsTable({ rows, employees, requests, onView, onApprove, 
               const emp = byId[row.employeeId]
               const employment = emp ? resolveEmploymentStatus(emp, requests) : 'ACTIVE'
               const statusLabel = row.currentStepLabel || row.status
-              const pending = row.status === 'Pending'
-              const showCancel = !pending && hrRowCancelVisible(row)
+              const canAct = canUserActOnLeaveRequest(row, actionableRequestIds)
+              const showCancel = row.status !== 'Pending' && hrRowCancelVisible(row)
               return (
                 <tr
                   key={row.id}
@@ -95,7 +108,7 @@ export function HrRequestsTable({ rows, employees, requests, onView, onApprove, 
                   <td className="px-4 py-3 text-right align-middle" onClick={(event) => event.stopPropagation()}>
                     <div className="flex flex-wrap items-center justify-end gap-2">
                       <RowLinkButton onClick={() => onView(row)}>View</RowLinkButton>
-                      {pending && permissions.canApprove ? (
+                      {canAct && permissions.canApprove ? (
                         <>
                           <ApproveRowButton disabled={busyId === row.id} onClick={() => onApprove(row.id)} />
                           <RejectRowButton disabled={busyId === row.id} onClick={() => onReject(row.id)} />

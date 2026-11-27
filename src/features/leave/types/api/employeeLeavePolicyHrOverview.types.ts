@@ -13,10 +13,21 @@ export type EmployeeLeavePolicyHrOverviewQuery = {
 export type ApiEmployeeLeavePolicyHrOverviewItem = {
   id?: string
   employeeId?: string
+  /** Full name when API returns `name` instead of `employeeName`. */
+  name?: string
   employeeName?: string
   employeeCode?: string
+  year?: number
+  designation?: string
+  annualPaidLeaveAllocation?: number
+  annualSickLeaveAllocation?: number
+  paidLeaveUsed?: number
+  sickLeaveUsed?: number
+  paidLeaveAvailable?: number
+  sickLeaveAvailable?: number
+  totalLopDays?: number
   departmentId?: string
-  department?: string
+  department?: string | { id?: string; name?: string; title?: string }
   departmentName?: string
   employee?: {
     id?: string
@@ -25,12 +36,19 @@ export type ApiEmployeeLeavePolicyHrOverviewItem = {
     firstName?: string
     lastName?: string
     fullName?: string
-    department?: string
+    department?: string | { id?: string; name?: string; title?: string }
     departmentName?: string
   }
   balances?: ApiEmployeeLeaveBalanceRow[]
   leaveBalances?: ApiEmployeeLeaveBalanceRow[]
   balanceByType?: Record<string, number>
+}
+
+export type EmployeeLeavePolicyHrOverviewPagination = {
+  page?: number
+  limit?: number
+  total?: number
+  totalPages?: number
 }
 
 export type EmployeeLeavePolicyHrOverviewData = {
@@ -39,12 +57,14 @@ export type EmployeeLeavePolicyHrOverviewData = {
   page: number
   limit: number
   totalPages?: number
+  pagination?: EmployeeLeavePolicyHrOverviewPagination
 }
 
 /** Table row for HR Balances live section. */
 export type HrOverviewBalanceTableRow = {
   employeeId: string
   employeeName: string
+  employeeCode?: string
   departmentName: string
   /** leave type code (uppercase) → available balance */
   balancesByCode: Record<string, number>

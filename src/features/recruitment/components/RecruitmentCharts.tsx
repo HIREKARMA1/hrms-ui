@@ -27,18 +27,23 @@ import {
   candidateSources,
   monthlyApplications,
 } from '../mocks/recruitmentMocks'
-import type { Candidate } from '../types/recruitment'
-import { PIPELINE_STAGES } from '../utils/pipeline'
+import type { RecruitmentPipeline } from '../api/analyticsApi.types'
+import { APPLICATION_STATUSES } from '../api/applicationsApi.types'
+import { formatApplicationStatus } from '../utils/applicationFormat'
 import { STAGE_BAR_FILL } from '../utils/pipelineStageStyle'
 
 import { RECRUITMENT_CARD } from './shared/recruitmentUi'
 
-const PIE_COLORS = ['#5938DB', '#7C5CFC', '#A78BFA', '#C4B5FD', '#DDD6FE']
+const PIE_COLORS = ['#0F766E', '#7C5CFC', '#A78BFA', '#C4B5FD', '#DDD6FE']
 
-export function PipelineFunnelChart({ candidates }: { candidates: Candidate[] }) {
-  const data = PIPELINE_STAGES.filter((s) => s !== 'Rejected').map((stage) => ({
-    stage,
-    count: candidates.filter((c) => c.stage === stage).length,
+export function PipelineFunnelChart({ pipeline }: { pipeline: RecruitmentPipeline }) {
+  const counts = new Map(pipeline.stages.map((s) => [s.status, s.count]))
+  const data = APPLICATION_STATUSES.filter(
+    (s) => s !== 'REJECTED' && s !== 'WITHDRAWN',
+  ).map((status) => ({
+    stage: formatApplicationStatus(status),
+    status,
+    count: counts.get(status) ?? 0,
   }))
 
   return (
@@ -67,8 +72,8 @@ export function PipelineFunnelChart({ candidates }: { candidates: Candidate[] })
               <Bar dataKey="count" radius={[0, 6, 6, 0]} maxBarSize={18}>
                 {data.map((row) => (
                   <Cell
-                    key={row.stage}
-                    fill={STAGE_BAR_FILL[row.stage as keyof typeof STAGE_BAR_FILL]}
+                    key={row.status}
+                    fill={STAGE_BAR_FILL[row.status]}
                   />
                 ))}
               </Bar>
@@ -108,7 +113,7 @@ export function MonthlyApplicationsChart() {
               />
               <Bar
                 dataKey="applications"
-                fill="#5938DB"
+                fill="#0F766E"
                 radius={[6, 6, 0, 0]}
                 maxBarSize={28}
               />
@@ -156,7 +161,7 @@ export function HiringTrendsChart() {
               <Line
                 type="monotone"
                 dataKey="offers"
-                stroke="#5938DB"
+                stroke="#0F766E"
                 strokeWidth={2}
                 dot={{ r: 3 }}
               />

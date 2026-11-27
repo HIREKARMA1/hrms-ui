@@ -33,9 +33,17 @@ export const dashboardStats: DashboardStat[] = [
     iconClassName: 'bg-amber-50 text-amber-600',
   },
   {
-    id: 'inactive',
-    label: 'Inactive Employees',
-    value: '16',
+    id: 'probation',
+    label: 'On probation',
+    value: '8',
+    icon: 'hourglass',
+    trend: { value: '+2 this month', positive: true },
+    iconClassName: 'bg-violet-50 text-violet-600',
+  },
+  {
+    id: 'terminated',
+    label: 'Terminated',
+    value: '8',
     icon: 'userX',
     trend: { value: '-3.2% from last month', positive: false },
     iconClassName: 'bg-rose-50 text-rose-600',
@@ -52,7 +60,7 @@ export const attendanceData: AttendancePoint[] = [
 ]
 
 export const departmentDistribution: DepartmentShare[] = [
-  { name: 'Engineering', value: 86, color: '#6d5cf6' },
+  { name: 'Engineering', value: 86, color: '#0F766E' },
   { name: 'Product', value: 42, color: '#8b7cf8' },
   { name: 'HR', value: 28, color: '#34d399' },
   { name: 'Finance', value: 24, color: '#f59e0b' },

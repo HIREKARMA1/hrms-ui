@@ -3,7 +3,5 @@
  */
 
 export function ApplyLeaveSectionTitle({ children }: { children: string }) {
-  return (
-    <h3 className="text-xs font-semibold uppercase tracking-wide text-hrms-text-muted">{children}</h3>
-  )
+  return <h3 className="text-sm font-semibold text-hrms-navy">{children}</h3>
 }

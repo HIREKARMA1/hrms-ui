@@ -24,7 +24,11 @@ import {
   LeaveDialogHeader,
   LeaveDialogRoot,
 } from '../shared/LeaveDialog'
+import { useEmployeeLeavePolicyActions } from '../../hooks/useEmployeeLeavePolicyActions'
+import { buildAssignEmployeeLeaveDefaultsBody } from '../../utils/buildEmployeeLeavePolicyBody'
+import { AssignedLeavePoliciesLiveBlock } from '../dialogs/AssignedLeavePoliciesLiveBlock'
 import { EmployeeLeaveHistorySection } from '../history/EmployeeLeaveHistorySection'
+import { ApiAssignEmployeeLeavePolicyDialog } from './ApiAssignEmployeeLeavePolicyDialog'
 import { ApiBalanceAdjustmentDialog } from './ApiBalanceAdjustmentDialog'
 
 type ApiBalanceDialogProps = {
@@ -40,10 +44,28 @@ export function ApiBalanceDialog({ employeeId, employeeName, currentYear, leaveT
   const { showToast } = useLeaveToast()
   const [year, setYear] = useState(currentYear)
   const [adjustOpen, setAdjustOpen] = useState(false)
+  const [assignOpen, setAssignOpen] = useState(false)
+  const [assigningDefaults, setAssigningDefaults] = useState(false)
+  const policyActions = useEmployeeLeavePolicyActions()
   const balance = useGetLeaveBalanceQuery({ employeeId: employeeId ?? '', year }, { skip: !employeeId })
   const rows = useMemo(() => (balance.data ? mapLeaveBalanceRows(balance.data, leaveTypes) : []), [balance.data, leaveTypes])
 
   if (!employeeId) return null
+  const resolvedEmployeeId = employeeId
+
+  async function assignAllDefaults() {
+    const built = buildAssignEmployeeLeaveDefaultsBody({ employeeId: resolvedEmployeeId, year })
+    if (!built.ok) {
+      showToast(built.error)
+      return
+    }
+    setAssigningDefaults(true)
+    const result = await policyActions.assignDefaults(built.body)
+    setAssigningDefaults(false)
+    showToast(result.ok ? 'Company defaults assigned for this employee.' : result.message)
+  }
+
+  const canManagePolicies = permissions.canAdjustBalance
 
   return (
     <>
@@ -94,22 +116,48 @@ export function ApiBalanceDialog({ employeeId, employeeName, currentYear, leaveT
                 </tbody>
               </table>
             )}
+            <AssignedLeavePoliciesLiveBlock employeeId={employeeId} year={year} enabled />
             <EmployeeLeaveHistorySection employeeId={employeeId} enabled year={year} title="Leave requests" />
           </LeaveDialogBody>
-          {permissions.canAdjustBalance ? (
+          {canManagePolicies ? (
             <LeaveDialogFooter>
-              <Button type="button" size="sm" onClick={() => setAdjustOpen(true)} disabled={leaveTypes.length === 0}>
-                Add adjustment
-              </Button>
+              <div className="flex w-full flex-wrap items-center justify-end gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={assigningDefaults}
+                  onClick={() => void assignAllDefaults()}
+                >
+                  Assign all defaults
+                </Button>
+                <Button type="button" size="sm" variant="outline" onClick={() => setAssignOpen(true)} disabled={leaveTypes.length === 0}>
+                  Assign policy
+                </Button>
+                <Button type="button" size="sm" onClick={() => setAdjustOpen(true)} disabled={leaveTypes.length === 0}>
+                  Add adjustment
+                </Button>
+              </div>
             </LeaveDialogFooter>
           ) : null}
           <LeaveDialogCloseButton />
         </LeaveDialogContent>
       </LeaveDialogRoot>
-      {adjustOpen && permissions.canAdjustBalance ? (
+      {adjustOpen && canManagePolicies ? (
         <ApiBalanceAdjustmentDialog
           open
           onOpenChange={setAdjustOpen}
+          employeeId={employeeId}
+          employeeName={employeeName}
+          year={year}
+          leaveTypes={leaveTypes}
+          onSaved={showToast}
+        />
+      ) : null}
+      {assignOpen && canManagePolicies ? (
+        <ApiAssignEmployeeLeavePolicyDialog
+          open
+          onOpenChange={setAssignOpen}
           employeeId={employeeId}
           employeeName={employeeName}
           year={year}

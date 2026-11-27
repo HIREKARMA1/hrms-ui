@@ -75,7 +75,9 @@ export function LeadsNeedsAttentionList({
 function LeadRowSummary({ lead }: { lead: Lead }) {
   return (
     <div className="min-w-0">
-      <p className="truncate text-[14.5px] font-semibold text-[#17213A]">{lead.leadName}</p>
+      <p className="truncate text-[14.5px] font-semibold text-[#17213A]">
+        {lead.companyName.trim() || lead.leadName}
+      </p>
       <p className="truncate text-[12.5px] text-[#667085]">
         {lead.id} · {lead.assignedEmployeeName ?? 'Unassigned'}
       </p>
@@ -101,7 +103,7 @@ function LeadRowSummary({ lead }: { lead: Lead }) {
 
 function cnViewBtn() {
   return cn(
-    'inline-flex h-11 shrink-0 items-center gap-1 rounded-[10px] border border-[#E2E6EF] bg-white px-3 text-sm font-semibold text-[#5938DB]',
+    'inline-flex h-11 shrink-0 items-center gap-1 rounded-[10px] border border-[#E2E6EF] bg-white px-3 text-sm font-semibold text-[#0F766E]',
     OVERVIEW_MOTION,
     OVERVIEW_FOCUS,
     'hover:bg-[#F3F4F8]',
@@ -119,7 +121,7 @@ function cnOutlineBtn() {
 
 function cnPrimarySmall() {
   return cn(
-    'inline-flex h-9 items-center gap-1 rounded-[10px] bg-[#5938DB] px-3 text-sm font-semibold text-white',
+    'inline-flex h-9 items-center gap-1 rounded-[10px] bg-[#0F766E] px-3 text-sm font-semibold text-white',
     OVERVIEW_MOTION,
     OVERVIEW_FOCUS,
     'hover:bg-[#7055EB]',

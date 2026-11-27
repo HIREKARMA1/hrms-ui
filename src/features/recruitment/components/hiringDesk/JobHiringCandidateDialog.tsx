@@ -76,7 +76,7 @@ export function JobHiringCandidateDialog({
                     ) : null}
                     <Badge
                       variant={covered ? 'default' : 'secondary'}
-                      className={covered ? 'bg-[#5938DB]' : undefined}
+                      className={covered ? 'bg-[#0F766E]' : undefined}
                     >
                       {step.label}
                     </Badge>

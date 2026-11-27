@@ -1,5 +1,6 @@
 /**
  * Client-side checks aligned with production OpenAPI for `/recruitment/jobs`.
+ * Referral reference name/email belong on the employee apply flow, not HR job create.
  */
 import type {
   CreateJobBody,

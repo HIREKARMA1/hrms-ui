@@ -60,7 +60,7 @@ export function RoleModulePage() {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-[1100px] flex-col gap-6">
+    <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-6 pb-8">
       <ToastBanner message={message} />
       <div>
         <div className="mb-2 flex flex-wrap items-center gap-2">
@@ -74,7 +74,7 @@ export function RoleModulePage() {
         </p>
       </div>
 
-      <Card className="border-border-soft shadow-sm">
+      <Card>
         <CardHeader>
           <CardTitle>Module workspace</CardTitle>
           <CardDescription>

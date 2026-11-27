@@ -21,12 +21,17 @@ import {
 
 type AttendanceReportEmployeePickerProps = {
   selectedCode?: string
+  /** Shown on the trigger when the selected row is not in the current search results */
+  selectedName?: string
+  label?: string
   onSelect: (record: EmployeeRecord) => void
   disabled?: boolean
 }
 
 export function AttendanceReportEmployeePicker({
   selectedCode,
+  selectedName,
+  label = 'Employee roster',
   onSelect,
   disabled,
 }: AttendanceReportEmployeePickerProps) {
@@ -37,13 +42,15 @@ export function AttendanceReportEmployeePicker({
   const triggerText = selectedLabel
     ? `${selectedLabel.profile.firstName} ${selectedLabel.profile.lastName}`.trim() ||
       selectedCode
-    : selectedCode
-      ? selectedCode
-      : 'Select employee'
+    : selectedName && selectedCode
+      ? selectedName
+      : selectedCode
+        ? selectedCode
+        : 'Select employee'
 
   return (
     <div>
-      <label className={policyLabelClass}>Employee roster</label>
+      <label className={policyLabelClass}>{label}</label>
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <Button
@@ -78,7 +85,7 @@ export function AttendanceReportEmployeePicker({
           <div className="max-h-56 overflow-y-auto">
             {isFetching ? (
               <p className={`flex items-center gap-2 p-3 text-sm ${policySecondaryText}`}>
-                <Loader2 className="h-4 w-4 animate-spin text-[#5938DB]" aria-hidden />
+                <Loader2 className="h-4 w-4 animate-spin text-[#0F766E]" aria-hidden />
                 Loading…
               </p>
             ) : rows.length === 0 ? (
@@ -95,8 +102,8 @@ export function AttendanceReportEmployeePicker({
                       <button
                         type="button"
                         className={cn(
-                          'flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2 text-left text-sm transition-colors hover:bg-[#F0EDFF]',
-                          isSelected && 'bg-[#F0EDFF]',
+                          'flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2 text-left text-sm transition-colors hover:bg-[#CCFBF1]',
+                          isSelected && 'bg-[#CCFBF1]',
                         )}
                         onClick={() => {
                           onSelect(record)

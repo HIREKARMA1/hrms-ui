@@ -21,10 +21,22 @@ function mapRegularization(raw: unknown): AttendanceRegularizationRecord | null 
       : coerceOptionalString(o.date)
         ? [coerceOptionalString(o.date)!]
         : []
+  const employee = unwrapRecord(o.employee)
+  const firstName = coerceOptionalString(o.firstName ?? employee.firstName)
+  const lastName = coerceOptionalString(o.lastName ?? employee.lastName)
+  const composedName = [firstName, lastName].filter(Boolean).join(' ').trim()
+  const employeeName =
+    coerceOptionalString(
+      o.employeeName ?? employee.employeeName ?? employee.name ?? (composedName || undefined),
+    ) ?? undefined
+
   return {
     id,
-    employeeId: coerceOptionalString(o.employeeId),
-    employeeCode: coerceOptionalString(o.employeeCode),
+    employeeId: coerceOptionalString(o.employeeId ?? employee.id ?? employee.employeeId),
+    employeeCode: coerceOptionalString(
+      o.employeeCode ?? employee.employeeCode ?? employee.code,
+    ),
+    employeeName,
     type: coerceOptionalString(o.type) as AttendanceRegularizationRecord['type'],
     dates: datesRaw.map(String),
     reason: coerceOptionalString(o.reason),

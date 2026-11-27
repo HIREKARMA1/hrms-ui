@@ -1,29 +1,24 @@
 /**
- * Create / edit lead with full field list and duplicate warning.
+ * Create / edit lead against the live leads API contracts.
  */
 
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-
-import {
-  COMPANY_SIZES,
-  LEAD_ASSIGNEES,
-  LEAD_CATEGORIES,
-  LEAD_INDUSTRIES,
-  LEAD_PRIORITIES,
-  LEAD_SOURCES,
-  LEAD_STATUSES,
-} from '../constants/leadOptions'
+import { useAuthenticatedUser } from '@/features/auth/hooks/useAuthenticatedUser'
+import { EMPLOYEE_MAX_TAKE, useListEmployeesQuery } from '@/features/employees/api/employeesApi'
 import { useOptionalFeatureAccess } from '@/features/rbac/hooks/useFeatureAccess'
-
-import { useLeads } from '../hooks/useLeads'
-import type { Lead, LeadInput } from '../types/lead'
-import { emptyLeadInput } from '../utils/leadForm'
+import { getApiErrorMessage } from '@/services/api/errors'
 import { cn } from '@/lib/utils'
 
+import { useListLeadCategoriesQuery } from '../api/leadCategoriesApi'
+import { useListLeadSourcesQuery } from '../api/leadSourcesApi'
+import { LEAD_PRIORITIES, LEAD_STATUSES } from '../constants/leadOptions'
+import { useLeads } from '../hooks/useLeads'
+import type { Lead, LeadInput } from '../types/lead'
+import { emptyLeadInput, leadToInput } from '../utils/leadForm'
 import {
   LEADS_DIALOG_HEADER_BAND,
   LEADS_DIALOG_SHELL,
@@ -61,7 +56,30 @@ export function LeadFormDialog({
 }: LeadFormDialogProps) {
   const { createLead, updateLead, checkDuplicates } = useLeads()
   const { canAccess } = useOptionalFeatureAccess()
+  const { user } = useAuthenticatedUser()
   const canAssign = canAccess('leads.assign')
+  const canListEmployees = Boolean(user?.permissions?.includes('employees:read'))
+
+  const { data: sourcesPage } = useListLeadSourcesQuery({ isActive: true }, { skip: !open })
+  const { data: categoriesPage } = useListLeadCategoriesQuery({ isActive: true }, { skip: !open })
+  const { data: employeesPage } = useListEmployeesQuery(
+    { skip: 0, take: EMPLOYEE_MAX_TAKE },
+    { skip: !open || !canAssign || !canListEmployees },
+  )
+
+  const sources = sourcesPage?.items ?? []
+  const categories = categoriesPage?.items ?? []
+  const assignees = useMemo(() => {
+    const rows = (employeesPage?.items ?? []).map((item) => ({
+      id: item.server.id,
+      name: `${item.profile.firstName} ${item.profile.lastName}`.trim() || item.server.employeeCode,
+    }))
+    if (user?.employeeId && !rows.some((row) => row.id === user.employeeId)) {
+      rows.unshift({ id: user.employeeId, name: 'Me' })
+    }
+    return rows
+  }, [employeesPage?.items, user?.employeeId])
+
   const [draft, setDraft] = useState<LeadInput>(emptyLeadInput())
   const [dupWarning, setDupWarning] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -71,37 +89,43 @@ export function LeadFormDialog({
     if (open) {
       setDraft(
         initial
-          ? leadFormFromLead(initial)
+          ? leadToInput(initial)
           : {
               ...emptyLeadInput(),
-              assignedEmployeeId: defaultAssigneeId ?? null,
+              assignedEmployeeId: defaultAssigneeId ?? user?.employeeId ?? null,
             },
       )
       setDupWarning(null)
       setError(null)
     }
-  }, [open, initial, defaultAssigneeId])
+  }, [open, initial, defaultAssigneeId, user?.employeeId])
 
   useEffect(() => {
     if (!open) return
     const handle = window.setTimeout(async () => {
-      if (!draft.email && !draft.phone && !draft.companyName) {
+      if (!draft.email.trim() && !draft.phone.trim()) {
         setDupWarning(null)
         return
       }
-      const matches = await checkDuplicates(
-        {
-          email: draft.email,
-          phone: draft.phone,
-          companyName: draft.companyName,
-        } as Lead,
-        initial?.id,
-      )
-      if (matches.length) {
-        setDupWarning(
-          `Possible duplicate: ${matches.map((m) => `${m.lead.id} (${m.reasons.join(', ')})`).join('; ')}`,
+      try {
+        const matches = await checkDuplicates(
+          {
+            email: draft.email,
+            phone: draft.phone,
+            companyName: draft.companyName,
+          },
+          initial?.id,
         )
-      } else {
+        if (matches.length) {
+          setDupWarning(
+            `Possible duplicate: ${matches
+              .map((m) => `${m.lead.leadName} (${m.reasons.join(', ') || 'match'})`)
+              .join('; ')}`,
+          )
+        } else {
+          setDupWarning(null)
+        }
+      } catch {
         setDupWarning(null)
       }
     }, 400)
@@ -113,18 +137,38 @@ export function LeadFormDialog({
   }
 
   async function handleSubmit() {
-    if (!draft.leadName.trim() || !draft.companyName.trim() || !draft.email.trim()) {
-      setError('Lead name, company, and email are required.')
+    if (!draft.email.trim() || !draft.phone.trim()) {
+      setError('Email and phone are required.')
+      return
+    }
+    if (!draft.sourceId.trim()) {
+      setError('Lead source is required.')
       return
     }
     setSaving(true)
     setError(null)
     try {
-      // Without leads:assign the assignee is never sent: creates stay
-      // unassigned and edits keep the existing owner.
+      // Owner defaults to the signed-in employee profile; assign permission can override.
+      const ownerEmployeeId =
+        draft.assignedEmployeeId ??
+        defaultAssigneeId ??
+        user?.employeeId ??
+        null
+      // No contact full-name field — keep stored name aligned with company (server fallback).
+      // Owner name always comes from the employee profile, not this form.
+      const draftForSave: LeadInput = {
+        ...draft,
+        leadName: draft.companyName.trim() || draft.leadName.trim(),
+      }
       const payload: LeadInput = canAssign
-        ? draft
-        : { ...draft, assignedEmployeeId: initial?.assignedEmployeeId ?? null }
+        ? { ...draftForSave, assignedEmployeeId: ownerEmployeeId }
+        : {
+            ...draftForSave,
+            assignedEmployeeId:
+              mode === 'create'
+                ? user?.employeeId ?? null
+                : (initial?.assignedEmployeeId ?? null),
+          }
       const saved =
         mode === 'edit' && initial
           ? await updateLead(initial.id, payload)
@@ -132,7 +176,7 @@ export function LeadFormDialog({
       onSaved(saved)
       onOpenChange(false)
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Save failed')
+      setError(getApiErrorMessage(cause, cause instanceof Error ? cause.message : 'Save failed'))
     } finally {
       setSaving(false)
     }
@@ -149,7 +193,7 @@ export function LeadFormDialog({
           <div className={LEADS_DIALOG_HEADER_BAND}>
             <PayrollDialogHeader
               title={mode === 'create' ? 'Create lead' : `Edit lead — ${initial?.id ?? ''}`}
-              description="Company defaults apply; each lead gets an auto-generated ID on save."
+              description="Company and contact details. Owner is taken from your employee profile."
             />
           </div>
           <PayrollDialogBody className="space-y-4">
@@ -159,28 +203,15 @@ export function LeadFormDialog({
               </p>
             ) : null}
             {error ? <p className="text-sm text-hrms-danger">{error}</p> : null}
-            <Field label="Lead name" id="lead-name">
-              <Input
-                id="lead-name"
-                value={draft.leadName}
-                onChange={(e) => patch('leadName', e.target.value)}
-              />
-            </Field>
             <Field label="Company name" id="company-name">
               <Input
                 id="company-name"
                 value={draft.companyName}
                 onChange={(e) => patch('companyName', e.target.value)}
+                autoFocus
               />
             </Field>
             <div className="grid gap-3 sm:grid-cols-2">
-              <Field label="Contact person" id="contact-person">
-                <Input
-                  id="contact-person"
-                  value={draft.contactPerson}
-                  onChange={(e) => patch('contactPerson', e.target.value)}
-                />
-              </Field>
               <Field label="Email" id="email">
                 <Input
                   id="email"
@@ -196,61 +227,88 @@ export function LeadFormDialog({
                   onChange={(e) => patch('phone', e.target.value)}
                 />
               </Field>
-              <Field label="Website" id="website">
-                <Input
-                  id="website"
-                  value={draft.website}
-                  onChange={(e) => patch('website', e.target.value)}
-                />
-              </Field>
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
-              <SelectField label="Industry" value={draft.industry} onChange={(v) => patch('industry', v)}>
-                {LEAD_INDUSTRIES.map((item) => (
-                  <option key={item} value={item}>
-                    {item}
+              <SelectField
+                label="Source"
+                value={draft.sourceId}
+                onChange={(v) => {
+                  const match = sources.find((item) => item.id === v)
+                  patch('sourceId', v)
+                  patch('source', match?.name ?? '')
+                }}
+              >
+                <option value="">
+                  {sources.length === 0 ? 'No sources — use Add source first' : 'Select source'}
+                </option>
+                {sources.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.name}
                   </option>
                 ))}
               </SelectField>
               <SelectField
-                label="Company size"
-                value={draft.companySize}
-                onChange={(v) => patch('companySize', v)}
+                label="Category"
+                value={draft.categoryId ?? ''}
+                onChange={(v) => {
+                  const match = categories.find((item) => item.id === v)
+                  patch('categoryId', v || null)
+                  patch('category', match?.name ?? '')
+                }}
               >
-                {COMPANY_SIZES.map((item) => (
-                  <option key={item} value={item}>
-                    {item}
+                <option value="">None</option>
+                {categories.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.name}
                   </option>
                 ))}
               </SelectField>
-              <SelectField label="Source" value={draft.source} onChange={(v) => patch('source', v)}>
-                {LEAD_SOURCES.map((item) => (
-                  <option key={item} value={item}>
-                    {item}
-                  </option>
-                ))}
-              </SelectField>
-              <SelectField label="Category" value={draft.category} onChange={(v) => patch('category', v)}>
-                {LEAD_CATEGORIES.map((item) => (
-                  <option key={item} value={item}>
-                    {item}
-                  </option>
-                ))}
-              </SelectField>
-              <SelectField label="Priority" value={draft.priority} onChange={(v) => patch('priority', v as LeadInput['priority'])}>
+              <SelectField
+                label="Priority"
+                value={draft.priority}
+                onChange={(v) => patch('priority', v as LeadInput['priority'])}
+              >
                 {LEAD_PRIORITIES.map((item) => (
                   <option key={item} value={item}>
                     {item}
                   </option>
                 ))}
               </SelectField>
-              <SelectField label="Status" value={draft.status} onChange={(v) => patch('status', v as LeadInput['status'])}>
-                {LEAD_STATUSES.map((item) => (
-                  <option key={item} value={item}>
-                    {item}
-                  </option>
-                ))}
-              </SelectField>
+              {mode === 'edit' ? (
+                <SelectField
+                  label="Status"
+                  value={draft.status}
+                  onChange={(v) => patch('status', v as LeadInput['status'])}
+                >
+                  {LEAD_STATUSES.map((item) => (
+                    <option key={item} value={item}>
+                      {item}
+                    </option>
+                  ))}
+                </SelectField>
+              ) : null}
+              <Field label="Estimated value" id="estimated-value">
+                <Input
+                  id="estimated-value"
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  placeholder="Whole number only"
+                  value={draft.estimatedValue ?? ''}
+                  onChange={(e) => {
+                    const digits = e.target.value.replace(/\D/g, '')
+                    patch('estimatedValue', digits || null)
+                  }}
+                />
+              </Field>
+              <Field label="Attachment URL" id="attachment-url">
+                <Input
+                  id="attachment-url"
+                  value={draft.attachmentUrl ?? ''}
+                  onChange={(e) => patch('attachmentUrl', e.target.value || null)}
+                  placeholder="https://…"
+                />
+              </Field>
             </div>
             {canAssign ? (
               <Field label="Assigned to" id="assignee">
@@ -260,8 +318,10 @@ export function LeadFormDialog({
                   value={draft.assignedEmployeeId ?? ''}
                   onChange={(e) => patch('assignedEmployeeId', e.target.value || null)}
                 >
-                  <option value="">Unassigned</option>
-                  {LEAD_ASSIGNEES.map((item) => (
+                  <option value="">
+                    {mode === 'create' ? 'Assign to me (default)' : 'Keep current owner'}
+                  </option>
+                  {assignees.map((item) => (
                     <option key={item.id} value={item.id}>
                       {item.name}
                     </option>
@@ -269,24 +329,17 @@ export function LeadFormDialog({
                 </select>
               </Field>
             ) : null}
-            <Field label="Description" id="description">
-              <textarea
-                id="description"
-                rows={3}
-                className={`${selectClass} h-auto py-2`}
-                value={draft.description}
-                onChange={(e) => patch('description', e.target.value)}
-              />
-            </Field>
-            <Field label="Requirements" id="requirements">
-              <textarea
-                id="requirements"
-                rows={3}
-                className={`${selectClass} h-auto py-2`}
-                value={draft.requirements}
-                onChange={(e) => patch('requirements', e.target.value)}
-              />
-            </Field>
+            {mode === 'create' ? (
+              <Field label="Remarks" id="description">
+                <textarea
+                  id="description"
+                  rows={3}
+                  className={`${selectClass} h-auto py-2`}
+                  value={draft.description}
+                  onChange={(e) => patch('description', e.target.value)}
+                />
+              </Field>
+            ) : null}
           </PayrollDialogBody>
           <PayrollDialogFooter>
             <div className="flex justify-end gap-2">
@@ -303,27 +356,6 @@ export function LeadFormDialog({
       </PayrollDialogPortal>
     </PayrollDialogRoot>
   )
-}
-
-function leadFormFromLead(lead: Lead): LeadInput {
-  return {
-    leadName: lead.leadName,
-    companyName: lead.companyName,
-    contactPerson: lead.contactPerson,
-    email: lead.email,
-    phone: lead.phone,
-    website: lead.website,
-    industry: lead.industry,
-    companySize: lead.companySize,
-    source: lead.source,
-    category: lead.category,
-    priority: lead.priority,
-    status: lead.status,
-    assignedEmployeeId: lead.assignedEmployeeId,
-    assignedEmployeeName: lead.assignedEmployeeName,
-    description: lead.description,
-    requirements: lead.requirements,
-  }
 }
 
 function Field({

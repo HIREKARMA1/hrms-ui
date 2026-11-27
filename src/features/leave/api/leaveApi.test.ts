@@ -12,7 +12,13 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { authReducer } from '@/features/auth/store/authSlice'
 import { baseApi } from '@/services/api/baseApi'
 
-import type { BackendEncashment, BackendLeaveRequest, BackendLeaveType } from './leaveApi.types'
+import type {
+  BackendAccrualPolicy,
+  BackendCarryForwardPolicy,
+  BackendEncashment,
+  BackendLeaveRequest,
+  BackendLeaveType,
+} from './leaveApi.types'
 import {
   availableByTypeCode,
   buildAdjustmentBody,
@@ -95,6 +101,40 @@ function backendLeaveType(overrides: Partial<BackendLeaveType> = {}): BackendLea
     updatedAt: '2026-01-01T00:00:00.000Z',
     requestCount: 3,
     balanceCount: 10,
+    ...overrides,
+  }
+}
+
+function backendAccrualPolicy(overrides: Partial<BackendAccrualPolicy> = {}): BackendAccrualPolicy {
+  return {
+    id: 'ap-1',
+    leaveTypeId: 'lt-cl',
+    frequency: 'MONTHLY',
+    accrualAmount: 1.5,
+    annualAllocationLimit: null,
+    maxAccumulatedBalance: 12,
+    effectiveFrom: '2026-01-01',
+    effectiveTo: null,
+    isActive: true,
+    createdAt: '2026-01-01T00:00:00.000Z',
+    updatedAt: '2026-01-01T00:00:00.000Z',
+    leaveType: { id: 'lt-cl', code: 'CL', name: 'Casual Leave' },
+    ...overrides,
+  }
+}
+
+function backendCarryForwardPolicy(overrides: Partial<BackendCarryForwardPolicy> = {}): BackendCarryForwardPolicy {
+  return {
+    id: 'cf-1',
+    leaveTypeId: 'lt-el',
+    enabled: true,
+    maxCarryForwardDays: 10,
+    expiryMonths: null,
+    effectiveYear: 2026,
+    isActive: true,
+    createdAt: '2026-01-01T00:00:00.000Z',
+    updatedAt: '2026-01-01T00:00:00.000Z',
+    leaveType: { id: 'lt-el', code: 'EL', name: 'Earned Leave' },
     ...overrides,
   }
 }
@@ -512,6 +552,52 @@ describe('leave endpoints', () => {
     expect(history.items[0].id).toBe('lv-1')
   })
 
+  it('posts, patches and deletes leave types on the documented paths', async () => {
+    const calls = stubFetch((request) => {
+      const path = new URL(request.url).pathname
+      if (request.method === 'DELETE') return jsonResponse(200, envelope(null))
+      return jsonResponse(
+        200,
+        envelope(
+          backendLeaveType({
+            id: path.includes('lt-new') || path.endsWith('/leave-types') ? 'lt-new' : 'lt-cl',
+            code: 'PL',
+            name: 'Privilege Leave',
+          }),
+        ),
+      )
+    })
+    const store = makeStore()
+    await store
+      .dispatch(
+        leaveApi.endpoints.createLeaveType.initiate({
+          code: 'PL',
+          name: 'Privilege Leave',
+          isPaid: true,
+          maxAllowedDays: 5,
+        }),
+      )
+      .unwrap()
+    await store
+      .dispatch(
+        leaveApi.endpoints.updateLeaveType.initiate({
+          id: 'lt-new',
+          body: { name: 'Privilege Leave', isActive: false },
+        }),
+      )
+      .unwrap()
+    await store.dispatch(leaveApi.endpoints.deleteLeaveType.initiate('lt-new')).unwrap()
+
+    const sent = await Promise.all(calls.map(async (call) => ({ method: call.method, path: new URL(call.url).pathname, body: await call.text() })))
+    expect(sent.map((call) => `${call.method} ${call.path.replace(/^.*\/leave-types/, '/leave-types')}`)).toEqual([
+      'POST /leave-types',
+      'PATCH /leave-types/lt-new',
+      'DELETE /leave-types/lt-new',
+    ])
+    expect(JSON.parse(sent[0].body)).toEqual({ code: 'PL', name: 'Privilege Leave', isPaid: true, maxAllowedDays: 5 })
+    expect(JSON.parse(sent[1].body)).toEqual({ name: 'Privilege Leave', isActive: false })
+  })
+
   it('posts apply, review and cancel bodies to the documented endpoints', async () => {
     const calls = stubFetch(() => jsonResponse(201, envelope(backendLeave())))
     const store = makeStore()
@@ -533,6 +619,61 @@ describe('leave endpoints', () => {
     expect(JSON.parse(sent[1].body)).toEqual({ note: 'ok' })
     expect(JSON.parse(sent[2].body)).toEqual({})
     expect(JSON.parse(sent[3].body)).toEqual({ reason: 'Plans changed' })
+  })
+
+  it('posts accrual and carry-forward policy creates', async () => {
+    const calls = stubFetch((request) => {
+      const path = new URL(request.url).pathname
+      if (path.endsWith('/leave-policies/accrual') && request.method === 'POST') {
+        return jsonResponse(201, envelope(backendAccrualPolicy()))
+      }
+      if (path.endsWith('/leave-policies/carry-forward') && request.method === 'POST') {
+        return jsonResponse(201, envelope(backendCarryForwardPolicy()))
+      }
+      return jsonResponse(404, envelope(null))
+    })
+    const store = makeStore()
+    await store
+      .dispatch(
+        leaveApi.endpoints.createAccrualPolicy.initiate({
+          leaveTypeId: 'lt-cl',
+          frequency: 'MONTHLY',
+          accrualAmount: 1.5,
+          effectiveFrom: '2026-01-01',
+          isActive: true,
+        }),
+      )
+      .unwrap()
+    await store
+      .dispatch(
+        leaveApi.endpoints.createCarryForwardPolicy.initiate({
+          leaveTypeId: 'lt-el',
+          enabled: true,
+          maxCarryForwardDays: 10,
+          effectiveYear: 2026,
+          isActive: true,
+        }),
+      )
+      .unwrap()
+    const sent = await Promise.all(
+      calls.map(async (call) => ({
+        method: call.method,
+        path: new URL(call.url).pathname,
+        body: await call.text(),
+      })),
+    )
+    expect(sent.map((call) => `${call.method} ${call.path.replace(/^.*\/leave-policies/, '/leave-policies')}`)).toEqual([
+      'POST /leave-policies/accrual',
+      'POST /leave-policies/carry-forward',
+    ])
+    expect(JSON.parse(sent[0].body)).toEqual({
+      leaveTypeId: 'lt-cl',
+      frequency: 'MONTHLY',
+      accrualAmount: 1.5,
+      effectiveFrom: '2026-01-01',
+      isActive: true,
+    })
+    expect(JSON.parse(sent[1].body)).toMatchObject({ leaveTypeId: 'lt-el', maxCarryForwardDays: 10, effectiveYear: 2026 })
   })
 
   it('posts balance adjustments and policy runs', async () => {

@@ -27,9 +27,6 @@ export function RegularizationPage() {
       <ToastBanner message={message} />
       <div>
         <h1 className="text-2xl font-bold tracking-tight text-navy">Attendance Regularization</h1>
-        <p className="mt-1 text-sm text-text-secondary">
-          Submit and list regularizations from the attendance API (not mock data).
-        </p>
       </div>
 
       {!page.canRegularize ? (
@@ -48,6 +45,8 @@ export function RegularizationPage() {
           showEmployeeIdField={!page.isEmployeeWorkspace}
           defaultEmployeeId=""
           disabled={!page.canRegularize || page.isCreating}
+          isEmployeeWorkspace={page.isEmployeeWorkspace}
+          linkedEmployeeId={page.linkedEmployeeId}
           onSubmit={handleCreate}
         />
 

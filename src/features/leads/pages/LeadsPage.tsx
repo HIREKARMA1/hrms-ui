@@ -1,10 +1,12 @@
 /**
- * Leads Management — Admin, Super Admin, HR (Manager), and Employee panels.
+ * Leads Management — Admin, Super Admin, Manager, and Employee panels.
  */
 
 import { useMemo, useState } from 'react'
 
+import { useAuthenticatedUser } from '@/features/auth/hooks/useAuthenticatedUser'
 import {
+  isEmployeeExperience,
   isHrAdminExperience,
   isManagerExperience,
   isSuperAdminExperience,
@@ -13,6 +15,7 @@ import {
 import { useRbacSession } from '@/features/rbac/hooks/useRbacSession'
 
 import { LeadsDuplicatesTab } from '../components/duplicates/LeadsDuplicatesTab'
+import { LeadDeleteConfirmDialog } from '../components/LeadDeleteConfirmDialog'
 import { LeadDetailDialog } from '../components/LeadDetailDialog'
 import { LeadFormDialog } from '../components/LeadFormDialog'
 import { AllLeadsTab } from '../components/list/AllLeadsTab'
@@ -20,7 +23,6 @@ import { ScopedLeadsListTab } from '../components/list/ScopedLeadsListTab'
 import { LeadsOverviewTab } from '../components/overview/LeadsOverviewTab'
 import { LeadsPageHeader } from '../components/LeadsPageHeader'
 import { LeadsPipelineTab } from '../components/pipeline/LeadsPipelineTab'
-import { DEMO_ACTOR_BY_ROLE } from '../constants/leadsDemoActor'
 import { LeadsProvider } from '../context/LeadsProvider'
 import { useLeads } from '../hooks/useLeads'
 import { useLeadsRoute } from '../hooks/useLeadsRoute'
@@ -30,6 +32,7 @@ import { visibleLeadsForRole } from '../utils/visibleLeadsForRole'
 
 function LeadsPagePanels() {
   const session = useRbacSession()
+  const { user } = useAuthenticatedUser()
   const role = (session.roleCode ?? 'HR_ADMIN') as UserRole
   const { activeTab, goToTab } = useLeadsRoute(role)
   const { loading, error, reload, leads, selectedLeadId, setSelectedLeadId, deleteLead } = useLeads()
@@ -37,15 +40,21 @@ function LeadsPagePanels() {
     canEditLead,
     canDeleteLeads,
     canCreateLeads,
+    canAssignLeads,
+    actorId,
   } = useLeadsScope(role, 'org')
   const [formState, setFormState] = useState<{
     open: boolean
     mode: 'create' | 'edit'
     lead: Lead | null
   }>({ open: false, mode: 'create', lead: null })
+  const [deleteTarget, setDeleteTarget] = useState<Lead | null>(null)
+  const [deleting, setDeleting] = useState(false)
 
-  const actorId = DEMO_ACTOR_BY_ROLE[role]
-  const visibleLeads = useMemo(() => visibleLeadsForRole(leads, role), [leads, role])
+  const visibleLeads = useMemo(
+    () => visibleLeadsForRole(leads, role, user?.employeeId ?? actorId),
+    [leads, role, user?.employeeId, actorId],
+  )
 
   const selectedLead = visibleLeads.find((item) => item.id === selectedLeadId) ?? null
 
@@ -67,15 +76,17 @@ function LeadsPagePanels() {
     setFormState({ open: true, mode: 'edit', lead })
   }
 
-  async function handleDelete() {
+  function requestDeleteFromDetail() {
     if (!selectedLead || !canDeleteLeads) return
-    if (!window.confirm(`Delete lead ${selectedLead.id}?`)) return
-    await deleteLead(selectedLead.id)
-    setSelectedLeadId(null)
+    setDeleteTarget(selectedLead)
   }
 
   const showAdminPanels = isHrAdminExperience(role) || isSuperAdminExperience(role)
   const showManagerPanels = isManagerExperience(role)
+  const defaultAssignee =
+    isManagerExperience(role) || isEmployeeExperience(role)
+      ? user?.employeeId ?? (actorId || undefined)
+      : undefined
 
   return (
     <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-4">
@@ -112,6 +123,7 @@ function LeadsPagePanels() {
             onOpenEdit={openEdit}
             canEditLead={canEditLead}
             canDeleteLeads={canDeleteLeads}
+            canAssignLeads={canAssignLeads}
           />
         ) : null}
         {activeTab === 'My Leads' ? (
@@ -140,7 +152,8 @@ function LeadsPagePanels() {
             onOpenEdit={openEdit}
           />
         ) : null}
-        {activeTab === 'Pipeline' && (showAdminPanels || showManagerPanels) ? (
+        {activeTab === 'Pipeline' &&
+        (showAdminPanels || showManagerPanels || isEmployeeExperience(role)) ? (
           <LeadsPipelineTab role={role} onOpenEdit={openEdit} />
         ) : null}
         {activeTab === 'Duplicates' && showAdminPanels ? <LeadsDuplicatesTab /> : null}
@@ -154,8 +167,11 @@ function LeadsPagePanels() {
           onOpenChange={(open) => setFormState((state) => ({ ...state, open }))}
           mode={formState.mode}
           initial={formState.lead}
-          defaultAssigneeId={isManagerExperience(role) ? actorId : undefined}
-          onSaved={(saved) => setSelectedLeadId(saved.id)}
+          defaultAssigneeId={defaultAssignee}
+          onSaved={(saved) => {
+            // After create, stay on the list — do not open detail/edit.
+            if (formState.mode === 'edit') setSelectedLeadId(saved.id)
+          }}
         />
       ) : null}
       <LeadDetailDialog
@@ -165,9 +181,28 @@ function LeadsPagePanels() {
           if (!open) setSelectedLeadId(null)
         }}
         onEdit={() => selectedLead && openEdit(selectedLead)}
-        onDelete={() => void handleDelete()}
+        onDelete={requestDeleteFromDetail}
         canEdit={canEditLead}
         canDelete={canDeleteLeads}
+      />
+      <LeadDeleteConfirmDialog
+        lead={deleteTarget}
+        open={Boolean(deleteTarget)}
+        loading={deleting}
+        onOpenChange={(open) => {
+          if (!open && !deleting) setDeleteTarget(null)
+        }}
+        onConfirm={async () => {
+          if (!deleteTarget || !canDeleteLeads) return
+          setDeleting(true)
+          try {
+            await deleteLead(deleteTarget.id)
+            if (selectedLeadId === deleteTarget.id) setSelectedLeadId(null)
+            setDeleteTarget(null)
+          } finally {
+            setDeleting(false)
+          }
+        }}
       />
     </div>
   )

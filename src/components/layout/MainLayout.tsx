@@ -23,7 +23,7 @@ function MainLayoutShell() {
       <Sidebar />
       <div className="flex min-h-svh flex-col lg:pl-[var(--app-sidebar-width)]">
         <Header />
-        <main className="flex-1 overflow-x-hidden p-4 sm:p-6">
+        <main className="flex-1 overflow-x-hidden bg-app-bg p-4 sm:p-6 lg:p-8">
           <Outlet />
         </main>
       </div>

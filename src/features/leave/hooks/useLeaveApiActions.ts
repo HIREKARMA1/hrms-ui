@@ -8,20 +8,31 @@
 import { useMemo } from 'react'
 
 import {
-  MULTI_LEVEL_WORKFLOW_MESSAGE,
   getLeaveErrorMessage,
   useAdjustLeaveBalanceMutation,
   useApplyLeaveMutation,
   useApproveEncashmentMutation,
   useApproveLeaveMutation,
+  useCancelEncashmentMutation,
   useCancelLeaveMutation,
+  useCreateEncashmentMutation,
   useExpireCarryForwardMutation,
   useRejectEncashmentMutation,
   useRejectLeaveMutation,
   useRunAccrualMutation,
   useRunCarryForwardMutation,
 } from '../api/leaveApi'
-import type { AdjustLeaveBalanceBody, ExpireCarryForwardBody, RunAccrualBody, RunCarryForwardBody } from '../api/leaveApi.types'
+import {
+  useApproveWorkflowLeaveMutation,
+  useRejectWorkflowLeaveMutation,
+} from '../api/leaveApprovalApi'
+import type {
+  AdjustLeaveBalanceBody,
+  CreateEncashmentBody,
+  ExpireCarryForwardBody,
+  RunAccrualBody,
+  RunCarryForwardBody,
+} from '../api/leaveApi.types'
 import {
   buildApplyLeaveBody,
   describeAccrualRun,
@@ -60,12 +71,16 @@ export function useLeaveApiActions() {
   const [approveLeave] = useApproveLeaveMutation()
   const [rejectLeave] = useRejectLeaveMutation()
   const [cancelLeave] = useCancelLeaveMutation()
+  const [createEncashment] = useCreateEncashmentMutation()
   const [approveEncashment] = useApproveEncashmentMutation()
   const [rejectEncashment] = useRejectEncashmentMutation()
+  const [cancelEncashment] = useCancelEncashmentMutation()
   const [adjustLeaveBalance] = useAdjustLeaveBalanceMutation()
   const [runAccrual] = useRunAccrualMutation()
   const [runCarryForward] = useRunCarryForwardMutation()
   const [expireCarryForward] = useExpireCarryForwardMutation()
+  const [approveWorkflowLeave] = useApproveWorkflowLeaveMutation()
+  const [rejectWorkflowLeave] = useRejectWorkflowLeaveMutation()
 
   return useMemo(
     () => ({
@@ -75,11 +90,21 @@ export function useLeaveApiActions() {
         return toLeaveActionResult(applyLeave(built.body).unwrap(), 'Could not submit the leave request.')
       },
       async approve(request: LeaveRequest, note?: string): Promise<LeaveActionResult> {
-        if (request.multiLevelWorkflow) return { ok: false, message: MULTI_LEVEL_WORKFLOW_MESSAGE }
+        if (request.multiLevelWorkflow) {
+          return toLeaveActionResult(
+            approveWorkflowLeave({ leaveRequestId: request.id, note }).unwrap(),
+            'Could not approve the request.',
+          )
+        }
         return toLeaveActionResult(approveLeave({ id: request.id, note }).unwrap(), 'Could not approve the request.')
       },
       async reject(request: LeaveRequest, note?: string): Promise<LeaveActionResult> {
-        if (request.multiLevelWorkflow) return { ok: false, message: MULTI_LEVEL_WORKFLOW_MESSAGE }
+        if (request.multiLevelWorkflow) {
+          return toLeaveActionResult(
+            rejectWorkflowLeave({ leaveRequestId: request.id, note }).unwrap(),
+            'Could not reject the request.',
+          )
+        }
         return toLeaveActionResult(rejectLeave({ id: request.id, note }).unwrap(), 'Could not reject the request.')
       },
       async cancel(requestId: string, reason?: string): Promise<LeaveActionResult> {
@@ -90,6 +115,15 @@ export function useLeaveApiActions() {
       },
       async rejectEncashment(encashmentId: string): Promise<LeaveActionResult> {
         return toLeaveActionResult(rejectEncashment({ id: encashmentId }).unwrap(), 'Could not reject the encashment.')
+      },
+      async createEncashment(body: CreateEncashmentBody): Promise<LeaveActionResult> {
+        return toLeaveActionResult(createEncashment(body).unwrap(), 'Could not submit the encashment request.')
+      },
+      async cancelEncashment(encashmentId: string, reason?: string): Promise<LeaveActionResult> {
+        return toLeaveActionResult(
+          cancelEncashment({ id: encashmentId, reason }).unwrap(),
+          'Could not cancel the encashment request.',
+        )
       },
       /** Resolves with the employee's entitled days for the year after the adjustment. */
       async adjustBalance(body: AdjustLeaveBalanceBody): Promise<LeaveActionResult & { entitledDays?: number }> {
@@ -119,10 +153,14 @@ export function useLeaveApiActions() {
       applyLeave,
       approveEncashment,
       approveLeave,
+      approveWorkflowLeave,
+      cancelEncashment,
       cancelLeave,
+      createEncashment,
       expireCarryForward,
       rejectEncashment,
       rejectLeave,
+      rejectWorkflowLeave,
       runAccrual,
       runCarryForward,
     ],

@@ -9,8 +9,16 @@ function resolveEmployeeId(item: ApiEmployeeLeavePolicyHrOverviewItem): string {
   return (item.employee?.id ?? item.employeeId ?? item.id ?? '').trim()
 }
 
+function resolveEmployeeCode(item: ApiEmployeeLeavePolicyHrOverviewItem): string {
+  return (item.employeeCode ?? item.employee?.employeeCode ?? item.employee?.code ?? '').trim()
+}
+
+/** Maps API `paidLeaveAvailable` / `sickLeaveAvailable` to org leave type codes. */
+const HR_OVERVIEW_PAID_LEAVE_CODE = 'EARNED'
+const HR_OVERVIEW_SICK_LEAVE_CODE = 'SICK'
+
 function resolveEmployeeName(item: ApiEmployeeLeavePolicyHrOverviewItem): string {
-  const direct = item.employeeName?.trim()
+  const direct = item.employeeName?.trim() || item.name?.trim()
   if (direct) return direct
   const employee = item.employee
   if (!employee) return item.employeeCode?.trim() || 'Unknown employee'
@@ -21,12 +29,22 @@ function resolveEmployeeName(item: ApiEmployeeLeavePolicyHrOverviewItem): string
   return employee.employeeCode?.trim() || employee.code?.trim() || 'Unknown employee'
 }
 
+function departmentLabel(value: unknown): string {
+  if (typeof value === 'string') return value.trim()
+  if (value && typeof value === 'object') {
+    const record = value as Record<string, unknown>
+    const name = record.name ?? record.title ?? record.departmentName
+    if (typeof name === 'string') return name.trim()
+  }
+  return ''
+}
+
 function resolveDepartment(item: ApiEmployeeLeavePolicyHrOverviewItem): string {
   const dept =
-    item.departmentName?.trim() ||
-    item.department?.trim() ||
-    item.employee?.departmentName?.trim() ||
-    item.employee?.department?.trim()
+    departmentLabel(item.departmentName) ||
+    departmentLabel(item.department) ||
+    departmentLabel(item.employee?.departmentName) ||
+    departmentLabel(item.employee?.department)
   return dept || '—'
 }
 
@@ -58,6 +76,17 @@ function balancesFromRecord(record: Record<string, number> | undefined): Record<
   return out
 }
 
+function balancesFromSummaryFields(item: ApiEmployeeLeavePolicyHrOverviewItem): Record<string, number> {
+  const out: Record<string, number> = {}
+  if (typeof item.paidLeaveAvailable === 'number' && Number.isFinite(item.paidLeaveAvailable)) {
+    out[HR_OVERVIEW_PAID_LEAVE_CODE] = item.paidLeaveAvailable
+  }
+  if (typeof item.sickLeaveAvailable === 'number' && Number.isFinite(item.sickLeaveAvailable)) {
+    out[HR_OVERVIEW_SICK_LEAVE_CODE] = item.sickLeaveAvailable
+  }
+  return out
+}
+
 function balancesFromItem(item: ApiEmployeeLeavePolicyHrOverviewItem): Record<string, number> {
   const fromRecord = balancesFromRecord(item.balanceByType)
   if (Object.keys(fromRecord).length > 0) return fromRecord
@@ -69,7 +98,9 @@ function balancesFromItem(item: ApiEmployeeLeavePolicyHrOverviewItem): Record<st
     if (!code) continue
     out[code] = availableFromBalanceRow(row)
   }
-  return out
+  if (Object.keys(out).length > 0) return out
+
+  return balancesFromSummaryFields(item)
 }
 
 export function mapApiHrOverviewItemToTableRow(
@@ -77,9 +108,11 @@ export function mapApiHrOverviewItemToTableRow(
 ): HrOverviewBalanceTableRow | null {
   const employeeId = resolveEmployeeId(item)
   if (!employeeId) return null
+  const employeeCode = resolveEmployeeCode(item)
   return {
     employeeId,
     employeeName: resolveEmployeeName(item),
+    employeeCode: employeeCode || undefined,
     departmentName: resolveDepartment(item),
     balancesByCode: balancesFromItem(item),
   }
@@ -102,4 +135,29 @@ export function collectHrOverviewBalanceTypeCodes(rows: HrOverviewBalanceTableRo
     }
   }
   return [...set].sort((a, b) => a.localeCompare(b))
+}
+
+function normalizeLeaveTypeCode(code: string | undefined): string {
+  return (code ?? '').trim().toUpperCase()
+}
+
+/** Active org leave types plus any extra codes present on hr-overview rows. */
+export function resolveHrOverviewBalanceTypeCodes(
+  rows: HrOverviewBalanceTableRow[],
+  orgLeaveTypes?: { code: string; isActive?: boolean }[],
+): string[] {
+  if (!hrOverviewRowsHaveBalanceValues(rows)) {
+    return []
+  }
+  const set = new Set(collectHrOverviewBalanceTypeCodes(rows))
+  for (const type of orgLeaveTypes ?? []) {
+    if (type.isActive === false) continue
+    const code = normalizeLeaveTypeCode(type.code)
+    if (code) set.add(code)
+  }
+  return [...set].sort((a, b) => a.localeCompare(b))
+}
+
+export function hrOverviewRowsHaveBalanceValues(rows: HrOverviewBalanceTableRow[]): boolean {
+  return rows.some((row) => Object.keys(row.balancesByCode).length > 0)
 }

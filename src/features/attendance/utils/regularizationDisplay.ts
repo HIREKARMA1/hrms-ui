@@ -1,13 +1,64 @@
 /**
  * Display helpers for attendance regularization list rows.
  */
-import type { AttendanceRegularizationType } from '../constants/attendanceApiAccess'
-import { REGULARIZATION_TYPE_OPTIONS } from '../constants/regularizationUi'
+
+import type { AttendanceRegularizationRecord } from '../types/api/attendanceRegularization.types'
+
+export function formatRegularizationEmployeePrimary(
+  record: Pick<
+    AttendanceRegularizationRecord,
+    'employeeName' | 'employeeCode' | 'employeeId'
+  >,
+): string {
+  const name = record.employeeName?.trim()
+  if (name) return name
+  const code = record.employeeCode?.trim()
+  if (code) return code
+  const id = record.employeeId?.trim()
+  if (id) return id
+  return 'Employee'
+}
+
+export function formatRegularizationEmployeeSecondary(
+  record: Pick<
+    AttendanceRegularizationRecord,
+    'employeeName' | 'employeeCode' | 'employeeId'
+  >,
+): string | null {
+  const code = record.employeeCode?.trim()
+  const id = record.employeeId?.trim()
+  const hasName = Boolean(record.employeeName?.trim())
+  const parts: string[] = []
+
+  if (hasName) {
+    if (code) parts.push(code)
+    if (id && id !== code) parts.push(id)
+  } else if (code) {
+    if (id && id !== code) parts.push(id)
+  } else if (id) {
+    parts.push(id)
+  }
+
+  if (parts.length === 0) return null
+
+  const line = parts.join(' · ')
+  const primary = formatRegularizationEmployeePrimary(record)
+  if (line === primary) return null
+  return line
+}
+
+export function formatRegularizationTypeLabel(type: string): string {
+  const trimmed = type.trim()
+  if (!trimmed) return ''
+  return trimmed
+    .replace(/_/g, ' ')
+    .toLowerCase()
+    .replace(/\b\w/g, (char) => char.toUpperCase())
+}
 
 export function formatRegularizationType(type?: string | null): string {
   if (!type) return '—'
-  const match = REGULARIZATION_TYPE_OPTIONS.find((option) => option.value === type)
-  return match?.label ?? type.replace(/_/g, ' ')
+  return formatRegularizationTypeLabel(type) || type
 }
 
 export function formatRegularizationDates(dates: string[]): string {
@@ -32,6 +83,4 @@ export function regularizationStatusLabel(revokedAt?: string | null): string {
   return revokedAt ? 'Revoked' : 'Active'
 }
 
-export function isAttendanceRegularizationType(value: string): value is AttendanceRegularizationType {
-  return value === 'LATE_ARRIVAL' || value === 'TEA_BREAK_EXCEEDED'
-}
+export { isAttendanceRegularizationPostType as isAttendanceRegularizationType } from '../constants/attendanceRegularizationPostTypes'

@@ -12,4 +12,4 @@ export const ATTENDANCE_REPORT_MAX_RANGE_DAYS = 31
 
 export type AttendanceReportSource = 'auto' | 'live' | 'stored'
 
-export type AttendanceRegularizationType = 'LATE_ARRIVAL' | 'TEA_BREAK_EXCEEDED'
+export type { AttendanceRegularizationPostType as AttendanceRegularizationType } from './attendanceRegularizationPostTypes'

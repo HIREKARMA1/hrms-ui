@@ -41,12 +41,12 @@ export function WorkspaceSwitcher() {
   }
 
   return (
-    <DropdownMenu>
+    <DropdownMenu modal={false}>
       <DropdownMenuTrigger asChild>
         <button
           type="button"
           aria-label="Switch workspace"
-          className="flex h-10 shrink-0 items-center gap-2 rounded-xl border border-slate-200 bg-white px-2.5 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:outline-none sm:px-3"
+          className="flex h-10 shrink-0 items-center gap-2 rounded-xl border border-border-soft bg-white px-2.5 text-sm font-medium text-navy transition-colors hover:bg-muted-bg focus-visible:ring-2 focus-visible:ring-teal-light focus-visible:outline-none sm:px-3"
         >
           <ArrowLeftRight className="h-4 w-4 text-slate-500" aria-hidden />
           <span className="hidden sm:inline">{current?.label ?? 'Workspace'}</span>

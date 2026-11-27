@@ -3,7 +3,6 @@ import { useMemo } from 'react'
 
 import { useLeads } from '../../hooks/useLeads'
 import { collectLeadDuplicatePairs } from '../../utils/leadDuplicatePairs'
-import { LeadsMockBanner } from '../LeadsMockBanner'
 import { LeadsOverviewCard } from '../overview/LeadsOverviewCard'
 import { LeadsDuplicatePairCard } from './LeadsDuplicatePairCard'
 
@@ -19,7 +18,6 @@ export function LeadsDuplicatesTab() {
 
   return (
     <div className="space-y-2">
-      <LeadsMockBanner />
       <LeadsOverviewCard
         title="Duplicate review"
         subtitle="Matches when email, phone, or company name align. Compare and open each record to merge or close in your process."
@@ -50,8 +48,7 @@ export function LeadsDuplicatesTab() {
           )}
           <p className="flex items-start gap-2 border-t border-hrms-border/60 pt-3 text-xs text-hrms-text-muted">
             <Copy className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
-            Merge and dedupe workflows will connect when the CRM API is available. Until then, edit or delete the
-            extra lead manually.
+            Review matching leads and edit or delete duplicates as needed.
           </p>
         </div>
       </LeadsOverviewCard>

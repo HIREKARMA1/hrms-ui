@@ -173,7 +173,7 @@ export function PermissionGroupList({
                     }))
                   }
                 >
-                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#F0EDFF] text-brand-500">
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#CCFBF1] text-brand-500">
                     <Icon className="h-4 w-4" strokeWidth={1.9} />
                   </span>
                   <span className="min-w-0 flex-1 truncate text-sm font-semibold text-navy">

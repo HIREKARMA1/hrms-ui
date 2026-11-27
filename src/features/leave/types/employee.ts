@@ -9,6 +9,8 @@ export type EmployeeGender = 'Female' | 'Male' | 'Other'
 
 export type LeaveEmployee = {
   id: string
+  /** Employee code (e.g. HK0030) when sourced from directory. */
+  employeeCode?: string
   name: string
   department: string
   gender: EmployeeGender

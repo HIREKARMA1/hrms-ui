@@ -23,12 +23,6 @@ function recruitmentChildren(prefix: string): RoleNavItem['children'] {
       path: `${prefix}/recruitment/jobs`,
       feature: 'recruitment.jobs',
     },
-  // Job Descriptions UI hidden — page kept in codebase for later phases
-  // {
-  //   title: 'Job Descriptions',
-  //   path: `${prefix}/recruitment/job-descriptions`,
-  //   feature: 'recruitment.jobDescriptions',
-  // },
     { title: 'Candidates & applications', path: `${prefix}/recruitment`, isSectionLabel: true },
     {
       title: 'Candidates',
@@ -61,6 +55,22 @@ function recruitmentChildren(prefix: string): RoleNavItem['children'] {
       title: 'Recruitment Analytics',
       path: `${prefix}/recruitment/analytics`,
       feature: 'recruitment.analytics',
+    },
+  ]
+}
+
+/** Manager / Employee: browse and apply only. */
+function internalJobsNavChildren(prefix: string): RoleNavItem['children'] {
+  return [
+    {
+      title: 'Open jobs',
+      path: `${prefix}/recruitment/jobs`,
+      feature: 'recruitment.jobs',
+    },
+    {
+      title: 'My applications',
+      path: `${prefix}/recruitment/applications`,
+      feature: 'recruitment.jobs',
     },
   ]
 }
@@ -102,11 +112,11 @@ function attendanceChildren(prefix: string): RoleNavItem['children'] {
       path: `${prefix}/attendance/weekly-off`,
       feature: 'attendance.weeklyOff',
     },
-    {
-      title: 'Holiday Management',
-      path: `${prefix}/attendance/holidays`,
-      feature: 'attendance.holidays',
-    },
+    // {
+    //   title: 'Holiday Management',
+    //   path: `${prefix}/attendance/holidays`,
+    //   feature: 'attendance.holidays',
+    // },
     {
       title: 'Attendance Reports',
       path: `${prefix}/attendance/reports`,
@@ -178,12 +188,12 @@ const superAdminNav: RoleNavItem[] = [
     iconName: 'Building2',
     feature: 'employee.organization.view',
   },
-  {
-    title: 'Designations',
-    path: '/superadmin/designations',
-    iconName: 'BadgeCheck',
-    feature: 'employee.organization.view',
-  },
+  // {
+  //   title: 'Designations',
+  //   path: '/superadmin/designations',
+  //   iconName: 'BadgeCheck',
+  //   feature: 'employee.organization.view',
+  // },
   {
     title: 'Employee Documents',
     path: '/superadmin/documents',
@@ -235,11 +245,11 @@ const superAdminNav: RoleNavItem[] = [
     path: '/superadmin/performance',
     iconName: 'Target',
   },
-  {
-    title: 'Reports & Analytics',
-    path: '/superadmin/reports',
-    iconName: 'BarChart3',
-  },
+  // {
+  //   title: 'Reports & Analytics',
+  //   path: '/superadmin/reports',
+  //   iconName: 'BarChart3',
+  // },
   {
     title: 'Audit Logs',
     path: '/superadmin/audit-logs',
@@ -301,11 +311,18 @@ const hrAdminNav: RoleNavItem[] = [
     iconName: 'Building2',
     feature: 'employee.organization.view',
   },
+  // {
+  //   title: 'Designations',
+  //   path: '/hradmin/designations',
+  //   iconName: 'BadgeCheck',
+  //   feature: 'employee.organization.view',
+  // },
   {
-    title: 'Designations',
-    path: '/hradmin/designations',
-    iconName: 'BadgeCheck',
-    feature: 'employee.organization.view',
+    title: 'Recruitment & ATS',
+    path: '/hradmin/recruitment',
+    iconName: 'Briefcase',
+    feature: 'recruitment.overview',
+    children: recruitmentChildren('/hradmin'),
   },
   {
     title: 'Employee Documents',
@@ -351,11 +368,11 @@ const hrAdminNav: RoleNavItem[] = [
     path: '/hradmin/performance',
     iconName: 'Target',
   },
-  {
-    title: 'Reports & Analytics',
-    path: '/hradmin/reports',
-    iconName: 'BarChart3',
-  },
+  // {
+  //   title: 'Reports & Analytics',
+  //   path: '/hradmin/reports',
+  //   iconName: 'BarChart3',
+  // },
   {
     title: 'Organization Settings',
     path: '/hradmin/organization-settings',
@@ -439,11 +456,11 @@ const managerNav: RoleNavItem[] = [
     feature: 'support.adminRequests',
   },
   {
-    title: 'Recruitment & ATS',
-    path: '/manager/recruitment',
+    title: 'Internal Jobs',
+    path: '/manager/recruitment/jobs',
     iconName: 'Briefcase',
-    feature: 'recruitment.overview',
-    children: recruitmentChildren('/manager'),
+    feature: 'recruitment.jobs',
+    children: internalJobsNavChildren('/manager'),
   },
   {
     title: 'Leads Management',
@@ -514,6 +531,13 @@ const employeeNav: RoleNavItem[] = [
     iconName: 'Megaphone',
     feature: 'leads.my',
     children: employeeLeadsNavChildren(),
+  },
+  {
+    title: 'Internal Jobs',
+    path: '/employee/recruitment/jobs',
+    iconName: 'Briefcase',
+    feature: 'recruitment.jobs',
+    children: internalJobsNavChildren('/employee'),
   },
   {
     title: 'My Documents',

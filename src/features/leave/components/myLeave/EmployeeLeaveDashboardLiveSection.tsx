@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils'
 import { getApiErrorMessage } from '@/services/api/errors'
 
 import { useGetEmployeeLeavePolicyDashboardQuery } from '../../api/employeeLeavePoliciesApi'
+import { formatDashboardSummaryLabel } from '../../utils/formatLeaveBalanceDisplay'
 import { mapApiEmployeeLeavePolicyDashboard } from '../../utils/mapApiEmployeeLeavePolicyDashboard'
 import { LeaveTypeChip } from '../LeaveTypeChip'
 import { LEAVE_TABLE_ROW, LEAVE_TABLE_THEAD } from '../shared/leaveUi'
@@ -54,10 +55,6 @@ export function EmployeeLeaveDashboardLiveSection({
     <Card>
       <CardHeader className="border-b border-hrms-border pb-3">
         <CardTitle className="text-base font-semibold text-hrms-navy">Leave dashboard (live)</CardTitle>
-        <p className="text-xs font-normal text-hrms-text-muted">
-          Server dashboard for {view?.year ?? year}. Balance cards below still use GET /leaves/balance until a later
-          consolidation.
-        </p>
       </CardHeader>
       <CardContent className="space-y-4 p-4 text-sm">
         {errorMessage ? (
@@ -76,7 +73,7 @@ export function EmployeeLeaveDashboardLiveSection({
           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
             {view.summaryCards.map((card) => (
               <div key={card.id} className="rounded-xl bg-hrms-muted-bg px-3 py-2 text-center text-xs">
-                <p className="font-semibold text-hrms-navy">{card.label}</p>
+                <p className="font-semibold text-hrms-navy">{formatDashboardSummaryLabel(card.label)}</p>
                 <p className="mt-1 tabular-nums text-hrms-text-secondary">{card.value}</p>
               </div>
             ))}

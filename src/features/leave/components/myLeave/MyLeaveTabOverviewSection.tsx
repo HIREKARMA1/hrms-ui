@@ -18,6 +18,7 @@ type MyLeaveTabOverviewSectionProps = {
   cards: BalanceCardModel[]
   requests: LeaveRequest[]
   compOffLots: CompOffLot[]
+  statsLoading?: boolean
 }
 
 export function MyLeaveTabOverviewSection({
@@ -26,6 +27,7 @@ export function MyLeaveTabOverviewSection({
   cards,
   requests,
   compOffLots,
+  statsLoading = false,
 }: MyLeaveTabOverviewSectionProps) {
   if (isEmployeeExperience(viewer.role)) {
     return (
@@ -34,6 +36,8 @@ export function MyLeaveTabOverviewSection({
         requests={requests}
         compOffLots={compOffLots}
         employeeId={viewer.employeeId}
+        apiMode={Boolean(snapshot.api)}
+        loading={statsLoading}
       />
     )
   }

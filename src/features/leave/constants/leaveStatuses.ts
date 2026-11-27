@@ -23,6 +23,8 @@ export const leaveStatusPillClasses: Record<string, string> = {
   Accrual: 'bg-hrms-info/10 text-hrms-navy',
   Adjustment: 'bg-hrms-lavender text-hrms-primary',
   Consumption: 'bg-hrms-warning/10 text-hrms-navy',
+  Active: 'bg-hrms-success/10 text-hrms-navy',
+  Inactive: 'bg-hrms-muted-bg text-hrms-text-muted',
 }
 
 export const leaveStatusPillDotClasses: Record<string, string> = {
@@ -36,4 +38,6 @@ export const leaveStatusPillDotClasses: Record<string, string> = {
   'Pending approval': 'bg-hrms-warning',
   'Pending payout': 'bg-hrms-warning',
   'Paid via payroll': 'bg-hrms-success',
+  Active: 'bg-hrms-success',
+  Inactive: 'bg-hrms-text-muted',
 }
