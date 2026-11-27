@@ -3,8 +3,6 @@
  */
 
 import {
-  ArrowDownRight,
-  ArrowUpRight,
   CalendarDays,
   Hourglass,
   UserCheck,
@@ -13,10 +11,10 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 
-import { Card, CardContent } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 
 import type { DashboardStat, DashboardStatIcon } from '../types/dashboard'
+import { DASH_CARD } from './shared/dashboardUi'
 
 const iconMap: Record<DashboardStatIcon, LucideIcon> = {
   users: Users,
@@ -38,8 +36,8 @@ export function DashboardStatsGrid({ stats }: DashboardStatsGridProps) {
       {stats.map((stat) => {
         const Icon = iconMap[stat.icon]
         return (
-          <Card key={stat.id}>
-            <CardContent className="flex items-start justify-between gap-3 p-5">
+          <div key={stat.id} className={cn(DASH_CARD, 'p-5')}>
+            <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <p className="text-sm font-medium text-slate-500">{stat.label}</p>
                 <p className="mt-2 text-3xl font-bold tracking-tight text-slate-900">{stat.value}</p>
@@ -69,8 +67,8 @@ export function DashboardStatsGrid({ stats }: DashboardStatsGridProps) {
               >
                 <Icon className="h-5 w-5" />
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         )
       })}
     </div>

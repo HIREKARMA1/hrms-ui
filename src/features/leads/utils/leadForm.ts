@@ -16,7 +16,12 @@ export function leadToInput(lead: Lead): LeadInput {
     categoryId: lead.categoryId,
     priority: lead.priority,
     status: lead.status,
-    estimatedValue: lead.estimatedValue,
+    estimatedValue: (() => {
+      if (!lead.estimatedValue?.trim()) return null
+      const value = Number.parseFloat(lead.estimatedValue)
+      if (!Number.isFinite(value) || value < 0) return null
+      return String(Math.trunc(value))
+    })(),
     attachmentUrl: lead.attachmentUrl,
     assignedEmployeeId: lead.assignedEmployeeId,
     assignedEmployeeName: lead.assignedEmployeeName,

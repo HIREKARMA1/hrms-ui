@@ -1,19 +1,16 @@
 import { useMemo } from 'react'
 import { CalendarClock } from 'lucide-react'
 
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
 import { useGetCalendarWidgetUpcomingQuery } from '@/features/officeCalendar/api/calendarApi'
 import { useShouldFetchCalendarEvents } from '@/features/officeCalendar/hooks/useShouldFetchCalendarEvents'
 import { formatOfficeDate } from '@/features/officeCalendar/utils/formatOfficeCalendarDate'
 import { mapApiCalendarEventsListToOfficeEvents } from '@/features/officeCalendar/utils/mapApiCalendarEventToOfficeEvent'
+import { getApiErrorMessage } from '@/services/api/errors'
 
-import { upcomingEvents as mockUpcomingEvents } from '../utils/sampleData'
+import {
+  DashboardChartCard,
+  DashboardEmptyState,
+} from './shared'
 
 function formatEventTime(startTime?: string, allDay?: boolean): string {
   if (allDay) return 'All day'
@@ -21,75 +18,71 @@ function formatEventTime(startTime?: string, allDay?: boolean): string {
   return startTime.slice(0, 5)
 }
 
+/** Live calendar widget events only — no mock fallback metrics. */
 export function UpcomingEvents() {
   const shouldFetch = useShouldFetchCalendarEvents()
-  const { data, isFetching, isError } = useGetCalendarWidgetUpcomingQuery(
-    { days: 30, limit: 5 },
-    { skip: !shouldFetch },
-  )
+  const { data, isFetching, isError, error, isLoading } =
+    useGetCalendarWidgetUpcomingQuery({ days: 30, limit: 5 }, { skip: !shouldFetch })
 
   const rows = useMemo(() => {
-    if (!shouldFetch || isError) {
-      return mockUpcomingEvents.map((event) => ({
-        id: event.id,
-        title: event.title,
-        date: event.date,
-        time: event.time,
-      }))
-    }
-
+    if (!shouldFetch || isError) return []
     const live = mapApiCalendarEventsListToOfficeEvents(data?.items ?? [])
-    if (live.length === 0 && isFetching) {
-      return mockUpcomingEvents.map((event) => ({
-        id: event.id,
-        title: event.title,
-        date: event.date,
-        time: event.time,
-      }))
-    }
-
     return live.map((event) => ({
       id: event.id,
       title: event.title,
-      date: formatOfficeDate(event.startDate, { day: 'numeric', month: 'short', year: 'numeric' }),
+      date: formatOfficeDate(event.startDate, {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+      }),
       time: formatEventTime(event.startTime, event.allDay),
     }))
-  }, [data?.items, isError, isFetching, shouldFetch])
-
-  const description =
-    shouldFetch && !isError
-      ? 'From GET /calendar/widget/upcoming'
-      : 'Scheduled HR and team activities'
+  }, [data?.items, isError, shouldFetch])
 
   return (
-    <Card className="h-full">
-      <CardHeader>
-        <CardTitle>Upcoming Events</CardTitle>
-        <CardDescription>{description}</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-3">
-        {rows.length === 0 ? (
-          <p className="text-sm text-slate-500">No upcoming events in the next 30 days.</p>
-        ) : (
-          rows.map((event) => (
+    <DashboardChartCard
+      title="Upcoming Events"
+      description={
+        shouldFetch
+          ? 'From GET /calendar/widget/upcoming'
+          : 'Calendar access is not available for this session.'
+      }
+    >
+      {!shouldFetch ? (
+        <DashboardEmptyState
+          title="Calendar events unavailable"
+          description="Your account cannot fetch the calendar widget for this workspace."
+        />
+      ) : isError ? (
+        <DashboardEmptyState
+          title="Could not load upcoming events"
+          description={getApiErrorMessage(error, 'API error')}
+        />
+      ) : isLoading || (isFetching && rows.length === 0) ? (
+        <p className="text-sm text-[#667085]">Loading events…</p>
+      ) : rows.length === 0 ? (
+        <DashboardEmptyState title="No upcoming events in the next 30 days." />
+      ) : (
+        <div className="space-y-3">
+          {rows.map((event) => (
             <div
               key={event.id}
-              className="flex items-start gap-3 rounded-xl border border-slate-100 bg-slate-50/70 p-3"
+              className="flex items-start gap-3 rounded-xl border border-[#E2E6EF] bg-[#F7F8FC] p-3"
             >
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#CCFBF1] text-[#0F766E]">
                 <CalendarClock className="h-5 w-5" />
               </div>
               <div className="min-w-0">
-                <p className="font-semibold text-slate-900">{event.title}</p>
-                <p className="mt-0.5 text-sm text-slate-500">
+                <p className="font-semibold text-[#17213A]">{event.title}</p>
+                <p className="mt-0.5 text-sm text-[#667085]">
                   {event.date}
                   {event.time ? ` · ${event.time}` : ''}
                 </p>
               </div>
             </div>
-          ))
-        )}
-      </CardContent>
-    </Card>
+          ))}
+        </div>
+      )}
+    </DashboardChartCard>
   )
 }

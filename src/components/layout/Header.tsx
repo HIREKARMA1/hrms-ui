@@ -96,7 +96,8 @@ export function Header() {
 
           <WorkspaceSwitcher />
 
-          <DropdownMenu>
+          {/* modal={false}: modal menus set body pointer-events:none and freeze the fixed sidebar */}
+          <DropdownMenu modal={false}>
             <DropdownMenuTrigger asChild>
               <button
                 type="button"
@@ -124,7 +125,17 @@ export function Header() {
                 ) : null}
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>
+              <DropdownMenuItem
+                onSelect={() => {
+                  if (rbac?.routePrefix === '/employee') {
+                    navigate('/employee/profile')
+                    return
+                  }
+                  if (user?.employeeId && rbac?.routePrefix) {
+                    navigate(`${rbac.routePrefix}/employees/profile/${user.employeeId}`)
+                  }
+                }}
+              >
                 <UserRound className="mr-2 h-4 w-4" />
                 Profile
               </DropdownMenuItem>

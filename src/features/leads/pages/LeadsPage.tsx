@@ -15,6 +15,7 @@ import {
 import { useRbacSession } from '@/features/rbac/hooks/useRbacSession'
 
 import { LeadsDuplicatesTab } from '../components/duplicates/LeadsDuplicatesTab'
+import { LeadDeleteConfirmDialog } from '../components/LeadDeleteConfirmDialog'
 import { LeadDetailDialog } from '../components/LeadDetailDialog'
 import { LeadFormDialog } from '../components/LeadFormDialog'
 import { AllLeadsTab } from '../components/list/AllLeadsTab'
@@ -47,6 +48,8 @@ function LeadsPagePanels() {
     mode: 'create' | 'edit'
     lead: Lead | null
   }>({ open: false, mode: 'create', lead: null })
+  const [deleteTarget, setDeleteTarget] = useState<Lead | null>(null)
+  const [deleting, setDeleting] = useState(false)
 
   const visibleLeads = useMemo(
     () => visibleLeadsForRole(leads, role, user?.employeeId ?? actorId),
@@ -73,11 +76,9 @@ function LeadsPagePanels() {
     setFormState({ open: true, mode: 'edit', lead })
   }
 
-  async function handleDelete() {
+  function requestDeleteFromDetail() {
     if (!selectedLead || !canDeleteLeads) return
-    if (!window.confirm(`Delete lead ${selectedLead.leadName}?`)) return
-    await deleteLead(selectedLead.id)
-    setSelectedLeadId(null)
+    setDeleteTarget(selectedLead)
   }
 
   const showAdminPanels = isHrAdminExperience(role) || isSuperAdminExperience(role)
@@ -151,7 +152,8 @@ function LeadsPagePanels() {
             onOpenEdit={openEdit}
           />
         ) : null}
-        {activeTab === 'Pipeline' && (showAdminPanels || showManagerPanels) ? (
+        {activeTab === 'Pipeline' &&
+        (showAdminPanels || showManagerPanels || isEmployeeExperience(role)) ? (
           <LeadsPipelineTab role={role} onOpenEdit={openEdit} />
         ) : null}
         {activeTab === 'Duplicates' && showAdminPanels ? <LeadsDuplicatesTab /> : null}
@@ -166,7 +168,10 @@ function LeadsPagePanels() {
           mode={formState.mode}
           initial={formState.lead}
           defaultAssigneeId={defaultAssignee}
-          onSaved={(saved) => setSelectedLeadId(saved.id)}
+          onSaved={(saved) => {
+            // After create, stay on the list — do not open detail/edit.
+            if (formState.mode === 'edit') setSelectedLeadId(saved.id)
+          }}
         />
       ) : null}
       <LeadDetailDialog
@@ -176,9 +181,28 @@ function LeadsPagePanels() {
           if (!open) setSelectedLeadId(null)
         }}
         onEdit={() => selectedLead && openEdit(selectedLead)}
-        onDelete={() => void handleDelete()}
+        onDelete={requestDeleteFromDetail}
         canEdit={canEditLead}
         canDelete={canDeleteLeads}
+      />
+      <LeadDeleteConfirmDialog
+        lead={deleteTarget}
+        open={Boolean(deleteTarget)}
+        loading={deleting}
+        onOpenChange={(open) => {
+          if (!open && !deleting) setDeleteTarget(null)
+        }}
+        onConfirm={async () => {
+          if (!deleteTarget || !canDeleteLeads) return
+          setDeleting(true)
+          try {
+            await deleteLead(deleteTarget.id)
+            if (selectedLeadId === deleteTarget.id) setSelectedLeadId(null)
+            setDeleteTarget(null)
+          } finally {
+            setDeleting(false)
+          }
+        }}
       />
     </div>
   )

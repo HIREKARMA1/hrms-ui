@@ -8,6 +8,8 @@ import { Input } from '@/components/ui/input'
 import { LEAD_PRIORITIES, LEAD_STATUSES } from '../../constants/leadOptions'
 import { useLeads } from '../../hooks/useLeads'
 import type { Lead, LeadPriority, LeadStatus } from '../../types/lead'
+import { leadCompanyLabel } from '../../utils/leadDisplay'
+import { LeadDeleteConfirmDialog } from '../LeadDeleteConfirmDialog'
 import { LeadPriorityPill } from '../LeadPriorityPill'
 import { AssignLeadDialog } from './AssignLeadDialog'
 import { LeadsListRowActions } from './LeadsListRowActions'
@@ -41,6 +43,7 @@ export function AllLeadsTab({
     leads,
     setSelectedLeadId,
     deleteLead,
+    updateLeadStatus,
     listQuery,
     setListQuery,
     pagination,
@@ -49,6 +52,13 @@ export function AllLeadsTab({
   const showActions = canEditLead || canDeleteLeads || canAssignLeads
   const [search, setSearch] = useState(listQuery.search)
   const [assignLead, setAssignLead] = useState<Lead | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<Lead | null>(null)
+  const [deleting, setDeleting] = useState(false)
+
+  async function handleMove(lead: Lead, status: LeadStatus) {
+    if (!canEditLead) return
+    await updateLeadStatus(lead.id, status)
+  }
 
   useEffect(() => {
     const handle = window.setTimeout(() => {
@@ -117,7 +127,7 @@ export function AllLeadsTab({
           <thead className={LEADS_TABLE_THEAD}>
             <tr>
               <th className="px-4 py-3 font-medium">Lead ID</th>
-              <th className="px-4 py-3 font-medium">Lead / company</th>
+              <th className="px-4 py-3 font-medium">Company</th>
               <th className="px-4 py-3 font-medium">Contact</th>
               <th className="px-4 py-3 font-medium">Source</th>
               <th className="px-4 py-3 font-medium">Priority</th>
@@ -138,8 +148,7 @@ export function AllLeadsTab({
                   {lead.id.slice(0, 8)}…
                 </td>
                 <td className="px-4 py-3">
-                  <p className="font-medium text-hrms-navy">{lead.leadName}</p>
-                  <p className="text-xs text-hrms-text-muted">{lead.companyName || '—'}</p>
+                  <p className="font-medium text-hrms-navy">{leadCompanyLabel(lead)}</p>
                 </td>
                 <td className="px-4 py-3 text-hrms-text-secondary">
                   <p>{lead.email}</p>
@@ -161,14 +170,16 @@ export function AllLeadsTab({
                 {showActions ? (
                   <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                     <LeadsListRowActions
-                      leadLabel={lead.leadName}
+                      leadLabel={leadCompanyLabel(lead)}
+                      currentStatus={lead.status}
+                      onMove={(status) => void handleMove(lead, status)}
                       onAssign={() => setAssignLead(lead)}
                       onEdit={() => onOpenEdit(lead)}
                       onDelete={() => {
                         if (!canDeleteLeads) return
-                        if (!window.confirm(`Delete lead ${lead.leadName}?`)) return
-                        void deleteLead(lead.id)
+                        setDeleteTarget(lead)
                       }}
+                      showMove={canEditLead}
                       showAssign={canAssignLeads}
                       showEdit={canEditLead}
                       showDelete={canDeleteLeads}
@@ -217,6 +228,24 @@ export function AllLeadsTab({
           }}
         />
       ) : null}
+      <LeadDeleteConfirmDialog
+        lead={deleteTarget}
+        open={Boolean(deleteTarget)}
+        loading={deleting}
+        onOpenChange={(open) => {
+          if (!open && !deleting) setDeleteTarget(null)
+        }}
+        onConfirm={async () => {
+          if (!deleteTarget || !canDeleteLeads) return
+          setDeleting(true)
+          try {
+            await deleteLead(deleteTarget.id)
+            setDeleteTarget(null)
+          } finally {
+            setDeleting(false)
+          }
+        }}
+      />
     </div>
   )
 }

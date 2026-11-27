@@ -75,7 +75,9 @@ export function LeadsNeedsAttentionList({
 function LeadRowSummary({ lead }: { lead: Lead }) {
   return (
     <div className="min-w-0">
-      <p className="truncate text-[14.5px] font-semibold text-[#17213A]">{lead.leadName}</p>
+      <p className="truncate text-[14.5px] font-semibold text-[#17213A]">
+        {lead.companyName.trim() || lead.leadName}
+      </p>
       <p className="truncate text-[12.5px] text-[#667085]">
         {lead.id} · {lead.assignedEmployeeName ?? 'Unassigned'}
       </p>

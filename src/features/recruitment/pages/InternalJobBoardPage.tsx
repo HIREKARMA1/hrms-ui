@@ -487,13 +487,17 @@ export function InternalJobBoardPage() {
                   className="mb-2 block text-sm font-medium text-[#17213A]"
                   htmlFor="apply-reference-name"
                 >
-                  Reference Name
+                  Reference Name{' '}
+                  <span className="font-normal text-[#667085]">(Optional)</span>
                 </label>
                 <input
                   id="apply-reference-name"
                   className="w-full rounded-xl border border-[#E2E6EF] px-3 py-2 text-sm"
                   value={referenceName}
-                  onChange={(e) => setReferenceName(e.target.value)}
+                  onChange={(e) => {
+                    setReferenceName(e.target.value)
+                    if (applyError) setApplyError(null)
+                  }}
                   placeholder="Enter reference person's name"
                   autoComplete="name"
                   disabled={applying}
@@ -504,14 +508,18 @@ export function InternalJobBoardPage() {
                   className="mb-2 block text-sm font-medium text-[#17213A]"
                   htmlFor="apply-reference-email"
                 >
-                  Reference Email ID
+                  Reference Email ID{' '}
+                  <span className="font-normal text-[#667085]">(Optional)</span>
                 </label>
                 <input
                   id="apply-reference-email"
                   type="email"
                   className="w-full rounded-xl border border-[#E2E6EF] px-3 py-2 text-sm"
                   value={referenceEmail}
-                  onChange={(e) => setReferenceEmail(e.target.value)}
+                  onChange={(e) => {
+                    setReferenceEmail(e.target.value)
+                    if (applyError) setApplyError(null)
+                  }}
                   placeholder="Enter reference person's email"
                   autoComplete="email"
                   disabled={applying}
@@ -519,13 +527,16 @@ export function InternalJobBoardPage() {
               </div>
             </div>
             <label className="mb-2 block text-sm font-medium text-[#17213A]" htmlFor="cover-letter">
-              Cover letter (optional)
+              Cover Letter <span className="font-normal text-[#667085]">(Optional)</span>
             </label>
             <textarea
               id="cover-letter"
               className="mb-3 min-h-24 w-full rounded-xl border border-[#E2E6EF] px-3 py-2 text-sm"
               value={coverLetter}
-              onChange={(e) => setCoverLetter(e.target.value)}
+              onChange={(e) => {
+                setCoverLetter(e.target.value)
+                if (applyError) setApplyError(null)
+              }}
               placeholder="Add a short note for HR..."
               disabled={applying}
             />
