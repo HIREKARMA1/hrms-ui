@@ -20,9 +20,11 @@ import type { LeaveTypeCode } from '../../constants/leaveTypeCodes'
 
 import { leaveDaysByType } from '../../utils/overviewLeaveByType'
 
-import { overviewRangeBounds, overviewRangeHint, type OverviewChartRange } from '../../utils/overviewRange'
+import { overviewRangeBounds, type OverviewChartRange } from '../../utils/overviewRange'
 
 import { OverviewCard } from './OverviewCard'
+import { OV_FOCUS } from './overviewVisual'
+import { cn } from '@/lib/utils'
 
 import { DonutA11yTable } from './OverviewChartA11yTable'
 
@@ -64,11 +66,21 @@ export function OverviewLeaveTypeDonut({ snapshot, range, loading, error, onRetr
 
   return (
 
-    <OverviewCard title="Leave by type" description="Share of approved leave days in the selected range." rangeHint={overviewRangeHint(range)} loading={loading} error={error} onRetry={onRetry} empty={empty} fillHeight>
+    <OverviewCard
+      chrome="overview"
+      className="w-full"
+      title="Leave by type"
+      description="Share of approved leave days in the selected range."
+      loading={loading}
+      error={error}
+      onRetry={onRetry}
+      empty={empty}
+      fillHeight
+    >
 
       <div aria-label={summary} className="flex h-full flex-col gap-4">
 
-        <div className="relative mx-auto h-44 w-full max-w-[220px]">
+        <div className="relative mx-auto h-[170px] w-full max-w-[220px]">
 
           <ResponsiveContainer width="100%" height="100%">
 
@@ -82,13 +94,13 @@ export function OverviewLeaveTypeDonut({ snapshot, range, loading, error, onRetr
 
                 nameKey="label"
 
-                innerRadius="58%"
+                innerRadius="64%"
 
-                outerRadius="88%"
+                outerRadius="92%"
 
                 isAnimationActive={false}
 
-                stroke="var(--color-hrms-page)"
+                stroke="#EEF0F6"
 
                 strokeWidth={2}
 
@@ -138,9 +150,9 @@ export function OverviewLeaveTypeDonut({ snapshot, range, loading, error, onRetr
 
               <>
 
-                <span className="text-lg font-bold tabular-nums text-hrms-navy">{totalDays}</span>
+                <span className="text-[28px] font-bold tabular-nums text-[#17213A]">{totalDays}</span>
 
-                <span className="text-[10px] text-hrms-text-secondary">days</span>
+                <span className="text-xs text-[#98A2B3]">days</span>
 
               </>
 
@@ -150,7 +162,7 @@ export function OverviewLeaveTypeDonut({ snapshot, range, loading, error, onRetr
 
         </div>
 
-        <ul className="space-y-1 text-sm">
+        <ul className="space-y-0.5 text-sm">
 
           {slices.map((slice) => (
 
@@ -160,7 +172,7 @@ export function OverviewLeaveTypeDonut({ snapshot, range, loading, error, onRetr
 
                 type="button"
 
-                className="flex w-full items-center gap-2 rounded-lg px-2 py-1 text-left hover:bg-hrms-row-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hrms-focus"
+                className={cn('flex w-full items-center gap-2 rounded-lg px-1 py-1.5 text-left hover:bg-[#F3F4F8]', OV_FOCUS)}
 
                 onMouseEnter={() => setHoverCode(slice.code)}
 
@@ -170,11 +182,11 @@ export function OverviewLeaveTypeDonut({ snapshot, range, loading, error, onRetr
 
               >
 
-                <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: leaveTypeChartColors[slice.code] }} aria-hidden />
+                <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: leaveTypeChartColors[slice.code] }} aria-hidden />
 
-                <span className="min-w-0 flex-1 font-medium text-hrms-navy">{slice.label}</span>
+                <span className="min-w-0 flex-1 text-[#17213A]">{slice.label}</span>
 
-                <span className="tabular-nums text-hrms-text-secondary">
+                <span className="shrink-0 tabular-nums text-[13px] text-[#667085]">
 
                   {slice.days} · {Math.round(slice.percent)}%
 

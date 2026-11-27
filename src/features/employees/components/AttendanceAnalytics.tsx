@@ -1,15 +1,10 @@
-import { useMemo, useState } from 'react'
-import {
-  CartesianGrid,
-  Legend,
-  Line,
-  LineChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from 'recharts'
+/**
+ * GET /dashboard/analytics/attendance — period totals + daily series.
+ */
 
+import { useMemo, useState } from 'react'
+
+import { DashboardLiveEmpty } from '@/features/dashboard/components/shared/DashboardLiveEmpty'
 import {
   Card,
   CardContent,
@@ -17,37 +12,64 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
+import { useListDepartmentsQuery } from '@/features/organization/api/departmentsApi'
 import { getApiErrorMessage } from '@/services/api/errors'
 
 import { useGetAttendanceAnalyticsQuery } from '../api/employeeDashboardApi'
 import type { DateRangePreset } from '../types/employeeDashboard.types'
+import { attendanceAnalyticsHasChartData } from '../utils/attendanceAnalyticsEmpty'
 import {
   dashboardPeriodRange,
   formatDashboardAxisLabel,
+  formatDashboardDate,
 } from '../utils/dashboardDateRange'
+import { formatAttendanceAnalyticsSubtitle } from '../utils/formatAttendanceAnalyticsCaption'
+import { AttendanceAnalyticsChart } from './AttendanceAnalyticsChart'
+import { AttendanceAnalyticsPeriodSummary } from './AttendanceAnalyticsPeriodSummary'
+import { AttendanceAnalyticsToolbar } from './AttendanceAnalyticsToolbar'
 
-const periodOptions: { value: Exclude<DateRangePreset, 'custom'>; label: string }[] = [
-  { value: 'this-week', label: 'This Week' },
-  { value: 'this-month', label: 'This Month' },
-  { value: 'last-month', label: 'Last Month' },
-]
+export type AttendanceAnalyticsProps = {
+  /** When set with endDate, uses the Employee Overview page range (no local period preset). */
+  startDate?: string
+  endDate?: string
+}
 
-export function AttendanceAnalytics() {
-  const [period, setPeriod] =
-    useState<Exclude<DateRangePreset, 'custom'>>('this-month')
-  const range = useMemo(() => dashboardPeriodRange(period), [period])
+export function AttendanceAnalytics({ startDate, endDate }: AttendanceAnalyticsProps = {}) {
+  const usePageRange = Boolean(startDate && endDate)
+  const [period, setPeriod] = useState<Exclude<DateRangePreset, 'custom'>>('this-month')
+  const [departmentId, setDepartmentId] = useState('all')
+
+  const internalRange = useMemo(() => dashboardPeriodRange(period), [period])
+  const range = usePageRange
+    ? { startDate: startDate!, endDate: endDate! }
+    : internalRange
+
+  const departmentsQuery = useListDepartmentsQuery({
+    isActive: true,
+    limit: 100,
+    page: 1,
+  })
+  const departmentOptions = useMemo(
+    () =>
+      (departmentsQuery.data?.items ?? []).map((dept) => ({
+        id: dept.id,
+        name: dept.name,
+      })),
+    [departmentsQuery.data?.items],
+  )
+
+  const queryArgs = useMemo(
+    () => ({
+      ...range,
+      departmentId: departmentId === 'all' ? undefined : departmentId,
+    }),
+    [range, departmentId],
+  )
+
   const { data, isLoading, isError, isFetching, error } =
-    useGetAttendanceAnalyticsQuery(range)
+    useGetAttendanceAnalyticsQuery(queryArgs)
 
-  const summary = data?.summary
   const chartData = useMemo(
     () =>
       (data?.series ?? []).map((point) => ({
@@ -60,33 +82,31 @@ export function AttendanceAnalytics() {
     [data?.series],
   )
 
+  const hasChart = attendanceAnalyticsHasChartData(chartData, data?.empty)
+  const subtitle = isLoading
+    ? 'Loading period from server…'
+  : data
+      ? formatAttendanceAnalyticsSubtitle(data)
+      : usePageRange
+        ? `${formatDashboardDate(range.startDate)} – ${formatDashboardDate(range.endDate)}`
+        : 'Daily status trends for the selected period'
+
   return (
     <Card className="h-full border-border-soft shadow-sm">
       <CardHeader className="gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <CardTitle>Attendance Analytics</CardTitle>
-          <CardDescription>Present, absent, leave and late trends</CardDescription>
+        <div className="min-w-0">
+          <CardTitle>Attendance analytics</CardTitle>
+          <CardDescription>{subtitle}</CardDescription>
         </div>
-        <Select
-          value={period}
-          onValueChange={(value) =>
-            setPeriod(value as Exclude<DateRangePreset, 'custom'>)
-          }
-        >
-          <SelectTrigger className="w-full sm:w-[160px]">
-            <SelectValue placeholder="Period" />
-          </SelectTrigger>
-          <SelectContent>
-            {periodOptions.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
-                {option.label}
-              </SelectItem>
-            ))}
-            <SelectItem value="custom" disabled>
-              Custom Range
-            </SelectItem>
-          </SelectContent>
-        </Select>
+        <AttendanceAnalyticsToolbar
+          showPeriodPresets={!usePageRange}
+          period={period}
+          onPeriodChange={setPeriod}
+          departmentId={departmentId}
+          onDepartmentChange={setDepartmentId}
+          departments={departmentOptions}
+          departmentsLoading={departmentsQuery.isLoading}
+        />
       </CardHeader>
       <CardContent className="space-y-5">
         {isLoading ? (
@@ -97,96 +117,22 @@ export function AttendanceAnalytics() {
           </p>
         ) : (
           <>
-            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-              <SummaryChip label="Present" value={summary?.present ?? 0} color="#16A34A" />
-              <SummaryChip label="Absent" value={summary?.absent ?? 0} color="#EF4444" />
-              <SummaryChip label="On Leave" value={summary?.onLeave ?? 0} color="#3B82F6" />
-              <SummaryChip label="Late" value={summary?.late ?? 0} color="#F59E0B" />
-            </div>
-
-            <div className={`h-64 w-full min-w-0 ${isFetching ? 'opacity-70' : ''}`}>
-              {chartData.length === 0 ? (
-                <p className="text-sm text-text-secondary">No attendance series for this period.</p>
-              ) : (
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={chartData}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E6EF" />
-                    <XAxis
-                      dataKey="label"
-                      axisLine={false}
-                      tickLine={false}
-                      tick={{ fill: '#667085', fontSize: 12 }}
-                    />
-                    <YAxis
-                      axisLine={false}
-                      tickLine={false}
-                      tick={{ fill: '#667085', fontSize: 12 }}
-                    />
-                    <Tooltip
-                      contentStyle={{
-                        borderRadius: 12,
-                        border: '1px solid #E2E6EF',
-                      }}
-                    />
-                    <Legend />
-                    <Line
-                      type="monotone"
-                      dataKey="present"
-                      name="Present"
-                      stroke="#16A34A"
-                      strokeWidth={2}
-                      dot={false}
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="absent"
-                      name="Absent"
-                      stroke="#EF4444"
-                      strokeWidth={2}
-                      dot={false}
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="onLeave"
-                      name="On Leave"
-                      stroke="#3B82F6"
-                      strokeWidth={2}
-                      dot={false}
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="late"
-                      name="Late"
-                      stroke="#F59E0B"
-                      strokeWidth={2}
-                      dot={false}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              )}
-            </div>
+            <AttendanceAnalyticsPeriodSummary summary={data?.summary} />
+            {hasChart ? (
+              <AttendanceAnalyticsChart
+                chartData={chartData}
+                isFetching={isFetching}
+                yMaxHint={data?.eligibleEmployees}
+              />
+            ) : (
+              <DashboardLiveEmpty
+                title="No attendance statuses in this period"
+                description="Punches or eligible employees may be missing for these dates. Try another period or link biometric devices."
+              />
+            )}
           </>
         )}
       </CardContent>
     </Card>
-  )
-}
-
-function SummaryChip({
-  label,
-  value,
-  color,
-}: {
-  label: string
-  value: number
-  color: string
-}) {
-  return (
-    <div className="rounded-xl border border-border-soft bg-muted-bg/50 px-3 py-2">
-      <p className="text-xs font-medium text-text-secondary">{label}</p>
-      <p className="mt-1 text-lg font-bold text-navy" style={{ color }}>
-        {value}
-      </p>
-    </div>
   )
 }

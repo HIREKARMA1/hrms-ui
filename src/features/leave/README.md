@@ -46,6 +46,7 @@ Single-company leave: balances, requests, approvals, calendar, accruals, and pol
 - Connect payroll → `services/leavePayrollApi.ts`
 - Viewer identity → `context/LeaveViewerProvider.tsx` + `utils/resolveLeaveViewer.ts`: signed-in users come from Redux `auth.user` (role from the active workspace, `employeeId` when auth exposes it); `constants/leaveDemoViewers.ts` personas apply only when nobody is signed in
 - Accounts without `employeeId` on auth → `components/shared/LeaveEmployeeLinkNotice.tsx` ("We couldn't retrieve your employee record…", never "not linked") replaces personal data (My Leave, team approvals, personal calendar)
+- HR Admin Overview (server mode) → `hooks/useLeaveOverviewLive.ts`, `useLeaveOverviewAttention.ts`, `useLeaveOverviewRecentActivity.ts`; dashboard `GET /dashboard/*`, calendar `GET /leaves/calendar`, attention `GET /leave-approval/pending` + `GET /employee-leave-policies/hr-overview`, recent `GET /leaves` page 1. Demo mode still uses `LeaveSnapshot` only.
 - HR Admin Overview → `components/overview/HrOverviewTab.tsx` and section cards under `components/overview/`
   - Section chrome → `OverviewSectionHeader.tsx`, shared card shell `OverviewCard.tsx`
   - Attention section → `OverviewAttentionSection.tsx`, banner `OverviewAttentionBanner.tsx`, also-list `OverviewAttentionAlso.tsx` (request queue lives on Requests tab only)

@@ -32,10 +32,7 @@ export function ApiBalancesTab() {
 
   return (
     <div className="space-y-6">
-      <LeaveTabHeader
-        title="Balances"
-        subtitle="See organization-wide balances, then open an employee to manage policies, adjustments, and history."
-      />
+      <LeaveTabHeader title="Balances" />
       {!permissions.canViewPolicyDefaults ? (
         <LeaveServerNotice>You need employee leave policy read permission to load balances.</LeaveServerNotice>
       ) : (

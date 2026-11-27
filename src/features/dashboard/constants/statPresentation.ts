@@ -1,39 +1,58 @@
+/**
+ * Live summary card copy for GET /dashboard/summary (no mock trend percentages).
+ */
+
 import type { DashboardStat } from '../types/dashboard'
 
-export type DashboardStatCardId = 'total' | 'active' | 'leave' | 'inactive'
+export type DashboardStatCardId = 'total' | 'active' | 'leave' | 'probation' | 'terminated'
 
 type StatPresentation = Omit<DashboardStat, 'id' | 'value'>
+
+export const LIVE_SUMMARY_FOOTLINE = 'As of today · live from HRMS'
+
+export const LIVE_TOTAL_EMPLOYEES_FOOTLINE = 'All employee records · live from HRMS'
+
+export const LIVE_ACTIVE_EMPLOYEES_FOOTLINE = 'Employment status ACTIVE · live from HRMS'
+
+export const LIVE_TERMINATED_EMPLOYEES_FOOTLINE = 'Employment status TERMINATED · live from HRMS'
 
 export const DASHBOARD_STAT_CARD_ORDER: DashboardStatCardId[] = [
   'total',
   'active',
   'leave',
-  'inactive',
+  'probation',
+  'terminated',
 ]
 
 export const STAT_PRESENTATION_BY_ID: Record<DashboardStatCardId, StatPresentation> = {
   total: {
-    label: 'Total Employees',
+    label: 'Total employees',
     icon: 'users',
-    trend: { value: '+6.4% from last month', positive: true },
+    footline: LIVE_TOTAL_EMPLOYEES_FOOTLINE,
     iconClassName: 'bg-brand-50 text-brand-600',
   },
   active: {
-    label: 'Active Employees',
+    label: 'Active',
     icon: 'userCheck',
-    trend: { value: '+5.8% from last month', positive: true },
+    footline: LIVE_ACTIVE_EMPLOYEES_FOOTLINE,
     iconClassName: 'bg-emerald-50 text-emerald-600',
   },
   leave: {
-    label: 'On Leave',
+    label: 'On leave',
     icon: 'calendarDays',
-    trend: { value: '+20% from last month', positive: true },
+    footline: LIVE_SUMMARY_FOOTLINE,
     iconClassName: 'bg-amber-50 text-amber-600',
   },
-  inactive: {
-    label: 'Inactive Employees',
+  probation: {
+    label: 'On probation',
+    icon: 'hourglass',
+    footline: LIVE_SUMMARY_FOOTLINE,
+    iconClassName: 'bg-violet-50 text-violet-600',
+  },
+  terminated: {
+    label: 'Terminated',
     icon: 'userX',
-    trend: { value: '-3.2% from last month', positive: false },
+    footline: LIVE_TERMINATED_EMPLOYEES_FOOTLINE,
     iconClassName: 'bg-rose-50 text-rose-600',
   },
 }

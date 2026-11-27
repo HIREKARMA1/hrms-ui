@@ -76,6 +76,28 @@ function normalizeEmployeeLeavePolicyDefaults(raw: unknown): EmployeeLeavePolicy
 
 
 
+function readHrOverviewPageMeta(
+  body: Record<string, unknown>,
+  itemsLength: number,
+): Pick<EmployeeLeavePolicyHrOverviewData, 'total' | 'page' | 'limit' | 'totalPages'> {
+  const pagination = body.pagination
+  if (pagination && typeof pagination === 'object') {
+    const pg = pagination as Record<string, unknown>
+    return {
+      total: typeof pg.total === 'number' ? pg.total : itemsLength,
+      page: typeof pg.page === 'number' ? pg.page : 1,
+      limit: typeof pg.limit === 'number' ? pg.limit : itemsLength || 20,
+      totalPages: typeof pg.totalPages === 'number' ? pg.totalPages : undefined,
+    }
+  }
+  return {
+    total: typeof body.total === 'number' ? body.total : itemsLength,
+    page: typeof body.page === 'number' ? body.page : 1,
+    limit: typeof body.limit === 'number' ? body.limit : itemsLength || 20,
+    totalPages: typeof body.totalPages === 'number' ? body.totalPages : undefined,
+  }
+}
+
 function normalizeHrOverviewList(raw: unknown): EmployeeLeavePolicyHrOverviewData {
 
   const empty = (items: ApiEmployeeLeavePolicyHrOverviewItem[]): EmployeeLeavePolicyHrOverviewData => ({
@@ -105,18 +127,13 @@ function normalizeHrOverviewList(raw: unknown): EmployeeLeavePolicyHrOverviewDat
     const body = raw as EmployeeLeavePolicyHrOverviewData
 
     const items = Array.isArray(body.items) ? body.items : []
+    const pageMeta = readHrOverviewPageMeta(body as unknown as Record<string, unknown>, items.length)
 
     return {
 
       items,
 
-      total: typeof body.total === 'number' ? body.total : items.length,
-
-      page: typeof body.page === 'number' ? body.page : 1,
-
-      limit: typeof body.limit === 'number' ? body.limit : items.length || 20,
-
-      totalPages: body.totalPages,
+      ...pageMeta,
 
     }
 

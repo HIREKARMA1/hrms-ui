@@ -257,11 +257,22 @@ const DIRECTORY_STATUS: Record<string, Exclude<EmploymentStatus, 'ON_LEAVE'>> = 
 /** A leave-screen employee from a mapped `/employees` record (Stage 4.6 EmployeeRecord). */
 export function leaveEmployeeFromDirectory(record: {
   server: { id: string }
-  profile: { firstName: string; lastName: string; department: string; designation: string; dateOfJoining: string; employmentStatus: string }
+  profile: {
+    firstName: string
+    lastName: string
+    employeeCode?: string
+    employeeId?: string
+    department: string
+    designation: string
+    dateOfJoining: string
+    employmentStatus: string
+  }
 }): LeaveEmployee {
   const { profile } = record
+  const code = profile.employeeCode?.trim() || profile.employeeId?.trim() || undefined
   return {
     id: record.server.id,
+    employeeCode: code,
     name: `${profile.firstName} ${profile.lastName}`.trim() || record.server.id,
     department: profile.department,
     gender: 'Other',

@@ -1,182 +1,260 @@
 /**
-
  * HR Admin Overview tab: attention, stats, charts, outlook, and lists.
-
  */
-
-
 
 import { useState } from 'react'
 
 import { Building2, CalendarCheck, Clock, Users } from 'lucide-react'
 
-
-
 import { useLeave } from '../../hooks/useLeave'
-
+import { useLeaveOverviewLive } from '../../hooks/useLeaveOverviewLive'
+import { useLeaveOverviewAttention } from '../../hooks/useLeaveOverviewAttention'
+import { useLeaveOverviewRecentActivity } from '../../hooks/useLeaveOverviewRecentActivity'
 import { useLeaveViewer } from '../../hooks/useLeaveViewer'
-
 import { isSuperAdminExperience } from '../../constants/userRoles'
-
 import type { HrOverviewNavigate } from '../../context/hrOverviewNavigate'
-
 import type { LeaveTypeCode } from '../../constants/leaveTypeCodes'
-
 import { LEAVE_TYPE_LABELS } from '../../constants/leaveTypeCodes'
-
 import type { OverviewChartRange } from '../../utils/overviewRange'
-
 import { overviewStatSubtitles, overviewStatValues } from '../../utils/overviewStatSubtitles'
-
-import { formatOverviewTodayLabel } from '../../utils/formatOverviewToday'
-
+import { whosAwayTodayFromOnLeave } from '../../utils/overviewWhosAwayFromOnLeave'
 import { LeaveStatGrid } from '../LeaveStatGrid'
-
-import { LeaveTabHeader } from '../LeaveTabHeader'
-
 import { OverviewAttentionSection } from './OverviewAttentionSection'
-
 import { OverviewSectionHeader } from './OverviewSectionHeader'
-
 import { OverviewRangeControl } from './OverviewRangeControl'
-
 import { OverviewLeaveTrendChart } from './OverviewLeaveTrendChart'
-
 import { OverviewLeaveTypeDonut } from './OverviewLeaveTypeDonut'
-
+import { OverviewLeaveTypeDonutLive } from './OverviewLeaveTypeDonutLive'
 import { OverviewOutlook14Strip } from './OverviewOutlook14Strip'
-
 import { OverviewDeptAvailability } from './OverviewDeptAvailability'
-
 import { OverviewWhosAway } from './OverviewWhosAway'
-
 import { OverviewRecentActivity } from './OverviewRecentActivity'
-
 import { OverviewHeaderActions } from './OverviewHeaderActions'
-
-import { LeaveServerNotice } from '../shared/LeaveServerNotice'
-
+import { OverviewPageHeader } from './OverviewPageHeader'
+import { OverviewErrorAlert } from './OverviewErrorAlert'
 import { SuperAdminScopeBanner } from '../superAdmin/SuperAdminScopeBanner'
+import { OV_PAGE } from './overviewVisual'
 
-
+function safeStatDetail(detail: string | undefined, fallback: string): string {
+  if (!detail) return fallback
+  return detail.replace(/\bundefined\b/g, '0')
+}
 
 export function HrOverviewTab({ onNavigate }: { onNavigate: HrOverviewNavigate }) {
-
   const { snapshot, loading, error, reload } = useLeave()
-
   const { role } = useLeaveViewer()
-
   const superAdmin = isSuperAdminExperience(role)
-
   const [range, setRange] = useState<OverviewChartRange>('last_6_months')
+  const [infoOpen, setInfoOpen] = useState(false)
+  const serverMode = Boolean(snapshot?.api)
+  const live = useLeaveOverviewLive({ enabled: serverMode, range, snapshot })
+  const attention = useLeaveOverviewAttention({ enabled: serverMode, snapshot })
+  const recentActivity = useLeaveOverviewRecentActivity({ enabled: serverMode, snapshot })
 
   if (!snapshot && !loading) return null
 
   const subtitles = snapshot ? overviewStatSubtitles(snapshot) : null
-
   const values = snapshot ? overviewStatValues(snapshot) : null
-
   const onRetry = () => void reload()
+  const liveStats = live.active && live.stats ? live.stats : null
 
+  const statItems = [
+    {
+      label: 'On leave today',
+      value: String(liveStats?.onLeaveToday ?? values?.onLeaveToday ?? '—'),
+      detail: safeStatDetail(liveStats?.onLeaveSubtitle ?? subtitles?.onLeaveToday, 'from leave dashboard'),
+      icon: Users,
+      tone: 'primary' as const,
+    },
+    {
+      label: 'Upcoming (7 days)',
+      value: String(liveStats?.upcoming ?? values?.upcoming ?? '—'),
+      detail: safeStatDetail(liveStats?.upcomingSubtitle ?? subtitles?.upcoming, 'starting in the next 7 days'),
+      icon: CalendarCheck,
+      tone: 'success' as const,
+    },
+    {
+      label: 'Pending requests',
+      value: String(liveStats?.pending ?? values?.pending ?? 0),
+      detail: safeStatDetail(
+        liveStats?.pendingSubtitle ?? subtitles?.pending,
+        '0 overlapping this leave year',
+      ),
+      icon: Clock,
+      tone: 'warning' as const,
+    },
+    {
+      label: 'Active employees',
+      value: String(liveStats?.active ?? values?.active ?? '—'),
+      detail: safeStatDetail(liveStats?.activeSubtitle ?? subtitles?.active, '0 on probation'),
+      icon: Building2,
+      tone: 'neutral' as const,
+    },
+  ]
 
+  const liveTodayRows =
+    live.active && live.canLeaveAnalytics ? whosAwayTodayFromOnLeave(live.onLeaveTodayItems) : undefined
+
+  const infoContent = snapshot?.api ? (
+    <>
+      Overview panels use dashboard, calendar, approval, and balance APIs where your role allows. Personal
+      balance ledgers and comp-off are not stored on the server. Year-end and encashment notices use loaded
+      leave data.
+    </>
+  ) : null
 
   return (
-
-    <div className="flex flex-col gap-6">
-
+    <div className={OV_PAGE}>
       {superAdmin ? <SuperAdminScopeBanner onViewAudit={() => onNavigate('Audit')} /> : null}
 
-      <LeaveTabHeader
-
-        title="Overview"
-
-        subtitle={superAdmin ? 'Company-wide leave posture with super admin tools.' : 'What needs attention across leave today.'}
-
-        actions={
-
-          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap">
-
-            {snapshot ? <OverviewHeaderActions snapshot={snapshot} onNavigate={onNavigate} /> : null}
-
-          </div>
-
-        }
-
+      <OverviewPageHeader
+        superAdminSubtitle={superAdmin}
+        infoOpen={infoOpen}
+        onToggleInfo={() => setInfoOpen((open) => !open)}
+        infoContent={infoContent}
+        actions={snapshot ? <OverviewHeaderActions snapshot={snapshot} onNavigate={onNavigate} /> : null}
       />
 
-      <p className="-mt-4 text-xs font-medium text-hrms-text-muted">{formatOverviewTodayLabel()}</p>
+      <OverviewAttentionSection
+        snapshot={snapshot}
+        onNavigate={onNavigate}
+        loading={loading}
+        error={error}
+        onRetry={onRetry}
+        attentionSummary={serverMode ? attention.summary : undefined}
+        attentionLoading={serverMode ? attention.loading : undefined}
+        attentionError={serverMode ? attention.error : undefined}
+        onRetryAttention={() => void attention.refetch()}
+      />
 
-      {snapshot?.api ? (
-        <LeaveServerNotice>
-          {snapshot.api.access.requests
-            ? `Figures use the ${snapshot.requests.length} most recent of ${snapshot.api.requestTotal} leave requests loaded from the server.`
-            : 'You do not have permission to view leave requests across the organisation, so these figures are empty.'}{' '}
-          Holidays and balance ledgers are not available from the server yet.
-        </LeaveServerNotice>
+      {live.active && live.statsError ? (
+        <OverviewErrorAlert message={live.statsError} onRetry={() => void live.refetchStats()} />
       ) : null}
 
-      <OverviewAttentionSection snapshot={snapshot} onNavigate={onNavigate} loading={loading} error={error} onRetry={onRetry} />
+      <LeaveStatGrid items={statItems} loading={live.active ? live.statsLoading : loading} chrome="overview" />
 
-      <LeaveStatGrid
-
-        items={[
-
-          { label: 'On leave today', value: String(values?.onLeaveToday ?? '—'), detail: subtitles?.onLeaveToday, icon: Users, tone: 'primary' },
-
-          { label: 'Upcoming (7 days)', value: String(values?.upcoming ?? '—'), detail: subtitles?.upcoming, icon: CalendarCheck, tone: 'success' },
-
-          { label: 'Pending requests', value: String(values?.pending ?? '—'), detail: subtitles?.pending, icon: Clock, tone: 'warning' },
-
-          { label: 'Active employees', value: String(values?.active ?? '—'), detail: subtitles?.active, icon: Building2, tone: 'neutral' },
-
-        ]}
-
-      />
-
-      <section className="flex flex-col gap-3">
-
-        <OverviewSectionHeader title="Leave analytics" description="Approved leave in the selected range." aside={<OverviewRangeControl value={range} onChange={setRange} />} id="overview-charts-heading" />
-
-        <div className="grid items-stretch gap-4 min-[700px]:grid-cols-3">
-
-          <div className="min-w-0 min-[700px]:col-span-2">
-
-            {snapshot ? <OverviewLeaveTrendChart snapshot={snapshot} range={range} loading={loading} error={error} onRetry={onRetry} /> : null}
-
-          </div>
-
-          <div className="min-w-0 flex">
-
-            {snapshot ? (
-
-              <OverviewLeaveTypeDonut snapshot={snapshot} range={range} loading={loading} error={error} onRetry={onRetry} onTypeSelect={(code: LeaveTypeCode) => onNavigate('Requests', { segment: 'all', requestsSearch: LEAVE_TYPE_LABELS[code] })} />
-
+      <section className="flex flex-col gap-4">
+        <OverviewSectionHeader
+          title="Leave analytics"
+          description="Approved leave in the selected range."
+          aside={<OverviewRangeControl value={range} onChange={setRange} />}
+          id="overview-charts-heading"
+        />
+        <div className="grid items-stretch gap-4 min-[980px]:grid-cols-[2fr_1fr]">
+          <div className="min-w-0">
+            {live.active && live.canLeaveAnalytics ? (
+              <OverviewLeaveTrendChart
+                range={range}
+                live={live.trend}
+                legendOverride={{ PL: 'Approved leave days' }}
+                loading={live.chartsLoading}
+                error={live.chartsError}
+                onRetry={() => void live.refetchCharts()}
+              />
+            ) : snapshot ? (
+              <OverviewLeaveTrendChart
+                snapshot={snapshot}
+                range={range}
+                loading={loading}
+                error={error}
+                onRetry={onRetry}
+              />
             ) : null}
-
           </div>
-
+          <div className="min-w-0 flex">
+            {live.active && live.canLeaveAnalytics ? (
+              <OverviewLeaveTypeDonutLive
+                range={range}
+                slices={live.donut.slices}
+                totalDays={live.donut.totalDays}
+                loading={live.chartsLoading}
+                error={live.chartsError}
+                onRetry={() => void live.refetchCharts()}
+                onTypeSelect={(search) => onNavigate('Requests', { segment: 'all', requestsSearch: search })}
+              />
+            ) : snapshot ? (
+              <OverviewLeaveTypeDonut
+                snapshot={snapshot}
+                range={range}
+                loading={loading}
+                error={error}
+                onRetry={onRetry}
+                onTypeSelect={(code: LeaveTypeCode) =>
+                  onNavigate('Requests', { segment: 'all', requestsSearch: LEAVE_TYPE_LABELS[code] })
+                }
+              />
+            ) : null}
+          </div>
         </div>
-
       </section>
 
-      <section>{snapshot ? <OverviewOutlook14Strip snapshot={snapshot} loading={loading} error={error} onRetry={onRetry} /> : null}</section>
+      <section>
+        {snapshot ? (
+          <OverviewOutlook14Strip
+            snapshot={snapshot}
+            loading={live.orgWideCalendar ? live.outlookLoading : loading}
+            error={live.orgWideCalendar ? live.outlookError : error}
+            onRetry={live.orgWideCalendar ? () => void live.refetchOutlook() : onRetry}
+            liveCells={live.orgWideCalendar ? live.outlook14Cells : null}
+            liveCalendarItems={live.orgWideCalendar ? live.calendarItems : undefined}
+            liveTypeCodeById={live.orgWideCalendar ? live.typeCodeById : undefined}
+          />
+        ) : null}
+      </section>
 
-      <section className="grid items-stretch gap-4 min-[700px]:grid-cols-2 min-[1100px]:grid-cols-3">
-        <div className="flex h-full min-w-0 min-h-0 flex-col min-[700px]:max-[1099px]:col-span-2 min-[1100px]:col-span-1">
-          {snapshot ? <OverviewDeptAvailability snapshot={snapshot} loading={loading} error={error} onRetry={onRetry} onDepartmentSelect={(department) => onNavigate('Calendar', { calendarDepartment: department })} /> : null}
+      <section className="grid items-stretch gap-4 min-[980px]:grid-cols-3">
+        <div className="flex h-full min-w-0 min-h-0 flex-col">
+          {live.active && (live.canStats || live.canLeaveAnalytics) ? (
+            <OverviewDeptAvailability
+              liveRows={live.deptRows}
+              coverageLimit={live.coverageLimit}
+              loading={live.deptLoading}
+              error={live.deptError}
+              onRetry={() => void live.refetchDept()}
+              onDepartmentSelect={(department) => onNavigate('Calendar', { calendarDepartment: department })}
+            />
+          ) : snapshot ? (
+            <OverviewDeptAvailability
+              snapshot={snapshot}
+              loading={loading}
+              error={error}
+              onRetry={onRetry}
+              onDepartmentSelect={(department) => onNavigate('Calendar', { calendarDepartment: department })}
+            />
+          ) : null}
         </div>
         <div className="flex h-full min-w-0 min-h-0 flex-col">
-          {snapshot ? <OverviewWhosAway snapshot={snapshot} loading={loading} error={error} onRetry={onRetry} /> : null}
+          {snapshot ? (
+            <OverviewWhosAway
+              snapshot={snapshot}
+              loading={loading}
+              error={error}
+              onRetry={onRetry}
+              liveTodayRows={liveTodayRows}
+              liveTodayLoading={live.onLeaveTodayLoading}
+              liveTodayError={live.onLeaveTodayError}
+              onRetryLiveToday={() => void live.refetchOnLeaveToday()}
+              whosAwayFromCalendar={live.orgWideCalendar ? live.whosAwayFromCalendar : undefined}
+              calendarWindowLoading={live.calendarWindowLoading}
+              calendarWindowError={live.calendarWindowError}
+              onRetryCalendarWindow={() => void live.refetchCalendarWindow()}
+            />
+          ) : null}
         </div>
-        <div className="flex h-full min-w-0 min-h-0 flex-col min-[700px]:col-span-2 min-[1100px]:col-span-1">
-          {snapshot ? <OverviewRecentActivity snapshot={snapshot} loading={loading} error={error} onRetry={onRetry} onViewAll={() => onNavigate('Requests', { segment: 'all' })} /> : null}
+        <div className="flex h-full min-w-0 min-h-0 flex-col min-[980px]:col-span-1">
+          {snapshot ? (
+            <OverviewRecentActivity
+              snapshot={recentActivity.activitySnapshot ?? snapshot}
+              items={serverMode ? recentActivity.items : undefined}
+              loading={serverMode ? recentActivity.loading : loading}
+              error={serverMode ? recentActivity.error : error}
+              onRetry={serverMode ? () => void recentActivity.refetch() : onRetry}
+              description={serverMode ? recentActivity.scopeNote : undefined}
+              onViewAll={() => onNavigate('Requests', { segment: 'all' })}
+            />
+          ) : null}
         </div>
       </section>
-
     </div>
-
   )
-
 }
-
-

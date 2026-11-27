@@ -108,36 +108,6 @@ export const superAdminDashboardMock = {
   ],
 }
 
-export const adminDashboardMock = {
-  stats: [
-    { id: 'total', label: 'Total Employees', value: 248 },
-    { id: 'active', label: 'Active Employees', value: 220 },
-    { id: 'leave', label: 'Employees on Leave', value: 10 },
-    { id: 'attendance', label: "Today's Attendance", value: '92%' },
-    { id: 'pending', label: 'Pending Leave Requests', value: 14 },
-    { id: 'joiners', label: 'New Joiners', value: 6 },
-    { id: 'birthdays', label: 'Upcoming Birthdays', value: 4 },
-  ],
-  attendanceTrend: [
-    { label: 'Week 1', present: 210, absent: 12 },
-    { label: 'Week 2', present: 205, absent: 15 },
-    { label: 'Week 3', present: 198, absent: 12 },
-    { label: 'Week 4', present: 208, absent: 10 },
-  ],
-  departments: [
-    { name: 'Engineering', value: 86 },
-    { name: 'HR', value: 22 },
-    { name: 'Finance', value: 24 },
-    { name: 'Product', value: 38 },
-    { name: 'Sales', value: 52 },
-  ],
-  activities: [
-    { id: '1', text: 'Leave policy updated for Sales', time: '2 hours ago' },
-    { id: '2', text: 'Department headcount synced', time: 'Yesterday' },
-    { id: '3', text: '3 leave requests approved', time: 'Yesterday' },
-  ],
-}
-
 export const hrDashboardMock = {
   stats: [
     { id: 'total', label: 'Total Employees', value: 248 },
@@ -162,32 +132,3 @@ export const hrDashboardMock = {
   ],
 }
 
-export const employeeDashboardMock = {
-  stats: [
-    { id: 'attendance', label: 'My Attendance This Month', value: '18/22' },
-    { id: 'present', label: 'Present Days', value: 18 },
-    { id: 'absent', label: 'Absent Days', value: 1 },
-    { id: 'balance', label: 'Leave Balance', value: 12 },
-    { id: 'pending', label: 'Pending Leave Requests', value: 1 },
-    { id: 'holiday', label: 'Next Holiday', value: 'Diwali' },
-  ],
-  recentAttendance: [
-    { date: '12 Nov 2026', checkIn: '09:05 AM', checkOut: '06:10 PM', status: 'Present' },
-    { date: '11 Nov 2026', checkIn: '09:22 AM', checkOut: '06:05 PM', status: 'Late' },
-    { date: '10 Nov 2026', checkIn: '09:00 AM', checkOut: '06:00 PM', status: 'Present' },
-  ],
-  leaveHistory: [
-    { type: 'Casual Leave', dates: '05–06 Nov 2026', status: 'Approved' },
-    { type: 'Sick Leave', dates: '20 Oct 2026', status: 'Approved' },
-    { type: 'Earned Leave', dates: '15 Dec 2026', status: 'Pending' },
-  ],
-  holidays: [
-    { name: 'Diwali', date: '08 Nov 2026' },
-    { name: 'Christmas', date: '25 Dec 2026' },
-    { name: 'Republic Day', date: '26 Jan 2027' },
-  ],
-  announcements: [
-    { id: '1', title: 'Open enrollment for benefits ends Friday', date: '11 Nov 2026' },
-    { id: '2', title: 'Office closed for Diwali week cleanup day', date: '09 Nov 2026' },
-  ],
-}

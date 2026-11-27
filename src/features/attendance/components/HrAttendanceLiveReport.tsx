@@ -10,7 +10,6 @@ import { useAttendancePermissions } from '../hooks'
 import { useAttendanceReportRangeState } from '../hooks/useAttendanceReportRangeState'
 import type { HrLookupMode } from '../hooks/useHrAttendanceReportActive'
 import { useHrAttendanceReportActive } from '../hooks/useHrAttendanceReportActive'
-import { hrAttendanceApiLabel } from '../utils/hrAttendanceApiLabel'
 import { AttendanceReportEmployeePicker } from './reports/AttendanceReportEmployeePicker'
 import { AttendanceLiveReportResultSection } from './reports/liveDaily/AttendanceLiveReportResultSection'
 import { AttendancePolicyReportEmployeeStrip } from './reports/policyReport/AttendancePolicyReportEmployeeStrip'
@@ -47,7 +46,7 @@ export function HrAttendanceLiveReport({
   const [employeeIdInput, setEmployeeIdInput] = useState('')
   const { range, setRange, source, setSource, rangeError, singleDay } =
     useAttendanceReportRangeState()
-  const { active, days, activeLookup, lookupReady, submitLookup } = useHrAttendanceReportActive(
+  const { active, days, lookupReady, submitLookup } = useHrAttendanceReportActive(
     range,
     source,
     rangeError,
@@ -75,8 +74,6 @@ export function HrAttendanceLiveReport({
 
   const showResult = lookupReady && !active.isError && !rangeError && Boolean(active.data)
 
-  const endpointLabel = hrAttendanceApiLabel(activeLookup, singleDay)
-
   if (!canViewEmployeeReports) {
     return (
       <div className={policyCardClass}>
@@ -95,16 +92,11 @@ export function HrAttendanceLiveReport({
   return (
     <div className="space-y-6">
       <div className={policyCardClass}>
-        <div className="flex flex-wrap items-start justify-between gap-3 border-b border-[#E2E6EF] px-[22px] py-4">
-          <div className="min-w-0">
-            <h2 className={`text-base font-semibold ${policyPrimaryText}`}>{title}</h2>
-            <p className={`mt-1 text-xs ${policySecondaryText}`}>
-              Processed policy status and in/out times (max 31 days).
-            </p>
-          </div>
-          <span className="shrink-0 rounded-lg bg-[#EEF0F6] px-[10px] py-[7px] font-mono text-xs text-[#667085]">
-            {endpointLabel}
-          </span>
+        <div className="border-b border-[#E2E6EF] px-[22px] py-4">
+          <h2 className={`text-base font-semibold ${policyPrimaryText}`}>{title}</h2>
+          <p className={`mt-1 text-xs ${policySecondaryText}`}>
+            Processed policy status and in/out times (max 31 days).
+          </p>
         </div>
         <AttendancePolicyReportFilterGrid
           mode={mode}

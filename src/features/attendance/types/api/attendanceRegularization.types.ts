@@ -25,6 +25,7 @@ export type AttendanceRegularizationRecord = {
   id: string
   employeeId?: string
   employeeCode?: string
+  employeeName?: string
   type?: AttendanceRegularizationPostType | string
   dates: string[]
   reason?: string

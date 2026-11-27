@@ -1,5 +1,4 @@
 import {
-  BarChart3,
   BriefcaseBusiness,
   Building2,
   CalendarDays,
@@ -61,7 +60,7 @@ export const navigationItems: NavItem[] = [
       { title: 'Attendance Regularization', path: '/attendance/regularization' },
       { title: 'Overtime Management', path: '/attendance/overtime' },
       { title: 'Weekly Off Management', path: '/attendance/weekly-off' },
-      { title: 'Holiday Management', path: '/attendance/holidays' },
+      // { title: 'Holiday Management', path: '/attendance/holidays' },
       { title: 'Attendance Reports', path: '/attendance/reports' },
       { title: 'Attendance Settings', path: '/attendance/settings' },
     ],
@@ -112,11 +111,11 @@ export const navigationItems: NavItem[] = [
     path: '/calendar',
     icon: CalendarRange,
   },
-  {
-    title: 'Reports & Analytics',
-    path: '/reports',
-    icon: BarChart3,
-  },
+  // {
+  //   title: 'Reports & Analytics',
+  //   path: '/reports',
+  //   icon: BarChart3,
+  // },
   {
     title: 'Settings',
     path: '/settings',
