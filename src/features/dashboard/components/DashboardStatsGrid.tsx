@@ -3,6 +3,8 @@
  */
 
 import {
+  ArrowDownRightIcon,
+  ArrowUpRightIcon,
   CalendarDays,
   Hourglass,
   UserCheck,
@@ -51,9 +53,9 @@ export function DashboardStatsGrid({ stats }: DashboardStatsGridProps) {
                     )}
                   >
                     {stat.trend.positive ? (
-                      <ArrowUpRight className="h-3.5 w-3.5" />
+                      <ArrowUpRightIcon className="h-3.5 w-3.5" />
                     ) : (
-                      <ArrowDownRight className="h-3.5 w-3.5" />
+                      <ArrowDownRightIcon className="h-3.5 w-3.5" />
                     )}
                     {stat.trend.value}
                   </p>

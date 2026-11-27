@@ -485,8 +485,8 @@ export function EmployeeDashboardPage() {
               )}
             </CardContent>
           </Card>
-        </Feature>
-      </div>
+        </div>  
+
 
       <DashboardChartCard
         title="My Payroll"
@@ -532,6 +532,7 @@ export function EmployeeDashboardPage() {
           </CardContent>
         </Card>
       ) : null}
+    </div>
     </div>
   )
 }
