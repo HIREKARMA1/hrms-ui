@@ -96,7 +96,7 @@ export function MonthlyPayrollOverview() {
               />
               <Bar
                 dataKey="amount"
-                fill="#5938DB"
+                fill="#0F766E"
                 radius={[8, 8, 0, 0]}
                 maxBarSize={42}
               />

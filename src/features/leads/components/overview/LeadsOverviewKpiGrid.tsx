@@ -12,7 +12,7 @@ type LeadsOverviewKpiGridProps = {
 }
 
 const KPI_ICON_SHELL = {
-  all: 'bg-[#F0EDFF] text-[#5938DB]',
+  all: 'bg-[#CCFBF1] text-[#0F766E]',
   high: 'bg-[#FEF3C7] text-[#B45309]',
   unassigned: 'bg-[#DBEAFE] text-[#1D4ED8]',
   won: 'bg-[#DCFCE7] text-[#15803D]',

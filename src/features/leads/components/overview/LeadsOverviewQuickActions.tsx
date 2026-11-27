@@ -34,7 +34,7 @@ export function LeadsOverviewQuickActions({
               ACTION_BASE,
               OVERVIEW_MOTION,
               OVERVIEW_FOCUS,
-              'bg-[#5938DB] text-white hover:bg-[#7055EB]',
+              'bg-[#0F766E] text-white hover:bg-[#7055EB]',
             )}
           >
             <Plus className="h-4 w-4" aria-hidden />
@@ -49,7 +49,7 @@ export function LeadsOverviewQuickActions({
             ACTION_BASE,
             OVERVIEW_MOTION,
             OVERVIEW_FOCUS,
-            'bg-[#F0EDFF] text-[#5938DB] hover:bg-[#E8E4FF]',
+            'bg-[#CCFBF1] text-[#0F766E] hover:bg-[#E8E4FF]',
           )}
         >
           <GitBranch className="h-4 w-4" aria-hidden />

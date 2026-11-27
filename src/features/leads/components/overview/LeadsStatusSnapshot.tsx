@@ -17,7 +17,7 @@ export function LeadsStatusSnapshot({ counts, onOpenPipeline }: LeadsStatusSnaps
           <button
             type="button"
             onClick={onOpenPipeline}
-            className={`${OVERVIEW_MOTION} ${OVERVIEW_FOCUS} ml-auto text-[13px] font-semibold text-[#5938DB] hover:text-[#7055EB]`}
+            className={`${OVERVIEW_MOTION} ${OVERVIEW_FOCUS} ml-auto text-[13px] font-semibold text-[#0F766E] hover:text-[#7055EB]`}
           >
             Open pipeline
           </button>

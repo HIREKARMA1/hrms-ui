@@ -22,7 +22,7 @@ export function SummaryStatCards({ stats }: { stats: SummaryStat[] }) {
             <CardContent className="flex items-center gap-4 p-5">
               <div
                 className={cn(
-                  'flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#F0EDFF] text-[#5938DB]',
+                  'flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#CCFBF1] text-[#0F766E]',
                   stat.accent,
                 )}
               >

@@ -3,7 +3,7 @@ import { Cell, Pie, PieChart, ResponsiveContainer } from 'recharts'
 
 type SourceRow = { name: string; value: number }
 
-const SOURCE_SLICE_COLORS = ['#5938DB', '#3B82F6', '#16A34A', '#F59E0B', '#98A2B3', '#7055EB'] as const
+const SOURCE_SLICE_COLORS = ['#0F766E', '#3B82F6', '#16A34A', '#F59E0B', '#98A2B3', '#7055EB'] as const
 
 function leadCountLabel(count: number): string {
   return count === 1 ? '1 lead' : `${count} leads`
@@ -90,7 +90,7 @@ export function LeadsSourceDonutCard({ data }: { data: SourceRow[] }) {
       </ul>
 
       {insight ? (
-        <p className="rounded-xl bg-[#F0EDFF] px-3 py-2.5 text-[12.5px] leading-snug text-[#17213A]">
+        <p className="rounded-xl bg-[#CCFBF1] px-3 py-2.5 text-[12.5px] leading-snug text-[#17213A]">
           {insight}
         </p>
       ) : null}

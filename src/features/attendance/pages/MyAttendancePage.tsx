@@ -1,3 +1,5 @@
+import { AppPageHeader } from '@/components/design/AppPageHeader'
+import { APP_PAGE_SHELL } from '@/components/design/appUi'
 import { useOptionalFeatureAccess } from '@/features/rbac/hooks/useFeatureAccess'
 
 import { MyAttendanceLiveReport } from '../components/MyAttendanceLiveReport'
@@ -9,13 +11,11 @@ export function MyAttendancePage() {
   const { displayName } = useOptionalFeatureAccess()
 
   return (
-    <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-navy">My Attendance</h1>
-        <p className="mt-1 text-sm text-text-secondary">
-          Personal attendance report for {displayName ?? 'you'} (from the HRMS attendance API).
-        </p>
-      </div>
+    <div className={APP_PAGE_SHELL}>
+      <AppPageHeader
+        title="My Attendance"
+        description={`Personal attendance report for ${displayName ?? 'you'} (from the HRMS attendance API).`}
+      />
 
       <MyAttendanceLiveReport />
     </div>

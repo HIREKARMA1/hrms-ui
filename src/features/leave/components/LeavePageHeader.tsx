@@ -17,7 +17,7 @@ export function LeavePageHeader({ viewer, role, onRoleChange }: LeavePageHeaderP
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
       <div>
-        <h1 className="text-2xl font-bold text-hrms-navy">Leave Management</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-navy">Leave Management</h1>
         <SignedInAs viewer={viewer} />
       </div>
       {viewer.source === 'demo' ? <LeaveDemoViewSelect value={role} onChange={onRoleChange} /> : null}

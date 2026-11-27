@@ -47,8 +47,8 @@ export function Header() {
   const initials = user ? getUserInitials(user) : 'U'
 
   return (
-    <header className="sticky top-0 z-20 border-b border-slate-200/80 bg-white/95 backdrop-blur">
-      <div className="flex h-16 items-center gap-3 px-4 sm:px-6">
+    <header className="sticky top-0 z-20 border-b border-border-soft bg-white/95 backdrop-blur">
+      <div className="flex h-16 items-center gap-3 px-4 sm:px-6 lg:px-8">
         <Button
           type="button"
           variant="outline"
@@ -62,13 +62,13 @@ export function Header() {
 
         <div className="relative min-w-0 flex-1 max-w-xl">
           <Search
-            className="pointer-events-none absolute top-1/2 left-3.5 h-4 w-4 -translate-y-1/2 text-slate-400"
+            className="pointer-events-none absolute top-1/2 left-3.5 h-4 w-4 -translate-y-1/2 text-text-secondary"
             aria-hidden="true"
           />
           <Input
             type="search"
             placeholder="Search employees, documents, requests..."
-            className="h-10 border-slate-200 bg-slate-50 pl-10 shadow-none focus-visible:bg-white"
+            className="h-10 border-border-soft bg-muted-bg pl-10 shadow-none focus-visible:bg-white"
           />
         </div>
 
@@ -77,18 +77,18 @@ export function Header() {
             type="button"
             variant="ghost"
             size="icon"
-            className="relative text-slate-500 hover:bg-slate-100 hover:text-slate-800"
+            className="relative text-text-secondary hover:bg-muted-bg hover:text-navy"
             aria-label="Notifications"
           >
             <Bell className="h-5 w-5" />
-            <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-rose-500 ring-2 ring-white" />
+            <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-hrms-danger ring-2 ring-white" />
           </Button>
 
           <Button
             type="button"
             variant="ghost"
             size="icon"
-            className="hidden text-slate-500 hover:bg-slate-100 hover:text-slate-800 sm:inline-flex"
+            className="hidden text-text-secondary hover:bg-muted-bg hover:text-navy sm:inline-flex"
             aria-label="Help"
           >
             <CircleHelp className="h-5 w-5" />
@@ -101,18 +101,18 @@ export function Header() {
             <DropdownMenuTrigger asChild>
               <button
                 type="button"
-                className="flex items-center gap-2.5 rounded-xl px-1.5 py-1.5 transition-colors hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:outline-none"
+                className="flex items-center gap-2.5 rounded-xl px-1.5 py-1.5 transition-colors hover:bg-muted-bg focus-visible:ring-2 focus-visible:ring-teal-light focus-visible:outline-none"
               >
                 <Avatar className="h-9 w-9">
                   <AvatarFallback>{initials || 'U'}</AvatarFallback>
                 </Avatar>
                 <div className="hidden text-left md:block">
-                  <p className="max-w-[220px] truncate text-sm font-semibold text-slate-900">
+                  <p className="max-w-[220px] truncate text-sm font-semibold text-navy">
                     {displayName}
                   </p>
-                  <p className="text-xs text-slate-500">{roleLabel}</p>
+                  <p className="text-xs text-text-secondary">{roleLabel}</p>
                 </div>
-                <ChevronDown className="hidden h-4 w-4 text-slate-400 md:block" />
+                <ChevronDown className="hidden h-4 w-4 text-text-secondary md:block" />
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-52">

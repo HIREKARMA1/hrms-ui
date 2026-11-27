@@ -64,7 +64,7 @@ export function AttendanceOverview() {
               <Bar
                 dataKey="present"
                 name="Present %"
-                fill="#6d5cf6"
+                fill="#0F766E"
                 radius={[6, 6, 0, 0]}
                 maxBarSize={28}
               />

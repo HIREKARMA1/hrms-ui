@@ -10,7 +10,7 @@ const STATUS_STYLES: Record<
   'Half-Day': { bg: 'bg-[#FEF3DC]', text: 'text-[#B45309]', dot: 'bg-[#F59E0B]' },
   'On Leave': { bg: 'bg-[#E6EFFE]', text: 'text-[#3B82F6]', dot: 'bg-[#3B82F6]' },
   Holiday: { bg: 'bg-[#E6EFFE]', text: 'text-[#3B82F6]', dot: 'bg-[#3B82F6]' },
-  'Weekly Off': { bg: 'bg-[#F0EDFF]', text: 'text-[#5938DB]', dot: 'bg-[#5938DB]' },
+  'Weekly Off': { bg: 'bg-[#CCFBF1]', text: 'text-[#0F766E]', dot: 'bg-[#0F766E]' },
   'In Progress': { bg: 'bg-[#FEF3DC]', text: 'text-[#B45309]', dot: 'bg-[#F59E0B]' },
 }
 

@@ -48,7 +48,7 @@ export function PermissionDetailsDrawer({
       >
         <SheetHeader className="border-b border-border-soft px-4 py-5 pr-12 sm:px-6">
           <div className="flex min-w-0 items-center gap-3">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#F0EDFF] text-brand-500">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#CCFBF1] text-brand-500">
               <Shield className="h-5 w-5" strokeWidth={1.9} />
             </span>
             <SheetTitle className="truncate text-xl font-bold text-navy">
@@ -60,7 +60,7 @@ export function PermissionDetailsDrawer({
         {permission ? (
           <div className="flex-1 space-y-6 overflow-y-auto px-4 py-5 sm:px-6">
             <div className="flex items-start gap-3">
-              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#F0EDFF] text-brand-500">
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#CCFBF1] text-brand-500">
                 <ModuleIcon className="h-6 w-6" strokeWidth={1.8} />
               </span>
               <div className="min-w-0 space-y-2">
@@ -152,7 +152,7 @@ export function PermissionDetailsDrawer({
                   {hiddenRoleCount > 0 ? (
                     <Badge
                       variant="secondary"
-                      className="border-0 bg-[#F0EDFF] px-2.5 py-1 text-xs font-semibold text-brand-500"
+                      className="border-0 bg-[#CCFBF1] px-2.5 py-1 text-xs font-semibold text-brand-500"
                     >
                       +{hiddenRoleCount} more
                     </Badge>
